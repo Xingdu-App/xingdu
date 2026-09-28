@@ -5,7 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"sort"
-	"time"
+	"xingdu.app/xingdu/internal/hosts"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -14,12 +14,7 @@ import (
 var migrations embed.FS
 
 type Store struct{ Pool *pgxpool.Pool }
-type Host struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	Status     string     `json:"status"`
-	LastSeenAt *time.Time `json:"last_seen_at"`
-}
+type Host = hosts.Host
 
 func Open(ctx context.Context, url string) (*Store, error) {
 	pool, err := pgxpool.New(ctx, url)
@@ -35,23 +30,7 @@ func Open(ctx context.Context, url string) (*Store, error) {
 func (s *Store) Close() { s.Pool.Close() }
 func (s *Store) Ready(ctx context.Context) error {
 	var version string
-	return s.Pool.QueryRow(ctx, "SELECT version FROM schema_migrations WHERE version = '001_hosts.sql'").Scan(&version)
-}
-func (s *Store) Hosts(ctx context.Context) ([]Host, error) {
-	rows, err := s.Pool.Query(ctx, "SELECT id::text, name, status, last_seen_at FROM hosts ORDER BY created_at, id")
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	hosts := make([]Host, 0)
-	for rows.Next() {
-		var h Host
-		if err := rows.Scan(&h.ID, &h.Name, &h.Status, &h.LastSeenAt); err != nil {
-			return nil, err
-		}
-		hosts = append(hosts, h)
-	}
-	return hosts, rows.Err()
+	return s.Pool.QueryRow(ctx, "SELECT version FROM schema_migrations WHERE version = '002_auth_inventory.sql'").Scan(&version)
 }
 
 // Migrate applies embedded migrations transactionally under a database-wide lock.

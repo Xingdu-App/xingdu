@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { loadHosts, loadSystem } from "./api";
+import { errorMessage, loadHosts, loadSystem } from "./api";
+import HostDialog from "./HostDialog";
 import type { Host, System } from "./api";
 import "./App.css";
 
@@ -30,12 +31,20 @@ const pendingCopy: Record<string, { title: string; description: string }> = {
   },
   settings: {
     title: "让星渡成为你的控制中心",
-    description:
-      "账户、访问控制、通知与凭据管理尚未开放。当前版本仅供本地开发。",
+    description: "当前支持单管理员登录。团队权限、通知与凭据管理将在后续开放。",
   },
 };
 
-function App() {
+function App({
+  username,
+  onLogout,
+}: {
+  username: string;
+  onLogout: () => Promise<void>;
+}) {
+  const [editing, setEditing] = useState<Host | null | undefined>(undefined);
+  const [notice, setNotice] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
   const [page, setPage] = useState<Page>("overview");
   const [system, setSystem] = useState<System | null>(null);
   const [hosts, setHosts] = useState<Host[]>([]);
@@ -95,9 +104,7 @@ function App() {
           }}
           aria-label="星渡首页"
         >
-          <span className="brand-symbol" aria-hidden="true">
-            ✦
-          </span>
+          <img className="brand-logo" src="/xingdu-logo.png" alt="" />
           <span>
             星渡<small>XINGDU</small>
           </span>
@@ -105,7 +112,8 @@ function App() {
         <div className="workspace">
           <span className="workspace-avatar">X</span>
           <div>
-            我的工作空间<small>本地开发</small>
+            {username}
+            <small>管理员</small>
           </div>
           <span className="workspace-dot" />
         </div>
@@ -131,7 +139,7 @@ function App() {
             <br />
             <strong>一键抵达。</strong>
           </p>
-          <span className="version">{system?.version ?? "0.1.0-dev"}</span>
+          <span className="version">{system?.version ?? "0.2.0-dev"}</span>
         </div>
       </aside>
       <div className="body">
@@ -139,7 +147,25 @@ function App() {
           <div>
             工作台 <span>/</span> <strong>{title}</strong>
           </div>
-          <span className="environment">LOCAL / 本地环境</span>
+          <div className="account-actions">
+            <span className="environment">LOCAL / 本地环境</span>
+            <button
+              className="secondary"
+              disabled={loggingOut}
+              onClick={async () => {
+                setLoggingOut(true);
+                try {
+                  await onLogout();
+                } catch (reason) {
+                  setNotice(errorMessage(reason));
+                } finally {
+                  setLoggingOut(false);
+                }
+              }}
+            >
+              {loggingOut ? "正在退出…" : "退出登录"}
+            </button>
+          </div>
         </header>
         <main>
           <div className="page-heading">
@@ -161,6 +187,14 @@ function App() {
               <span aria-hidden="true">↻</span>
             </button>
           </div>
+          {notice && (
+            <div className="notice" role="status">
+              {notice}
+              <button aria-label="关闭提示" onClick={() => setNotice("")}>
+                ×
+              </button>
+            </div>
+          )}
           {state === "error" && (
             <div role="alert" className="alert">
               <strong>无法获取当前状态</strong>
@@ -176,7 +210,7 @@ function App() {
                 ? "控制端与数据库已连接"
                 : "控制端或数据库不可用"}
             <span className="status-divider">/</span>
-            <span>开发预览 · 服务器接入尚未开放</span>
+            <span>开发预览 · Agent 接入尚未开放</span>
           </div>
           {(page === "overview" || page === "hosts") && (
             <>
@@ -185,7 +219,7 @@ function App() {
                   <Stat
                     label="服务器"
                     value={state === "ready" ? String(hosts.length) : "—"}
-                    note="已接入的计算资源"
+                    note="已登记的服务器资料"
                   />
                   <Stat
                     label="在线服务器"
@@ -213,27 +247,115 @@ function App() {
                     <h2>服务器</h2>
                     <p>你的网络，从第一台服务器开始。</p>
                   </div>
-                  <span className="badge">
-                    {state === "ready"
-                      ? `${hosts.length} 台服务器`
-                      : "状态待确认"}
-                  </span>
+                  <div className="inventory-actions">
+                    <button
+                      className="primary compact"
+                      disabled={state !== "ready"}
+                      onClick={() => setEditing(null)}
+                    >
+                      ＋ 添加服务器
+                    </button>
+                    <span className="badge">
+                      {state === "ready"
+                        ? `${hosts.length} 台服务器`
+                        : "状态待确认"}
+                    </span>
+                  </div>
                 </div>
                 {state === "ready" && hosts.length > 0 ? (
-                  <div className="table-scroll">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>名称</th>
-                          <th>状态</th>
-                          <th>最后心跳</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {hosts.map((host) => (
-                          <tr key={host.id}>
-                            <td>{host.name}</td>
-                            <td>
+                  <>
+                    <div className="table-scroll inventory-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>名称</th>
+                            <th>地址 / SSH</th>
+                            <th>标签</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {hosts.map((host) => (
+                            <tr key={host.id}>
+                              <td>
+                                <strong>{host.name}</strong>
+                                {host.notes && (
+                                  <small className="host-note">
+                                    {host.notes}
+                                  </small>
+                                )}
+                              </td>
+                              <td>
+                                <span className="host-address">
+                                  {host.address}
+                                </span>
+                                <small className="host-note">
+                                  {host.ssh_user} · {host.ssh_port}
+                                </small>
+                              </td>
+                              <td>
+                                <div className="host-tags">
+                                  {host.tags.map((tag) => (
+                                    <span className="badge" key={tag}>
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {host.tags.length === 0 && "—"}
+                                </div>
+                              </td>
+                              <td>
+                                {
+                                  {
+                                    online: "在线",
+                                    offline: "离线",
+                                    pending: "待接入",
+                                  }[host.status]
+                                }
+                              </td>
+                              <td>
+                                <button
+                                  className="secondary"
+                                  aria-label={`编辑 ${host.name}`}
+                                  onClick={() => setEditing(host)}
+                                >
+                                  编辑
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="inventory-cards">
+                      {hosts.map((host) => (
+                        <article className="host-card" key={host.id}>
+                          <div className="host-card-heading">
+                            <h3>{host.name}</h3>
+                            <button
+                              className="secondary"
+                              aria-label={`编辑 ${host.name}`}
+                              onClick={() => setEditing(host)}
+                            >
+                              编辑
+                            </button>
+                          </div>
+                          <p className="host-card-address">{host.address}</p>
+                          <p className="host-card-ssh">
+                            SSH · {host.ssh_user} · {host.ssh_port}
+                          </p>
+                          {host.notes && (
+                            <p className="host-card-notes">{host.notes}</p>
+                          )}
+                          <div className="host-card-footer">
+                            <div className="host-tags">
+                              {host.tags.map((tag) => (
+                                <span className="badge" key={tag}>
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                            <span className="badge">
                               {
                                 {
                                   online: "在线",
@@ -241,19 +363,12 @@ function App() {
                                   pending: "待接入",
                                 }[host.status]
                               }
-                            </td>
-                            <td>
-                              {host.last_seen_at
-                                ? new Date(host.last_seen_at).toLocaleString(
-                                    "zh-CN",
-                                  )
-                                : "尚无心跳"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                            </span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="empty-state">
                     <div className="constellation" aria-hidden="true">
@@ -265,18 +380,22 @@ function App() {
                     </div>
                     <h3>
                       {state === "ready"
-                        ? "还没有接入服务器"
+                        ? "还没有添加服务器"
                         : state === "loading"
                           ? "正在获取服务器列表"
                           : "服务器列表暂时不可用"}
                     </h3>
                     <p>
                       {state === "ready"
-                        ? "接入功能完成后，你可以在这里统一管理 VPS、协议与线路。"
+                        ? "添加第一台 VPS 的连接资料，为后续接入和部署做好准备。"
                         : "连接恢复后，这里会显示真实的服务器状态。"}
                     </p>
-                    <button className="primary" disabled>
-                      ＋ 添加服务器 <small>即将开放</small>
+                    <button
+                      className="primary"
+                      disabled={state !== "ready"}
+                      onClick={() => setEditing(null)}
+                    >
+                      ＋ 添加服务器
                     </button>
                   </div>
                 )}
@@ -333,6 +452,17 @@ function App() {
           </footer>
         </main>
       </div>
+      {editing !== undefined && (
+        <HostDialog
+          host={editing}
+          onClose={() => setEditing(undefined)}
+          onSaved={() => {
+            setEditing(undefined);
+            setNotice("服务器资料已更新。");
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

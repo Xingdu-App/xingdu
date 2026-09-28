@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="apps/web/public/xingdu-logo.png" width="128" alt="Xingdu logo" />
+</p>
+
 # Xingdu · 星渡
 
 **Your servers. Your routes. One place to manage them.**
@@ -11,11 +15,12 @@ Xingdu is an open-source project building a self-hosted control panel for VPS an
 
 Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-> **Early development preview.** You can run the console locally today. Authentication, VPS onboarding, protocol deployment, and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
+> **Early development preview.** You can run the console locally today. Administrator sign-in and server inventory management are available. Agent onboarding, protocol deployment, and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
 
 ## What you can try today
 
-- **Web console:** responsive navigation, an empty server inventory, and clear placeholders for upcoming features.
+- **Server inventory:** add, edit, and remove server records with addresses, SSH connection details, tags, and notes.
+- **Administrator sign-in:** a locally initialized account, revocable sessions, and protected management endpoints.
 - **Live service status:** API and database availability, with error messages and retry when the connection fails.
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
@@ -51,7 +56,13 @@ docker compose up --build -d --wait
 
 Open the console at **[http://127.0.0.1:15173](http://127.0.0.1:15173)**. The first build downloads dependencies and container images, so it may take a few minutes.
 
-A fresh installation shows an empty server list. Adding a server is intentionally disabled until onboarding is implemented.
+Create your initial administrator from a local terminal. The command prompts for a hidden password of 12–72 bytes; there is no default password. It refuses to overwrite an existing administrator.
+
+```sh
+docker compose exec api admin --username admin
+```
+
+Sign in, then add your first server record. Saving connection details does not contact the VPS: new records remain **Pending enrollment** until Agent onboarding is implemented. Do not put passwords or private keys in notes.
 
 | Service | Local address |
 | --- | --- |
@@ -59,7 +70,7 @@ A fresh installation shows an empty server list. Adding a server is intentionall
 | API | `http://127.0.0.1:18080` |
 | PostgreSQL | `127.0.0.1:54329` |
 
-All published ports bind to loopback. The example credentials are for local development only. If you already have a `.env` file, keep it instead of copying over it.
+All published ports bind to loopback. Use the exact console URL above: write requests are checked against `XINGDU_PUBLIC_ORIGIN`, which defaults to `http://127.0.0.1:15173`. The example credentials are for local development only. If you already have a `.env` file, keep it instead of copying over it.
 
 To stop the preview while keeping database data:
 

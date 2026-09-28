@@ -31,3 +31,7 @@ coverage/
 # Browser verification output
 /playwright-report/
 /test-results/
+
+# Local-only credentials and unselected logo drafts
+/.local/
+/docs/brand/xingdu-logo-concept-*.png

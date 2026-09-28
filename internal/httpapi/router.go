@@ -3,18 +3,43 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"golang.org/x/crypto/bcrypt"
+	"io"
+	"mime"
 	"net/http"
 	"time"
-
+	"xingdu.app/xingdu/internal/hosts"
 	"xingdu.app/xingdu/internal/storage"
 )
 
 type Store interface {
 	Ready(context.Context) error
 	Hosts(context.Context) ([]storage.Host, error)
+	Credentials(context.Context, string) (storage.Admin, error)
+	Session(context.Context, string) (storage.Admin, error)
+	NewSession(context.Context, string, string, time.Time) error
+	DeleteSession(context.Context, string) error
+	CreateHost(context.Context, hosts.Input) (storage.Host, error)
+	UpdateHost(context.Context, string, hosts.Input) (storage.Host, error)
+	DeleteHost(context.Context, string) error
+}
+type Options struct {
+	PublicOrigin  string
+	SecureCookies bool
+}
+type api struct {
+	store     Store
+	origin    string
+	secure    bool
+	dummyHash []byte
+	attempts  limiter
+	hashSlots chan struct{}
 }
 
-func New(store Store) http.Handler {
+func New(store Store, opts Options) http.Handler {
+	dummy, _ := bcrypt.GenerateFromPassword([]byte("non-authenticating-dummy-password"), bcrypt.DefaultCost)
+	a := &api{store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { reply(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
@@ -24,25 +49,123 @@ func New(store Store) http.Handler {
 		}
 		reply(w, 200, map[string]string{"status": "ok"})
 	})
-	mux.HandleFunc("GET /api/v1/system", func(w http.ResponseWriter, r *http.Request) {
-		ready := store.Ready(r.Context()) == nil
-		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.1.0-dev", "stage": "scaffold", "database_ready": ready, "capabilities": map[string]bool{"host_enrollment": false, "deployment": false, "subscription_export": false}}})
-	})
-	mux.HandleFunc("GET /api/v1/hosts", func(w http.ResponseWriter, r *http.Request) {
-		hosts, err := store.Hosts(r.Context())
+	mux.HandleFunc("POST /api/v1/auth/login", a.login)
+	mux.HandleFunc("POST /api/v1/auth/logout", a.require(a.logout))
+	mux.HandleFunc("GET /api/v1/auth/session", a.require(func(w http.ResponseWriter, r *http.Request, admin storage.Admin, token string) {
+		reply(w, 200, map[string]any{"data": map[string]string{"username": admin.Username, "csrf_token": csrfToken(token)}})
+	}))
+	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.2.0-dev", "stage": "inventory", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": false, "deployment": false, "subscription_export": false}}})
+	}))
+	mux.HandleFunc("GET /api/v1/hosts", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+		result, err := store.Hosts(r.Context())
 		if err != nil {
-			reply(w, 503, map[string]any{"error": map[string]string{"code": "database_unavailable", "message": "服务器列表暂时不可用"}})
+			storeError(w, err)
 			return
 		}
-		reply(w, 200, map[string]any{"data": hosts})
-	})
+		reply(w, 200, map[string]any{"data": result})
+	}))
+	mux.HandleFunc("POST /api/v1/hosts", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+		var in hosts.Input
+		if !decode(w, r, &in) {
+			return
+		}
+		if err := in.Validate(); err != nil {
+			failure(w, 422, "invalid_host", err.Error())
+			return
+		}
+		host, err := store.CreateHost(r.Context(), in)
+		if err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 201, map[string]any{"data": host})
+	}))
+	mux.HandleFunc("PUT /api/v1/hosts/{id}", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+		if !validID(w, r) {
+			return
+		}
+		var in hosts.Input
+		if !decode(w, r, &in) {
+			return
+		}
+		if err := in.Validate(); err != nil {
+			failure(w, 422, "invalid_host", err.Error())
+			return
+		}
+		host, err := store.UpdateHost(r.Context(), r.PathValue("id"), in)
+		if err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 200, map[string]any{"data": host})
+	}))
+	mux.HandleFunc("DELETE /api/v1/hosts/{id}", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+		if !validID(w, r) {
+			return
+		}
+		if err := store.DeleteHost(r.Context(), r.PathValue("id")); err != nil {
+			storeError(w, err)
+			return
+		}
+		w.WriteHeader(204)
+	}))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		if r.Method != "GET" && r.Method != "HEAD" {
+			if a.origin == "" || r.Header.Get("Origin") != a.origin || r.Header.Get("X-Xingdu-Request") != "1" {
+				failure(w, 403, "origin_rejected", "请求来源不受信任")
+				return
+			}
+			if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" {
+				failure(w, 403, "origin_rejected", "请求来源不受信任")
+				return
+			}
+			contentType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+			if err != nil || contentType != "application/json" {
+				failure(w, 415, "invalid_content_type", "请使用 JSON 请求")
+				return
+			}
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 		defer cancel()
 		mux.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+func validID(w http.ResponseWriter, r *http.Request) bool {
+	if !hosts.IDPattern.MatchString(r.PathValue("id")) {
+		failure(w, 400, "invalid_id", "服务器 ID 无效")
+		return false
+	}
+	return true
+}
+func decode(w http.ResponseWriter, r *http.Request, out any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 16*1024)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(out); err != nil {
+		failure(w, 400, "invalid_json", "请求内容格式不正确")
+		return false
+	}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		failure(w, 400, "invalid_json", "请求只能包含一个 JSON 对象")
+		return false
+	}
+	return true
+}
+func storeError(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, storage.ErrNotFound):
+		failure(w, 404, "not_found", "记录不存在或已删除")
+	case errors.Is(err, storage.ErrConflict):
+		failure(w, 409, "conflict", "地址与端口已存在，或记录仍被其他资源使用")
+	default:
+		failure(w, 503, "unavailable", "服务暂时不可用，请稍后重试")
+	}
+}
+func failure(w http.ResponseWriter, status int, code, message string) {
+	reply(w, status, map[string]any{"error": map[string]string{"code": code, "message": message}})
 }
 func reply(w http.ResponseWriter, status int, body any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

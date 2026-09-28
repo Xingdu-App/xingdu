@@ -596,3 +596,350 @@ th {
     flex-wrap: wrap;
   }
 }
+
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  background: #e4f1ee;
+}
+.account-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.account-actions .secondary {
+  font-size: 11px;
+  padding: 7px 10px;
+}
+.inventory-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.primary.compact {
+  margin: 0;
+  font-size: 12px;
+  padding: 9px 12px;
+}
+.host-note {
+  display: block;
+  color: #7b8c99;
+  margin-top: 7px;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.host-address {
+  overflow-wrap: anywhere;
+}
+.host-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid #bddbd0;
+  background: #eef8f3;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  color: #376859;
+}
+.notice button {
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 20px;
+}
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 35px 20px;
+  background: #edf2f3;
+}
+.auth-card {
+  width: min(100%, 430px);
+  padding: 38px;
+  background: #fff;
+  border: 1px solid #dfe8e8;
+  border-radius: 18px;
+  box-shadow: 0 18px 80px #143d430a;
+}
+.auth-logo {
+  display: block;
+  width: 90px;
+  height: 90px;
+  margin: -10px auto 16px;
+}
+.auth-card > .eyebrow,
+.auth-card > h1,
+.auth-subtitle {
+  text-align: center;
+}
+.auth-card h1 {
+  font-size: 23px;
+}
+.auth-subtitle {
+  color: #7c8b95;
+  margin: 12px 0 30px;
+}
+.auth-card label,
+.host-dialog label {
+  display: block;
+  margin: 18px 0 8px;
+  color: #40596b;
+  font-size: 12px;
+}
+.auth-card input,
+.host-dialog input,
+.host-dialog textarea {
+  width: 100%;
+  border: 1px solid #cfdce2;
+  border-radius: 7px;
+  background: white;
+  padding: 11px 12px;
+  font: inherit;
+  color: #223b4b;
+  min-height: 42px;
+}
+.auth-card input:focus,
+.host-dialog input:focus,
+.host-dialog textarea:focus {
+  outline: 2px solid #83b9ad;
+  outline-offset: 1px;
+}
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 23px;
+}
+.form-error {
+  font-size: 12px;
+  color: #a13e36;
+  background: #fff3f0;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 14px;
+  line-height: 1.7;
+}
+.auth-error {
+  line-height: 1.8;
+}
+.auth-error button {
+  margin-top: 12px;
+}
+.auth-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #8a9aa7;
+  margin-top: 28px;
+}
+.setup-help {
+  border-top: 1px solid #e4ebef;
+  margin-top: 25px;
+  padding-top: 18px;
+  color: #718493;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.setup-help summary {
+  cursor: pointer;
+}
+.setup-help p {
+  margin-top: 10px;
+}
+.setup-help code {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  background: #f3f6f7;
+  margin-top: 10px;
+  border-radius: 5px;
+}
+.host-dialog {
+  width: min(590px, calc(100% - 28px));
+  max-height: calc(100dvh - 40px);
+  overflow: auto;
+  border: 1px solid #dce6e8;
+  padding: 28px;
+  border-radius: 15px;
+  color: #253649;
+}
+.host-dialog::backdrop {
+  background: #0e1c2d80;
+  backdrop-filter: blur(3px);
+}
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.dialog-heading h2 {
+  font-weight: 600;
+  font-size: 21px;
+}
+.dialog-heading .eyebrow {
+  margin-bottom: 7px;
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  color: #718393;
+  font-size: 26px;
+  min-width: 38px;
+  min-height: 38px;
+}
+.form-hint {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f6f5;
+  border-radius: 7px;
+  color: #5a7a76;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.host-dialog fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.host-dialog label small {
+  color: #82939f;
+  font-size: 11px;
+  margin-left: 8px;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 23px;
+}
+.dialog-actions .primary {
+  margin: 0;
+}
+.text-danger {
+  margin-right: auto;
+  padding: 9px 0;
+  color: #a4473e;
+  background: transparent;
+  border: 0;
+}
+.danger {
+  color: white;
+  background: #aa5147;
+  padding: 11px 15px;
+  border: 0;
+  border-radius: 7px;
+}
+.delete-confirm p {
+  margin-top: 20px;
+  line-height: 1.8;
+}
+.delete-confirm p:nth-child(2) {
+  color: #738797;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .account-actions .environment {
+    display: none;
+  }
+  .inventory-actions {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+  }
+  .auth-card {
+    padding: 28px;
+  }
+  .host-dialog {
+    padding: 21px;
+  }
+  .dialog-actions {
+    flex-wrap: wrap;
+  }
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.inventory-table table {
+  min-width: 700px;
+}
+.inventory-table th {
+  white-space: nowrap;
+}
+.inventory-table td:nth-child(4) {
+  white-space: nowrap;
+}
+.inventory-cards {
+  display: none;
+}
+.host-card {
+  padding: 22px;
+  border-bottom: 1px solid #e6edef;
+}
+.host-card:last-child {
+  border-bottom: 0;
+}
+.host-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.host-card-heading h3 {
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.host-card-heading button {
+  flex-shrink: 0;
+}
+.host-card-address {
+  margin-top: 14px;
+  color: #435f70;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.host-card-ssh {
+  color: #8595a0;
+  font-size: 11px;
+  margin-top: 7px;
+}
+.host-card-notes {
+  color: #788d98;
+  font-size: 12px;
+  margin-top: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.host-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 18px;
+}
+@media (max-width: 1100px) {
+  .inventory-table {
+    display: none;
+  }
+  .inventory-cards {
+    display: block;
+  }
+}

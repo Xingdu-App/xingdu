@@ -23,6 +23,7 @@ services:
     environment: &backend_env
       DATABASE_URL: postgres://xingdu:${POSTGRES_PASSWORD}@db:5432/xingdu?sslmode=disable
       XINGDU_HTTP_ADDR: 0.0.0.0:8080
+      XINGDU_PUBLIC_ORIGIN: ${XINGDU_PUBLIC_ORIGIN:-http://127.0.0.1:15173}
     depends_on:
       db:
         condition: service_healthy

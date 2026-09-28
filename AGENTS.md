@@ -5,4 +5,4 @@
 - Never add personal email addresses, local absolute paths, secrets, live VPS addresses, or real subscriptions to tracked files.
 - Do not claim a runtime/client combination works until verified. Distinguish scaffold, implemented, and end-to-end verified capabilities.
 - Use `make check` for backend and frontend checks. Use `docker compose up --build -d --wait` for integration validation when Docker is available.
-- The current scaffold is local development only. Authentication, Agent enrollment, and deployment execution are not implemented; keep published development ports on loopback.
+- The current scaffold is local development only. Single-admin authentication and host inventory are implemented; Agent enrollment and deployment execution are not implemented; keep published development ports on loopback.

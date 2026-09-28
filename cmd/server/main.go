@@ -35,10 +35,10 @@ func run() error {
 		return err
 	}
 	defer store.Close()
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan error, 1)
 	go func() { done <- srv.ListenAndServe() }()
-	slog.Info("xingdu API starting", "address", cfg.HTTPAddr, "stage", "scaffold")
+	slog.Info("xingdu API starting", "address", cfg.HTTPAddr, "stage", "inventory")
 	select {
 	case err := <-done:
 		if errors.Is(err, http.ErrServerClosed) {

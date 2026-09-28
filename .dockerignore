@@ -6,3 +6,7 @@
 bin
 coverage
 **/*.log
+
+.local
+docs/brand/xingdu-logo-concept-*.png
+test-results
