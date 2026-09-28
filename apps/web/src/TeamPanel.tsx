@@ -1,3 +1,5 @@
+import OwnershipTransfer from "./OwnershipTransfer";
+import { t, useLocale, localeTag } from "./i18n";
 import Select from "./Select";
 import { useEffect, useState } from "react";
 import {
@@ -16,6 +18,7 @@ export default function TeamPanel({
 }: {
   organization: Organization;
 }) {
+  useLocale();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60000);
@@ -76,10 +79,10 @@ export default function TeamPanel({
       ? ["admin", "member", "viewer"]
       : ["member", "viewer"];
   const descriptions: Record<Role, string> = {
-    owner: "管理组织、成员与全部资源",
-    admin: "管理成员、服务器与机器接入",
-    member: "新增服务器资料，查看组织资源",
-    viewer: "仅查看组织资源，无法进行修改",
+    owner: t("管理组织、成员与全部资源"),
+    admin: t("管理成员、服务器与机器接入"),
+    member: t("新增服务器资料，查看组织资源"),
+    viewer: t("仅查看组织资源，无法进行修改"),
   };
   const roleOptions = roles.map((r) => ({
     value: r,
@@ -95,8 +98,10 @@ export default function TeamPanel({
       <div className="page-heading">
         <div>
           <p className="eyebrow">WORKSPACE & PEOPLE</p>
-          <h1>组织与成员</h1>
-          <p className="subtitle">在同一个空间里，管理资源与协作权限。</p>
+          <h1>{t("人员管理")}</h1>
+          <p className="subtitle">
+            {t("在同一个空间里，管理资源与协作权限。")}
+          </p>
         </div>
         <span className="role-badge">{roleNames[organization.role]}</span>
       </div>
@@ -106,28 +111,31 @@ export default function TeamPanel({
         </span>
         <div className="organization-summary-name">
           <h2>{organization.name}</h2>
-          <p>当前组织 · {descriptions[organization.role]}</p>
+          <p>
+            {t("当前组织 ·")}
+            {descriptions[organization.role]}
+          </p>
         </div>
         <div className="organization-count">
           <strong>{loaded ? members.length : "—"}</strong>
-          <span>组织成员</span>
+          <span>{t("组织成员")}</span>
         </div>
         {manage && (
           <div className="organization-count">
             <strong>{loaded ? pendingCount : "—"}</strong>
-            <span>待接受邀请</span>
+            <span>{t("待接受邀请")}</span>
           </div>
         )}
       </div>
       {error && (
         <div role="alert" className="form-error team-error">
-          {error}
+          {t(error)}
           <button
             className="secondary"
             disabled={busy}
             onClick={() => void act(refresh)}
           >
-            重试
+            {t("重试")}
           </button>
         </div>
       )}
@@ -135,16 +143,16 @@ export default function TeamPanel({
         <section className="panel team-members">
           <div className="section-heading">
             <div>
-              <h2>组织成员</h2>
-              <p>查看成员身份，分配合适的访问权限。</p>
+              <h2>{t("组织成员")}</h2>
+              <p>{t("查看成员身份，分配合适的访问权限。")}</p>
             </div>
             <span className="badge">
-              {loaded ? `${members.length} 位成员` : "加载中"}
+              {loaded ? t("{0} 位成员", { 0: members.length }) : t("加载中")}
             </span>
           </div>
           {!loaded && !error && (
             <p className="team-empty" role="status">
-              正在加载成员…
+              {t("正在加载成员…")}
             </p>
           )}
           <div className="member-list">
@@ -164,7 +172,7 @@ export default function TeamPanel({
                 (organization.role === "owner" || m.role !== "admin") ? (
                   <div className="member-actions">
                     <Select
-                      label={`${m.username} 的角色`}
+                      label={t("{0} 的角色", { 0: m.username })}
                       value={m.role}
                       disabled={busy}
                       options={roleOptions}
@@ -177,7 +185,7 @@ export default function TeamPanel({
                       disabled={busy}
                       onClick={() => setRemoving(m)}
                     >
-                      移除
+                      {t("移除")}
                     </button>
                   </div>
                 ) : (
@@ -186,10 +194,18 @@ export default function TeamPanel({
               </article>
             ))}
           </div>
+          {organization.role === "owner" && loaded && (
+            <OwnershipTransfer
+              members={members}
+              organizationName={organization.name}
+            />
+          )}
           {removing && (
             <div className="team-banner remove-banner" role="alert">
               <p>
-                移除 {removing.username} 后，对方将立即失去此组织的访问权限。
+                {t("移除")}
+                {removing.username}
+                {t("后，对方将立即失去此组织的访问权限。")}
               </p>
               <div className="member-actions">
                 <button
@@ -202,30 +218,30 @@ export default function TeamPanel({
                     })
                   }
                 >
-                  确认移除
+                  {t("确认移除")}
                 </button>
                 <button
                   className="secondary"
                   disabled={busy}
                   onClick={() => setRemoving(null)}
                 >
-                  取消
+                  {t("取消")}
                 </button>
               </div>
             </div>
           )}
           <div className="panel-note">
             {manage
-              ? "组织所有者的身份固定，其他成员按角色获得相应权限。"
-              : "成员与邀请由组织所有者或管理员管理。"}
+              ? t("组织所有者的身份固定，其他成员按角色获得相应权限。")
+              : t("成员与邀请由组织所有者或管理员管理。")}
           </div>
         </section>
         {manage && (
           <section className="panel team-invite">
             <div className="section-heading">
               <div>
-                <h2>邀请新成员</h2>
-                <p>让协作者加入当前组织。</p>
+                <h2>{t("邀请新成员")}</h2>
+                <p>{t("让协作者加入当前组织。")}</p>
               </div>
               <span className="invite-symbol" aria-hidden="true">
                 ＋
@@ -233,11 +249,11 @@ export default function TeamPanel({
             </div>
             <div className="panel-content">
               <label className="field-label" htmlFor="invite-role">
-                成员角色
+                {t("成员角色")}
               </label>
               <Select
                 id="invite-role"
-                label="邀请角色"
+                label={t("邀请角色")}
                 value={role}
                 disabled={busy}
                 options={roleOptions}
@@ -253,15 +269,17 @@ export default function TeamPanel({
                   })
                 }
               >
-                {busy ? "正在处理…" : "生成邀请链接"}
+                {busy ? t("正在处理…") : t("生成邀请链接")}
                 <span aria-hidden="true">↗</span>
               </button>
               <p className="invite-help">
-                链接 7 天内有效，仅可使用一次。请私下分享给目标成员。
+                {t("链接 7 天内有效，仅可使用一次。请私下分享给目标成员。")}
               </p>
               {link && (
                 <div className="invite-result">
-                  <label htmlFor="invite-link">邀请链接 · 仅本次显示</label>
+                  <label htmlFor="invite-link">
+                    {t("邀请链接 · 仅本次显示")}
+                  </label>
                   <input
                     id="invite-link"
                     readOnly
@@ -273,10 +291,12 @@ export default function TeamPanel({
                     onClick={() =>
                       void navigator.clipboard
                         .writeText(link)
-                        .catch(() => setError("复制失败，请选中链接手动复制。"))
+                        .catch(() =>
+                          setError(t("复制失败，请选中链接手动复制。")),
+                        )
                     }
                   >
-                    复制链接
+                    {t("复制链接")}
                   </button>
                 </div>
               )}
@@ -288,29 +308,32 @@ export default function TeamPanel({
         <section className="panel team-invitations">
           <div className="section-heading">
             <div>
-              <h2>邀请记录</h2>
-              <p>跟踪邀请状态，撤销尚未使用的链接。</p>
+              <h2>{t("邀请记录")}</h2>
+              <p>{t("跟踪邀请状态，撤销尚未使用的链接。")}</p>
             </div>
-            <span className="badge">{pendingCount} 条待接受</span>
+            <span className="badge">
+              {pendingCount}
+              {t("条待接受")}
+            </span>
           </div>
           {loaded && invitations.length === 0 && (
             <div className="team-empty">
               <span className="empty-invite-mark" aria-hidden="true">
                 ↗
               </span>
-              <strong>还没有发出邀请</strong>
-              <p>生成一份邀请链接，开始团队协作。</p>
+              <strong>{t("还没有发出邀请")}</strong>
+              <p>{t("生成一份邀请链接，开始团队协作。")}</p>
             </div>
           )}
           <div className="member-list">
             {invitations.map((i) => {
               const state = i.accepted_at
-                ? "已接受"
+                ? t("已接受")
                 : i.revoked_at
-                  ? "已撤销"
+                  ? t("已撤销")
                   : new Date(i.expires_at).getTime() <= now
-                    ? "已过期"
-                    : "待接受";
+                    ? t("已过期")
+                    : t("待接受");
               return (
                 <article key={i.id} className="member-row invitation-row">
                   <div className="invitation-identity">
@@ -318,26 +341,30 @@ export default function TeamPanel({
                       ↗
                     </span>
                     <div>
-                      <strong>{roleNames[i.role]}邀请</strong>
+                      <strong>
+                        {roleNames[i.role]}
+                        {t("邀请")}
+                      </strong>
                       <small>
-                        到期时间 {new Date(i.expires_at).toLocaleString()}
+                        {t("到期时间")}
+                        {new Date(i.expires_at).toLocaleString(localeTag())}
                       </small>
                     </div>
                   </div>
                   <div className="member-actions">
                     <span
-                      className={`invitation-status${state === "待接受" ? " is-pending" : ""}`}
+                      className={`invitation-status${state === t("待接受") ? " is-pending" : ""}`}
                     >
                       {state}
                     </span>
-                    {state === "待接受" &&
+                    {state === t("待接受") &&
                       (organization.role === "owner" || i.role !== "admin") && (
                         <button
                           className="secondary"
                           disabled={busy}
                           onClick={() => void act(() => revokeInvitation(i.id))}
                         >
-                          撤销邀请
+                          {t("撤销邀请")}
                         </button>
                       )}
                   </div>

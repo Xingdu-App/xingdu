@@ -4,21 +4,29 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/jackc/pgx/v5/pgconn"
 	"golang.org/x/crypto/bcrypt"
 	"io"
 	"mime"
 	"net/http"
 	"time"
 	"xingdu.app/xingdu/internal/bootstrap"
+	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/hosts"
 	"xingdu.app/xingdu/internal/storage"
 	"xingdu.app/xingdu/internal/vault"
 )
 
 type Store interface {
+	EmailRegistrationStore
+	AccountStore
+	OperationsStore
+	OwnershipStore
+	AvatarStore
 	TenantStore
 	MachineStore
 	DeploymentStore
+	SubscriptionStore
 	Ready(context.Context) error
 	Hosts(context.Context) ([]storage.Host, error)
 	Credentials(context.Context, string) (storage.User, error)
@@ -30,6 +38,7 @@ type Store interface {
 	DeleteHost(context.Context, string) error
 }
 type Options struct {
+	EmailSender         emailverification.Sender
 	PublicOrigin        string
 	SecureCookies       bool
 	RegistrationEnabled bool
@@ -39,6 +48,7 @@ type Options struct {
 	SSHConnector        *bootstrap.Connector
 }
 type api struct {
+	emailSender     emailverification.Sender
 	agentOrigin     string
 	artifacts       string
 	vault           *vault.Vault
@@ -55,7 +65,7 @@ type api struct {
 
 func New(store Store, opts Options) http.Handler {
 	dummy, _ := bcrypt.GenerateFromPassword([]byte("non-authenticating-dummy-password"), bcrypt.DefaultCost)
-	a := &api{registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
+	a := &api{emailSender: opts.EmailSender, registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
 	if opts.AgentOrigin == "" {
 		opts.AgentOrigin = opts.PublicOrigin
 	}
@@ -70,7 +80,12 @@ func New(store Store, opts Options) http.Handler {
 	mux := http.NewServeMux()
 	a.machineRoutes(mux)
 	a.deploymentRoutes(mux)
+	a.subscriptionRoutes(mux)
+	a.avatarRoutes(mux)
 	a.tenantRoutes(mux)
+	a.accountRoutes(mux)
+	a.operationsRoutes(mux)
+	mux.HandleFunc("POST /api/v1/organization/ownership", a.tenant(a.transferOwnership))
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { reply(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		if err := store.Ready(r.Context()); err != nil {
@@ -85,7 +100,7 @@ func New(store Store, opts Options) http.Handler {
 		reply(w, 200, map[string]any{"data": map[string]string{"id": admin.ID, "username": admin.Username, "csrf_token": csrfToken(token)}})
 	}))
 	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
-		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.5.0-dev", "stage": "protocol-deployment", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": true, "subscription_export": false}}})
+		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.5.0-dev", "stage": "protocol-deployment", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": true, "subscription_export": true}}})
 	}))
 	mux.HandleFunc("GET /api/v1/hosts", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		result, err := store.Hosts(r.Context())
@@ -143,7 +158,7 @@ func New(store Store, opts Options) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result"
+		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result" || r.URL.Path == "/api/v1/agent/deployments/status"
 		if machineRequest {
 			if r.Header.Get("Origin") != "" || r.Header.Get("Cookie") != "" {
 				failure(w, 403, "agent_only", "机器接口不接受浏览器身份")
@@ -199,6 +214,11 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, out any, limit int64) b
 	return true
 }
 func storeError(w http.ResponseWriter, err error) {
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) && databaseError.Code == "P0004" {
+		failure(w, 409, "quota_exceeded", "当前组织已达到资源配额，请联系服务管理员")
+		return
+	}
 	switch {
 	case errors.Is(err, storage.ErrForbidden):
 		failure(w, 403, "forbidden", "你没有此组织的操作权限")

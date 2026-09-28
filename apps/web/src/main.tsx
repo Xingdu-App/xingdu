@@ -1,3 +1,4 @@
+import { isConsolePath } from "./routes";
 import { StrictMode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import "./index.css";
@@ -18,7 +19,7 @@ const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
 const page = (Object.keys(publicPages) as PublicPage[]).find(
   (key) => publicPages[key].path === pathname,
 );
-const consolePage = pathname === "/app" || pathname === "/login";
+const consolePage = isConsolePath(pathname);
 const content = page ? (
   <Marketing page={page} />
 ) : consolePage ? (

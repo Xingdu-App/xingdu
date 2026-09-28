@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,7 +34,8 @@ type limiter struct {
 	entries map[string]attempt
 }
 
-func (l *limiter) allow(key string) bool {
+func (l *limiter) allow(key string) bool { return l.allowLimit(key, 10) }
+func (l *limiter) allowLimit(key string, limit int) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
@@ -49,7 +51,7 @@ func (l *limiter) allow(key string) bool {
 		}
 		v = attempt{start: now}
 	}
-	if v.count >= 10 {
+	if v.count >= limit {
 		return false
 	}
 	v.count++
@@ -70,7 +72,11 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, &in) {
 		return
 	}
-	if len(in.Username) > 32 || len(in.Password) > 72 {
+	in.Username = strings.TrimSpace(in.Username)
+	if strings.Contains(in.Username, "@") {
+		in.Username = strings.ToLower(in.Username)
+	}
+	if len(in.Username) > 254 || len(in.Password) > 72 {
 		failure(w, 401, "invalid_credentials", "用户名或密码不正确")
 		return
 	}
@@ -99,7 +105,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	_, _ = rand.Read(bytes)
 	token := hex.EncodeToString(bytes)
 	expires := time.Now().Add(sessionLifetime)
-	if err := a.store.NewSession(r.Context(), tokenHash(token), admin.ID, expires); err != nil {
+	if err := a.store.NewVerifiedSession(r.Context(), tokenHash(token), admin.ID, admin.PasswordHash, expires); err != nil {
 		failure(w, 503, "unavailable", "暂时无法登录，请重试")
 		return
 	}

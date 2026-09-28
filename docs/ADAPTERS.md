@@ -1,6 +1,6 @@
 # 适配器边界
 
-当前只定义架构边界，尚未实现任何协议引擎或客户端适配器；具体 Go 接口在 P0 验证后确定。
+运行时已在 `internal/protocol` / `internal/agent` 实现 sing-box 的五种 TLS 协议部署。客户端适配器位于 `internal/subscription`，包含 Stash、Mihomo、Surge、Loon 和 Hysteria 2 URI；各格式的支持范围及证书限制见 [订阅说明](SUBSCRIPTIONS.md)。实际 App 验收仍待完成。以下描述保留完整目标边界，版本化更新与回滚尚待实现。
 
 ## 运行时适配器
 

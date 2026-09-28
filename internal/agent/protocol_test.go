@@ -365,3 +365,35 @@ func TestRollbackUnlinkFailurePreservesOwnership(t *testing.T) {
 		t.Fatal("lost recovery owner")
 	}
 }
+
+func TestControlledRestartAndServiceStatus(t *testing.T) {
+	x, c, calls := executorFixture(t)
+	task := taskFixture(t)
+	if got := x.apply(context.Background(), c, task); !got.Success {
+		t.Fatal(got.Code)
+	}
+	if got := x.serviceStatus(context.Background(), task.DeploymentID); got != "active" {
+		t.Fatal(got)
+	}
+	task.ID = "00000000-0000-4000-8000-000000000003"
+	task.Action = "restart"
+	task.Spec = protocol.Spec{}
+	if got := x.apply(context.Background(), c, task); !got.Success || got.Code != "restarted" {
+		t.Fatal(got)
+	}
+	count := len(*calls)
+	if got := x.apply(context.Background(), c, task); !got.Success || len(*calls) != count {
+		t.Fatal("restart replay executed")
+	}
+	os.WriteFile(filepath.Join(x.unitDir, serviceName(task.DeploymentID)), []byte("unowned service"), 0644)
+	task.ID = "00000000-0000-4000-8000-000000000004"
+	if got := x.apply(context.Background(), c, task); got.Success || got.Code != "ownership_mismatch" {
+		t.Fatal(got)
+	}
+	if len(*calls) != count {
+		t.Fatal("unowned service modified")
+	}
+	if got := x.serviceStatus(context.Background(), task.DeploymentID); got != "missing" {
+		t.Fatal(got)
+	}
+}

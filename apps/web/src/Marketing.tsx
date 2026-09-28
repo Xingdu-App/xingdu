@@ -334,7 +334,8 @@ function Home() {
           <span className="site-roadmap-label">接下来</span>
           <h2>从机器接入，走向线路编排。</h2>
           <p>
-            五种协议的安装与卸载已实现，线路编排与多客户端订阅仍在计划中。部署完成后，需自行验证实际客户端连通性。
+            五种协议的安装与卸载、基础 Mihomo
+            订阅已实现，线路编排与其他客户端格式仍在计划中。部署完成后，需自行验证实际客户端连通性。
           </p>
         </div>
         <div className="roadmap-clients">
@@ -414,8 +415,8 @@ function Pricing() {
           <summary>支持一键部署协议和客户端订阅吗？</summary>
           <p>
             已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC
-            v5，须提供 TLS
-            证书并明确授权。线路编排与客户端订阅尚未开放，也不代表托管套餐已上线。
+            v5，须提供 TLS 证书并明确授权。基础 Mihomo
+            订阅已开放；线路编排与其他客户端格式尚未开放，托管套餐尚未上线。
           </p>
         </details>
       </section>

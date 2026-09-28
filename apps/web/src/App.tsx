@@ -1,35 +1,38 @@
+import { t, useLocale, localeTag } from "./i18n";
 import type { ReactNode } from "react";
+import LanguageSwitch from "./LanguageSwitch";
 import TeamPanel from "./TeamPanel";
-import { roleNames } from "./api";
+import AccountMenu from "./AccountMenu";
+import AccountPage from "./AccountPage";
 import type { Organization } from "./api";
-import { useEffect, useState } from "react";
-import { errorMessage, loadHosts, loadSystem } from "./api";
+import { useEffect, useState, useRef } from "react";
+import { loadHosts, loadSystem, loadNodes } from "./api";
 import HostDialog from "./HostDialog";
 import MachineDialog from "./MachineDialog";
 import ProtocolDialog from "./ProtocolDialog";
-import type { Host, System } from "./api";
+import NodePanel from "./NodePanel";
+import SubscriptionPanel from "./SubscriptionPanel";
+import type { Host, ManagedNode } from "./api";
 import "./App.css";
 
-const pages = [
-  { id: "overview", label: "概览", icon: "◈" },
-  { id: "hosts", label: "服务器", icon: "▤" },
-  { id: "routes", label: "线路", icon: "⌁" },
-  { id: "subscriptions", label: "订阅", icon: "▧" },
-  { id: "deployments", label: "部署记录", icon: "◷" },
-  { id: "settings", label: "组织与成员", icon: "⚙" },
-] as const;
-
-type Page = (typeof pages)[number]["id"];
+import { pages, pagePath, pageFromURL } from "./routes";
+import type { Page } from "./routes";
+const currentPage = () => pageFromURL(new URL(window.location.href));
+const accountPages = new Set<string>([
+  "profile",
+  "security",
+  "settings",
+  "members",
+]);
 type LoadState = "loading" | "ready" | "error";
 const pendingCopy: Record<string, { title: string; description: string }> = {
   routes: {
-    title: "从一个入口，连接更多可能",
-    description: "线路编排将在后续版本开放，支持直连与单层中转。",
-  },
-  subscriptions: {
-    title: "一次管理，在你喜欢的客户端使用",
-    description:
-      "Stash、Surge、Loon、Shadowrocket 的订阅输出将在兼容性验证后开放。",
+    get title() {
+      return t("从一个入口，连接更多可能");
+    },
+    get description() {
+      return t("线路编排将在后续版本开放，支持直连与单层中转。");
+    },
   },
 };
 
@@ -46,16 +49,42 @@ function App({
   username: string;
   onLogout: () => Promise<void>;
 }) {
+  const locale = useLocale();
   const canWrite = organization.role !== "viewer";
   const manageMachines =
     organization.role === "owner" || organization.role === "admin";
   const [protocolHost, setProtocolHost] = useState<Host | null>(null);
+  const [nodeID, setNodeID] = useState<string | undefined>();
+  const [nodes, setNodes] = useState<ManagedNode[]>([]);
   const [machineHost, setMachineHost] = useState<Host | null>(null);
   const [editing, setEditing] = useState<Host | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [page, setPage] = useState<Page>("overview");
-  const [system, setSystem] = useState<System | null>(null);
+  const [page, updatePage] = useState<Page>(currentPage);
+  const body = useRef<HTMLDivElement>(null);
+  const setPage = (next: Page) => {
+    const url = new URL(window.location.href);
+    if (url.pathname !== pagePath(next) || url.searchParams.has("page")) {
+      url.pathname = pagePath(next);
+      url.searchParams.delete("page");
+      window.history.pushState(null, "", url);
+    }
+    updatePage(next);
+  };
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.pathname = pagePath(currentPage());
+    url.searchParams.delete("page");
+    window.history.replaceState(null, "", url);
+    const sync = () => updatePage(currentPage());
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, []);
+  useEffect(() => {
+    body.current?.scrollTo({ top: 0 });
+    document.title = t("{0} · 星渡 Xingdu", {
+      0: pages.find((item) => item.id === page)?.label,
+    });
+  }, [page, locale]);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState("");
@@ -65,23 +94,27 @@ function App({
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 8000);
     let active = true;
-    Promise.all([loadSystem(controller.signal), loadHosts(controller.signal)])
-      .then(([systemData, hostData]) => {
+    Promise.all([
+      loadSystem(controller.signal),
+      loadHosts(controller.signal),
+      loadNodes(controller.signal),
+    ])
+      .then(([, hostData, nodeData]) => {
         if (!active) return;
-        setSystem(systemData);
         setHosts(hostData);
+        setNodes(nodeData);
         setState("ready");
       })
       .catch((reason: unknown) => {
         if (!active) return;
-        setSystem(null);
         setHosts([]);
+        setNodes([]);
         setError(
           controller.signal.aborted
-            ? "连接超时，请检查本地服务是否已启动。"
+            ? t("连接超时，请检查本地服务是否已启动。")
             : reason instanceof Error
               ? reason.message
-              : "无法连接控制端。",
+              : t("无法连接控制端。"),
         );
         setState("error");
       })
@@ -102,96 +135,85 @@ function App({
     setAttempt((value) => value + 1);
   };
   const title = pages.find((item) => item.id === page)?.label;
-  const connected = state === "ready" && system?.database_ready;
-  const pending = page === "settings" ? undefined : pendingCopy[page];
+  const pending = accountPages.has(page) ? undefined : pendingCopy[page];
 
   return (
     <div className="shell">
       <aside className="sidebar">
         <a
           className="brand"
-          href="#"
+          href={pagePath("overview")}
           onClick={(event) => {
+            if (
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            )
+              return;
             event.preventDefault();
             setPage("overview");
           }}
-          aria-label="星渡首页"
+          aria-label={t("星渡首页")}
         >
           <img className="brand-logo" src="/xingdu-logo.png" alt="" />
           <span>
-            星渡<small>XINGDU</small>
+            {t("星渡")}
+            <small>XINGDU</small>
           </span>
         </a>
-        <div className="workspace">
-          <span className="workspace-avatar">X</span>
-          <div>
-            {username}
-            <small>{roleNames[organization.role]}</small>
-          </div>
-          <span className="workspace-dot" />
-        </div>
         {organizationControls}
-        <p className="nav-label">工作台</p>
-        <nav aria-label="主导航">
-          {pages.map((item) => (
-            <button
-              key={item.id}
-              className={page === item.id ? "nav-item active" : "nav-item"}
-              aria-current={page === item.id ? "page" : undefined}
-              onClick={() => setPage(item.id)}
-            >
-              <span aria-hidden="true">{item.icon}</span>
-              {item.label}
-              {page === item.id && <i />}
-            </button>
-          ))}
+        <p className="nav-label">{t("工作台")}</p>
+        <nav aria-label={t("主导航")}>
+          {pages
+            .filter((item) => !accountPages.has(item.id))
+            .map((item) => (
+              <a
+                href={pagePath(item.id)}
+                key={item.id}
+                className={page === item.id ? "nav-item active" : "nav-item"}
+                aria-current={page === item.id ? "page" : undefined}
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
+                  setPage(item.id);
+                }}
+              >
+                <span aria-hidden="true">{item.icon}</span>
+                {item.label}
+                {page === item.id && <i />}
+              </a>
+            ))}
         </nav>
-        <div className="sidebar-footer">
-          <span className="little-star">✧</span>
-          <p>
-            连点成网
-            <br />
-            <strong>一键抵达。</strong>
-          </p>
-          <span className="version">{system?.version ?? "0.5.0-dev"}</span>
+        <div className="sidebar-account">
+          <LanguageSwitch />
+          <AccountMenu
+            username={username}
+            organization={organization}
+            onNavigate={setPage}
+            onLogout={onLogout}
+          />
         </div>
       </aside>
-      <div className="body">
-        <header className="topbar">
-          <div>
-            工作台 <span>/</span> <strong>{title}</strong>
-          </div>
-          <div className="account-actions">
-            <span className="environment">LOCAL / 本地环境</span>
-            <button
-              className="secondary"
-              disabled={loggingOut}
-              onClick={async () => {
-                setLoggingOut(true);
-                try {
-                  await onLogout();
-                } catch (reason) {
-                  setNotice(errorMessage(reason));
-                } finally {
-                  setLoggingOut(false);
-                }
-              }}
-            >
-              {loggingOut ? "正在退出…" : "退出登录"}
-            </button>
-          </div>
-        </header>
+      <div className="body" ref={body}>
         <main>
           {organizationBanner}
 
-          <div className="page-heading" hidden={page === "settings"}>
+          <div className="page-heading" hidden={accountPages.has(page)}>
             <div>
-              <p className="eyebrow">YOUR NETWORK, TOGETHER</p>
-              <h1>{page === "overview" ? "一切连接，从这里开始。" : title}</h1>
+              <h1>
+                {page === "overview" ? t("一切连接，从这里开始。") : title}
+              </h1>
               <p className="subtitle">
                 {page === "overview"
-                  ? "将分散的服务器，变成触手可及的网络。"
-                  : "星渡 · VPS 与线路自动化管理"}
+                  ? t("将分散的服务器，变成触手可及的网络。")
+                  : t("星渡 · VPS 与线路自动化管理")}
               </p>
             </div>
             <button
@@ -199,51 +221,47 @@ function App({
               disabled={state === "loading"}
               onClick={refresh}
             >
-              {state === "loading" ? "正在连接…" : "刷新状态"}{" "}
+              {state === "loading" ? t("正在连接…") : t("刷新状态")}{" "}
               <span aria-hidden="true">↻</span>
             </button>
           </div>
           {notice && (
             <div className="notice" role="status">
-              {notice}
-              <button aria-label="关闭提示" onClick={() => setNotice("")}>
+              {t(notice)}
+              <button aria-label={t("关闭提示")} onClick={() => setNotice("")}>
                 ×
               </button>
             </div>
           )}
           {state === "error" && (
             <div role="alert" className="alert">
-              <strong>无法获取当前状态</strong>
-              <span>{error}</span>
-              <button onClick={refresh}>重试</button>
+              <strong>{t("无法获取当前状态")}</strong>
+              <span>{t(error)}</span>
+              <button onClick={refresh}>{t("重试")}</button>
             </div>
           )}
-          <div
-            className="status-line"
-            role="status"
-            hidden={page === "settings"}
-          >
-            <span className={`dot ${connected ? "healthy" : ""}`} />
-            {state === "loading"
-              ? "正在连接控制端…"
-              : connected
-                ? "控制端与数据库已连接"
-                : "控制端或数据库不可用"}
-            <span className="status-divider">/</span>
-            <span>开发预览 · 机器接入与协议部署</span>
-          </div>
-          {page === "settings" && <TeamPanel organization={organization} />}
+          {page === "members" && <TeamPanel organization={organization} />}
+          {(page === "profile" ||
+            page === "security" ||
+            page === "settings") && (
+            <AccountPage
+              section={page}
+              username={username}
+              organization={organization}
+              onMembers={() => setPage("members")}
+            />
+          )}
           {(page === "overview" || page === "hosts") && (
             <>
               {page === "overview" && (
                 <div className="stats">
                   <Stat
-                    label="服务器"
+                    label={t("服务器")}
                     value={state === "ready" ? String(hosts.length) : "—"}
-                    note="已登记的服务器资料"
+                    note={t("已登记的服务器资料")}
                   />
                   <Stat
-                    label="在线服务器"
+                    label={t("在线服务器")}
                     value={
                       state === "ready"
                         ? String(
@@ -252,27 +270,25 @@ function App({
                           )
                         : "—"
                     }
-                    note="90 秒无心跳视为离线"
+                    note={t("90 秒无心跳视为离线")}
                   />
                   <Stat
-                    label="协议部署"
-                    value={
-                      system?.capabilities.deployment ? "已开放" : "待开放"
-                    }
-                    note="Trojan / VLESS / VMess / QUIC"
+                    label={t("节点")}
+                    value={state === "ready" ? String(nodes.length) : "—"}
+                    note={t("已部署且尚未卸载的协议服务")}
                   />
                   <Stat
-                    label="客户端订阅"
-                    value="待开放"
-                    note="多客户端格式输出"
+                    label={t("客户端订阅")}
+                    value={t("已开放")}
+                    note={t("Stash / Mihomo 配置订阅")}
                   />
                 </div>
               )}
               <section className="panel server-panel">
                 <div className="section-heading">
                   <div>
-                    <h2>服务器</h2>
-                    <p>你的网络，从第一台服务器开始。</p>
+                    <h2>{t("服务器")}</h2>
+                    <p>{t("你的网络，从第一台服务器开始。")}</p>
                   </div>
                   <div className="inventory-actions">
                     <button
@@ -280,12 +296,12 @@ function App({
                       disabled={state !== "ready" || !canWrite}
                       onClick={() => setEditing(null)}
                     >
-                      ＋ 添加服务器
+                      {t("＋ 添加服务器")}
                     </button>
                     <span className="badge">
                       {state === "ready"
-                        ? `${hosts.length} 台服务器`
-                        : "状态待确认"}
+                        ? t("{0} 台服务器", { 0: hosts.length })
+                        : t("状态待确认")}
                     </span>
                   </div>
                 </div>
@@ -295,11 +311,11 @@ function App({
                       <table>
                         <thead>
                           <tr>
-                            <th>名称</th>
-                            <th>地址 / SSH</th>
-                            <th>标签</th>
-                            <th>状态</th>
-                            <th>操作</th>
+                            <th>{t("名称")}</th>
+                            <th>{t("地址 / SSH")}</th>
+                            <th>{t("标签")}</th>
+                            <th>{t("状态")}</th>
+                            <th>{t("操作")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -334,16 +350,16 @@ function App({
                               <td>
                                 {
                                   {
-                                    online: "在线",
-                                    offline: "离线",
-                                    pending: "待接入",
+                                    online: t("在线"),
+                                    offline: t("离线"),
+                                    pending: t("待接入"),
                                   }[host.status]
                                 }
                                 {host.last_seen_at && (
                                   <small className="heartbeat-time">
-                                    {new Date(
-                                      host.last_seen_at,
-                                    ).toLocaleString()}
+                                    {new Date(host.last_seen_at).toLocaleString(
+                                      localeTag(),
+                                    )}
                                   </small>
                                 )}
                               </td>
@@ -352,21 +368,21 @@ function App({
                                   className="secondary compact"
                                   onClick={() => setMachineHost(host)}
                                 >
-                                  接入 / 状态
+                                  {t("接入 / 状态")}
                                 </button>
                                 <button
                                   className="secondary compact"
                                   onClick={() => setProtocolHost(host)}
                                 >
-                                  协议部署
+                                  {t("协议部署")}
                                 </button>
                                 <button
                                   className="secondary"
-                                  aria-label={`编辑 ${host.name}`}
+                                  aria-label={t("编辑 {0}", { 0: host.name })}
                                   disabled={!manageMachines}
                                   onClick={() => setEditing(host)}
                                 >
-                                  编辑
+                                  {t("编辑")}
                                 </button>
                               </td>
                             </tr>
@@ -383,28 +399,30 @@ function App({
                               className="secondary compact"
                               onClick={() => setMachineHost(host)}
                             >
-                              接入 / 状态
+                              {t("接入 / 状态")}
                             </button>
                             <button
                               className="secondary compact"
                               onClick={() => setProtocolHost(host)}
                             >
-                              协议部署
+                              {t("协议部署")}
                             </button>
                             <button
                               className="secondary"
-                              aria-label={`编辑 ${host.name}`}
+                              aria-label={t("编辑 {0}", { 0: host.name })}
                               disabled={!manageMachines}
                               onClick={() => setEditing(host)}
                             >
-                              编辑
+                              {t("编辑")}
                             </button>
                           </div>
                           <p className="host-card-address">{host.address}</p>
                           {host.last_seen_at && (
                             <p className="host-card-ssh">
-                              最近心跳：
-                              {new Date(host.last_seen_at).toLocaleString()}
+                              {t("最近心跳：")}
+                              {new Date(host.last_seen_at).toLocaleString(
+                                localeTag(),
+                              )}
                             </p>
                           )}
                           <p className="host-card-ssh">
@@ -424,9 +442,9 @@ function App({
                             <span className="badge">
                               {
                                 {
-                                  online: "在线",
-                                  offline: "离线",
-                                  pending: "待接入",
+                                  online: t("在线"),
+                                  offline: t("离线"),
+                                  pending: t("待接入"),
                                 }[host.status]
                               }
                             </span>
@@ -446,22 +464,24 @@ function App({
                     </div>
                     <h3>
                       {state === "ready"
-                        ? "还没有添加服务器"
+                        ? t("还没有添加服务器")
                         : state === "loading"
-                          ? "正在获取服务器列表"
-                          : "服务器列表暂时不可用"}
+                          ? t("正在获取服务器列表")
+                          : t("服务器列表暂时不可用")}
                     </h3>
                     <p>
                       {state === "ready"
-                        ? "添加第一台 VPS 的连接资料，为后续接入和部署做好准备。"
-                        : "连接恢复后，这里会显示真实的服务器状态。"}
+                        ? t(
+                            "添加第一台 VPS 的连接资料，为后续接入和部署做好准备。",
+                          )
+                        : t("连接恢复后，这里会显示真实的服务器状态。")}
                     </p>
                     <button
                       className="primary"
                       disabled={state !== "ready" || !canWrite}
                       onClick={() => setEditing(null)}
                     >
-                      ＋ 添加服务器
+                      {t("＋ 添加服务器")}
                     </button>
                   </div>
                 )}
@@ -470,9 +490,9 @@ function App({
                 <div className="bottom-grid">
                   <section className="panel journey">
                     <p className="eyebrow">A SIMPLE JOURNEY</p>
-                    <h2>把复杂留给星渡。</h2>
+                    <h2>{t("把复杂留给星渡。")}</h2>
                     <div className="steps">
-                      {["接入服务器", "部署协议", "连接客户端"].map(
+                      {[t("接入服务器"), t("部署协议"), t("连接客户端")].map(
                         (step, index) => (
                           <div key={step}>
                             <span>0{index + 1}</span>
@@ -482,13 +502,14 @@ function App({
                       )}
                     </div>
                     <p>
-                      接入托管
-                      Agent，安装协议后获取连接信息；线路编排与订阅导出仍在计划中。
+                      {t(
+                        "接入托管 Agent，部署节点后创建订阅，在兼容的客户端中导入使用。",
+                      )}
                     </p>
                   </section>
                   <section className="panel clients">
                     <p className="eyebrow">BUILT TO CONNECT</p>
-                    <h2>与你习惯的客户端相遇。</h2>
+                    <h2>{t("与你习惯的客户端相遇。")}</h2>
                     <div className="client-tags">
                       {["Stash", "Surge", "Loon", "Shadowrocket"].map(
                         (name) => (
@@ -496,20 +517,44 @@ function App({
                         ),
                       )}
                     </div>
-                    <p>计划支持 · 协议与版本兼容性待验证</p>
+                    <p>{t("计划支持 · 协议与版本兼容性待验证")}</p>
                   </section>
                 </div>
               )}
             </>
           )}
+          {page === "subscriptions" && (
+            <SubscriptionPanel
+              nodes={nodes}
+              manage={manageMachines}
+              refreshKey={attempt}
+              onNodes={() => setPage("nodes")}
+            />
+          )}
+          {page === "nodes" && (
+            <NodePanel
+              nodes={nodes}
+              ready={state === "ready"}
+              loading={state === "loading"}
+              manage={manageMachines}
+              onCreate={() => setPage("deployments")}
+              onOpen={(node) => {
+                const host = hosts.find((h) => h.id === node.host_id);
+                if (host) {
+                  setNodeID(node.id);
+                  setProtocolHost(host);
+                }
+              }}
+            />
+          )}
           {page === "deployments" && (
             <section className="panel deployment-panel">
               <div className="section-heading">
                 <div>
-                  <h2>按服务器管理协议</h2>
-                  <p>查看部署记录、安装协议服务或卸载已有服务。</p>
+                  <h2>{t("按服务器管理协议")}</h2>
+                  <p>{t("查看部署记录、安装协议服务或卸载已有服务。")}</p>
                 </div>
-                <span className="badge">托管 Agent</span>
+                <span className="badge">{t("托管 Agent")}</span>
               </div>
               <div className="deployment-hosts">
                 {hosts.map((host) => (
@@ -523,13 +568,13 @@ function App({
                       <small>{host.address}</small>
                     </span>
                     <span>
-                      {host.status === "online" ? "在线" : "待连接"} →
+                      {host.status === "online" ? t("在线") : t("待连接")} →
                     </span>
                   </button>
                 ))}
                 {state === "ready" && !hosts.length && (
                   <p className="form-hint">
-                    先在服务器页面添加机器并接入 Agent。
+                    {t("先在服务器页面添加机器并接入 Agent。")}
                   </p>
                 )}
               </div>
@@ -540,28 +585,30 @@ function App({
               <span className="pending-star" aria-hidden="true">
                 ✧
               </span>
-              <span className="badge">规划中</span>
+              <span className="badge">{t("规划中")}</span>
               <h2>{pending.title}</h2>
               <p>{pending.description}</p>
               <button className="secondary" onClick={() => setPage("overview")}>
-                返回概览
+                {t("返回概览")}
               </button>
             </section>
           )}
-          <footer>
-            星渡 Xingdu <span>独立部署 · 自由连接</span>
-            <span>MIT LICENSE</span>
-          </footer>
         </main>
       </div>
       {protocolHost && (
         <ProtocolDialog
-          key={`${organization.id}:${protocolHost.id}`}
+          key={`${organization.id}:${protocolHost.id}:${nodeID ?? "all"}`}
+          nodeID={nodeID}
           host={hosts.find((h) => h.id === protocolHost.id) ?? protocolHost}
           manage={manageMachines}
-          onClose={() => setProtocolHost(null)}
+          onClose={() => {
+            setProtocolHost(null);
+            setNodeID(undefined);
+            refresh();
+          }}
           onAccess={() => {
             setMachineHost(protocolHost);
+            setNodeID(undefined);
             setProtocolHost(null);
           }}
         />
@@ -580,7 +627,7 @@ function App({
           onClose={() => setEditing(undefined)}
           onSaved={() => {
             setEditing(undefined);
-            setNotice("服务器资料已更新。");
+            setNotice(t("服务器资料已更新。"));
             refresh();
           }}
         />
@@ -597,6 +644,7 @@ function Stat({
   value: string;
   note: string;
 }) {
+  useLocale();
   return (
     <section className="stat">
       <h2>{label}</h2>

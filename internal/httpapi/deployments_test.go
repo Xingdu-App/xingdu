@@ -106,7 +106,18 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	keyPEM := string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER}))
 	body := map[string]any{"name": "test", "protocol": "trojan", "port": 443, "server_name": "test.example.invalid", "certificate": certPEM, "private_key": keyPEM, "confirm_install": true}
 	path := "/api/v1/hosts/" + host.ID + "/deployments"
+	preflight := map[string]any{}
+	for k, v := range body {
+		if k != "confirm_install" {
+			preflight[k] = v
+		}
+	}
+	checked := request(path+"/preflight", preflight, false, 200)
+	if strings.Contains(checked.Body.String(), "PRIVATE KEY") || !strings.Contains(checked.Body.String(), "inventory_only") {
+		t.Fatal("unsafe preflight")
+	}
 	created := request(path, body, false, 202)
+	request(path+"/preflight", preflight, false, 409)
 	var queued struct{ Data struct{ ID string } }
 	json.Unmarshal(created.Body.Bytes(), &queued)
 	var ciphertext []byte
@@ -134,10 +145,38 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	if strings.Contains(w.Body.String(), "private_key") || strings.Contains(w.Body.String(), "PRIVATE KEY") || !strings.Contains(w.Body.String(), claim.Data.Spec.Credential) {
 		t.Fatal("unsafe or missing connection fields")
 	}
+	request("/api/v1/agent/deployments/status", map[string]any{"reports": []protocol.ServiceStatus{{ID: queued.Data.ID, Status: "active"}}}, true, 200)
+	request("/api/v1/agent/deployments/status", map[string]any{"reports": []protocol.ServiceStatus{{ID: queued.Data.ID, Status: "active"}}}, false, 403)
+	request(path+"/"+queued.Data.ID+"/restart", map[string]bool{"confirm": false}, false, 422)
+	request(path+"/"+queued.Data.ID+"/restart", map[string]bool{"confirm": true}, false, 409)
 	list, e := s.Deployments(sc, host.ID)
 	encoded, _ := json.Marshal(list)
 	if e != nil || bytes.Contains(encoded, []byte(claim.Data.Spec.Credential)) || bytes.Contains(encoded, []byte("PRIVATE KEY")) {
 		t.Fatal("secret in list", e)
+	}
+	// Organization-wide inventory is authenticated, sanitized and independent of a host path.
+	getNodes := func(authenticated bool, want int) *httptest.ResponseRecorder {
+		t.Helper()
+		r := httptest.NewRequest("GET", "/api/v1/nodes", nil)
+		r.Header.Set("X-Xingdu-Organization", org)
+		if authenticated {
+			r.AddCookie(&http.Cookie{Name: cookieName, Value: session})
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, r)
+		if w.Code != want {
+			t.Fatalf("nodes status %d want %d: %s", w.Code, want, w.Body.String())
+		}
+		return w
+	}
+	getNodes(false, 401)
+	w = getNodes(true, 200)
+	var inventory struct{ Data []storage.Node }
+	if e := json.Unmarshal(w.Body.Bytes(), &inventory); e != nil || len(inventory.Data) != 1 || inventory.Data[0].ID != queued.Data.ID || inventory.Data[0].InstalledAt.IsZero() {
+		t.Fatal("node inventory", e)
+	}
+	if strings.Contains(w.Body.String(), claim.Data.Spec.Credential) || strings.Contains(w.Body.String(), "private_key") || strings.Contains(w.Body.String(), "encrypted") {
+		t.Fatal("secret in node response")
 	}
 	if e = s.RemoveDeployment(sc, host.ID, queued.Data.ID); e != nil {
 		t.Fatal(e)
@@ -150,5 +189,9 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 		t.Fatal("removal must not need secrets")
 	}
 	request("/api/v1/agent/deployments/result", protocol.Result{ID: removal.Data.ID, Lease: removal.Data.Lease, Success: true, Code: "removed"}, true, 200)
+	w = getNodes(true, 200)
+	if e := json.Unmarshal(w.Body.Bytes(), &inventory); e != nil || len(inventory.Data) != 0 {
+		t.Fatal("removed node remains visible", e)
+	}
 
 }

@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import Select from "./Select";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
@@ -18,6 +19,7 @@ export default function OrganizationGate({
   session: Session;
   onLogout: () => Promise<void>;
 }) {
+  useLocale();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(true);
@@ -84,11 +86,12 @@ export default function OrganizationGate({
   const org = orgs.find((o) => o.id === selected);
   const controls = (
     <div className="org-switch">
-      <label htmlFor="organization-switch">当前组织</label>
+      <label htmlFor="organization-switch">{t("当前组织")}</label>
       <Select
         id="organization-switch"
-        label="切换组织"
+        label={t("切换组织")}
         variant="organization"
+        action={{ label: t("＋ 创建组织"), onClick: () => setCreating(true) }}
         value={selected}
         disabled={busy}
         options={orgs.map((o) => ({
@@ -102,12 +105,6 @@ export default function OrganizationGate({
           setError("");
         }}
       />
-      <button
-        className="org-create-button"
-        onClick={() => setCreating(!creating)}
-      >
-        ＋ 创建组织
-      </button>
     </div>
   );
   const createForm = (
@@ -115,13 +112,13 @@ export default function OrganizationGate({
       <div className="dialog-heading">
         <div>
           <p className="eyebrow">NEW WORKSPACE</p>
-          <h2 id="org-create-title">创建组织</h2>
+          <h2 id="org-create-title">{t("创建组织")}</h2>
         </div>
         {org && (
           <button
             type="button"
             className="icon-button"
-            aria-label="关闭创建组织"
+            aria-label={t("关闭创建组织")}
             disabled={busy}
             onClick={() => setCreating(false)}
           >
@@ -130,9 +127,9 @@ export default function OrganizationGate({
         )}
       </div>
       <p className="form-hint">
-        为团队建立独立的协作空间，分别管理成员和服务器。
+        {t("为团队建立独立的协作空间，分别管理成员和服务器。")}
       </p>
-      <label htmlFor="org-name">组织名称</label>
+      <label htmlFor="org-name">{t("组织名称")}</label>
       <input
         id="org-name"
         value={name}
@@ -140,11 +137,11 @@ export default function OrganizationGate({
         maxLength={64}
         required
         disabled={busy}
-        placeholder="例如：我的团队"
+        placeholder={t("例如：我的团队")}
       />
       {error && (
         <p role="alert" className="form-error">
-          {error}
+          {t(error)}
         </p>
       )}
       <div className="dialog-actions">
@@ -155,11 +152,11 @@ export default function OrganizationGate({
             onClick={() => setCreating(false)}
             disabled={busy}
           >
-            取消
+            {t("取消")}
           </button>
         )}
         <button className="primary" disabled={busy}>
-          {busy ? "正在创建…" : "创建组织"}
+          {busy ? t("正在创建…") : t("创建组织")}
         </button>
       </div>
     </form>
@@ -176,7 +173,7 @@ export default function OrganizationGate({
     <>
       {error && !creating && org && (
         <div className="team-banner" role="alert">
-          {error}
+          {t(error)}
           <button
             className="secondary"
             onClick={() =>
@@ -185,17 +182,18 @@ export default function OrganizationGate({
                 .catch((e) => setError(errorMessage(e)))
             }
           >
-            重试
+            {t("重试")}
           </button>
         </div>
       )}
       {invite && (
         <section className="team-banner">
           <div>
-            <strong>你收到了一份组织邀请</strong>
+            <strong>{t("你收到了一份组织邀请")}</strong>
             <p>
-              接受后，当前账号 {session.username}{" "}
-              将加入邀请者的组织。请确认链接来自可信的组织管理员。
+              {t("接受后，当前账号")}
+              {session.username}{" "}
+              {t("将加入邀请者的组织。请确认链接来自可信的组织管理员。")}
             </p>
           </div>
           <button
@@ -216,7 +214,7 @@ export default function OrganizationGate({
               }
             }}
           >
-            接受邀请
+            {t("接受邀请")}
           </button>
           <button
             className="secondary"
@@ -226,7 +224,7 @@ export default function OrganizationGate({
               window.history.replaceState(null, "", window.location.pathname);
             }}
           >
-            忽略
+            {t("忽略")}
           </button>
         </section>
       )}
@@ -236,7 +234,7 @@ export default function OrganizationGate({
   if (loading)
     return (
       <div className="auth-page">
-        <p role="status">正在加载组织…</p>
+        <p role="status">{t("正在加载组织…")}</p>
       </div>
     );
   if (!org)
@@ -245,7 +243,7 @@ export default function OrganizationGate({
         <section className="auth-card">
           {banner}
           <button className="secondary" onClick={() => void onLogout()}>
-            退出登录
+            {t("退出登录")}
           </button>
         </section>
       </div>
@@ -271,6 +269,7 @@ function OrganizationDialog({
   busy: boolean;
   onClose: () => void;
 }) {
+  useLocale();
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const element = dialog.current;

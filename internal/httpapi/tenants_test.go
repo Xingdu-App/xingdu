@@ -36,7 +36,8 @@ func TestOrganizationsAndInvitations(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer runtime.Close()
-	h := New(runtime, Options{PublicOrigin: "http://127.0.0.1:15173", RegistrationEnabled: true})
+	mail := &fixtureEmailSender{}
+	h := New(runtime, Options{PublicOrigin: "http://127.0.0.1:15173", RegistrationEnabled: true, EmailSender: mail})
 	type client struct {
 		cookie    *http.Cookie
 		csrf, org string
@@ -70,9 +71,18 @@ func TestOrganizationsAndInvitations(t *testing.T) {
 	signup := func() (*client, string) {
 		t.Helper()
 		c := &client{}
-		name := "api_" + storage.NewID()[:8]
-		body := map[string]string{"username": name, "password": "integration-test-password", "organization": "API test"}
-		request(c, "POST", "/api/v1/auth/register", body, 201)
+		name := "api_" + storage.NewID()[:8] + "@example.invalid"
+		body := map[string]string{"email": name, "password": "integration-test-password", "organization": "API test"}
+		pending := request(c, "POST", "/api/v1/auth/register", body, 202)
+		var challenge struct {
+			Data struct {
+				Token string `json:"registration_token"`
+			}
+		}
+		json.Unmarshal(pending.Body.Bytes(), &challenge)
+		request(c, "POST", "/api/v1/auth/register/verify", map[string]string{"registration_token": challenge.Data.Token, "code": mail.code}, 201)
+		delete(body, "email")
+		body["username"] = name
 		delete(body, "organization")
 		w := request(c, "POST", "/api/v1/auth/login", body, 200)
 		var s session
@@ -82,6 +92,7 @@ func TestOrganizationsAndInvitations(t *testing.T) {
 		t.Cleanup(func() {
 			db.Pool.Exec(ctx, "DELETE FROM organizations WHERE created_by=$1", s.Data.ID)
 			db.Pool.Exec(ctx, "DELETE FROM users WHERE id=$1", s.Data.ID)
+			db.Pool.Exec(ctx, "DELETE FROM pending_registrations WHERE email=$1", name)
 		})
 		w = request(c, "GET", "/api/v1/organizations", nil, 200)
 		var orgs struct{ Data []storage.Organization }

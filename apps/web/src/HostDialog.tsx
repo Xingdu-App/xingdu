@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { deleteHost, errorMessage, saveHost } from "./api";
@@ -5,6 +6,7 @@ import type { Host, HostInput } from "./api";
 
 type Props = { host: Host | null; onClose: () => void; onSaved: () => void };
 export default function HostDialog({ host, onClose, onSaved }: Props) {
+  useLocale();
   const dialog = useRef<HTMLDialogElement>(null);
   const [input, setInput] = useState<HostInput>(
     host
@@ -86,15 +88,15 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
           <p className="eyebrow">SERVER INVENTORY</p>
           <h2 id="host-dialog-title">
             {confirmDelete
-              ? "删除服务器资料"
+              ? t("删除服务器资料")
               : host
-                ? "编辑服务器"
-                : "添加服务器"}
+                ? t("编辑服务器")
+                : t("添加服务器")}
           </h2>
         </div>
         <button
           className="icon-button"
-          aria-label="关闭弹窗"
+          aria-label={t("关闭弹窗")}
           onClick={onClose}
           disabled={busy}
         >
@@ -103,15 +105,19 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
       </div>
       {confirmDelete ? (
         <div className="delete-confirm">
-          <p>确定删除“{host?.name}”的资料？</p>
           <p>
-            此操作会删除资料并撤销 Agent
-            身份、安装令牌和保存的凭据，不会关机或停止实际 VPS
-            上的协议服务。如需停止服务，请先在「协议部署」中卸载并确认完成，再删除资料。
+            {t("确定删除“")}
+            {host?.name}
+            {t("”的资料？")}
+          </p>
+          <p>
+            {t(
+              "此操作会删除资料并撤销 Agent 身份、安装令牌和保存的凭据，不会关机或停止实际 VPS 上的协议服务。如需停止服务，请先在「协议部署」中卸载并确认完成，再删除资料。",
+            )}
           </p>
           {error && (
             <p role="alert" className="form-error">
-              {error}
+              {t(error)}
             </p>
           )}
           <div className="dialog-actions">
@@ -120,38 +126,39 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
               disabled={busy}
               onClick={() => setConfirmDelete(false)}
             >
-              返回编辑
+              {t("返回编辑")}
             </button>
             <button className="danger" disabled={busy} onClick={remove}>
-              {busy ? "正在删除…" : "确认删除资料"}
+              {busy ? t("正在删除…") : t("确认删除资料")}
             </button>
           </div>
         </div>
       ) : (
         <form onSubmit={submit}>
           <p className="form-hint">
-            资料保存后不会自动连接 VPS。请通过“接入 / 状态”安装 Agent；修改 SSH
-            连接信息后，需要重新提供凭据。
+            {t(
+              "资料保存后不会自动连接 VPS。请通过“接入 / 状态”安装 Agent；修改 SSH 连接信息后，需要重新提供凭据。",
+            )}
           </p>
           <fieldset disabled={busy}>
-            <label htmlFor="host-name">服务器名称</label>
+            <label htmlFor="host-name">{t("服务器名称")}</label>
             <input
               id="host-name"
               autoFocus
               required
               maxLength={64}
-              placeholder="例如：东京主机"
+              placeholder={t("例如：东京主机")}
               value={input.name}
               onChange={(event) =>
                 setInput({ ...input, name: event.target.value })
               }
             />
-            <label htmlFor="host-address">IP 地址或主机名</label>
+            <label htmlFor="host-address">{t("IP 地址或主机名")}</label>
             <input
               id="host-address"
               required
               maxLength={253}
-              placeholder="例如：vps.example.com"
+              placeholder={t("例如：vps.example.com")}
               value={input.address}
               onChange={(event) =>
                 setInput({ ...input, address: event.target.value })
@@ -159,7 +166,7 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
             />
             <div className="field-grid">
               <div>
-                <label htmlFor="host-port">SSH 端口</label>
+                <label htmlFor="host-port">{t("SSH 端口")}</label>
                 <input
                   id="host-port"
                   type="number"
@@ -173,7 +180,7 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
                 />
               </div>
               <div>
-                <label htmlFor="host-user">SSH 用户名</label>
+                <label htmlFor="host-user">{t("SSH 用户名")}</label>
                 <input
                   id="host-user"
                   required
@@ -186,16 +193,18 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
               </div>
             </div>
             <label htmlFor="host-tags">
-              标签 <small>可选，用逗号分隔</small>
+              {t("标签")}
+              <small>{t("可选，用逗号分隔")}</small>
             </label>
             <input
               id="host-tags"
-              placeholder="例如：日本, 测试"
+              placeholder={t("例如：日本, 测试")}
               value={tags}
               onChange={(event) => setTags(event.target.value)}
             />
             <label htmlFor="host-notes">
-              备注 <small>可选，请勿填写密码或私钥</small>
+              {t("备注")}
+              <small>{t("可选，请勿填写密码或私钥")}</small>
             </label>
             <textarea
               id="host-notes"
@@ -209,7 +218,7 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
           </fieldset>
           {error && (
             <p role="alert" className="form-error">
-              {error}
+              {t(error)}
             </p>
           )}
           <div className="dialog-actions">
@@ -220,7 +229,7 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
                 disabled={busy}
                 onClick={() => setConfirmDelete(true)}
               >
-                删除资料
+                {t("删除资料")}
               </button>
             )}
             <button
@@ -229,10 +238,10 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
               onClick={onClose}
               disabled={busy}
             >
-              取消
+              {t("取消")}
             </button>
             <button className="primary" disabled={busy}>
-              {busy ? "正在保存…" : "保存服务器"}
+              {busy ? t("正在保存…") : t("保存服务器")}
             </button>
           </div>
         </form>

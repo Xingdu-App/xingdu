@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 export type HostInput = {
   name: string;
   address: string;
@@ -30,12 +31,14 @@ export function setSessionToken(token: string) {
 }
 export class APIError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code?: string;
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
-async function request<T>(
+export async function request<T>(
   path: string,
   method = "GET",
   body?: unknown,
@@ -60,13 +63,15 @@ async function request<T>(
   });
   if (!response.ok) {
     const data = (await response.json().catch(() => null)) as {
-      error?: { message?: string };
+      error?: { message?: string; code?: string };
     } | null;
     if (response.status === 401 && !quiet401)
       window.dispatchEvent(new Event("xingdu:unauthorized"));
     throw new APIError(
-      data?.error?.message ?? `服务暂时不可用（HTTP ${response.status}）`,
+      data?.error?.message ??
+        t("服务暂时不可用（HTTP {0}）", { 0: response.status }),
       response.status,
+      data?.error?.code,
     );
   }
   if (response.status === 204) return undefined as T;
@@ -100,8 +105,8 @@ export function errorMessage(error: unknown) {
     error instanceof DOMException &&
     (error.name === "TimeoutError" || error.name === "AbortError")
   )
-    return "请求超时，请刷新确认当前状态后再试。";
-  return error instanceof Error ? error.message : "操作失败，请稍后重试。";
+    return t("请求超时，请刷新确认当前状态后再试。");
+  return error instanceof Error ? error.message : t("操作失败，请稍后重试。");
 }
 
 export type Role = "owner" | "admin" | "member" | "viewer";
@@ -115,26 +120,51 @@ export type Invitation = {
   revoked_at: string | null;
 };
 export const roleNames: Record<Role, string> = {
-  owner: "所有者",
-  admin: "管理员",
-  member: "成员",
-  viewer: "只读成员",
+  get owner() {
+    return t("所有者");
+  },
+  get admin() {
+    return t("管理员");
+  },
+  get member() {
+    return t("成员");
+  },
+  get viewer() {
+    return t("只读成员");
+  },
 };
 let organizationID = "";
 export const setOrganization = (id: string) => {
   organizationID = id;
 };
-export const authConfig = () =>
-  request<{ registration_enabled: boolean }>("/api/v1/auth/config");
+export type AuthConfig = {
+  registration_enabled: boolean;
+  email_verification_required: boolean;
+  email_delivery_configured: boolean;
+};
+export const authConfig = (signal?: AbortSignal) =>
+  request<AuthConfig>("/api/v1/auth/config", "GET", undefined, signal, true);
+export type PendingRegistration = {
+  registration_token: string;
+  expires_in: number;
+};
 export const register = (
-  username: string,
+  email: string,
   password: string,
   organization: string,
 ) =>
-  request<void>(
+  request<PendingRegistration>(
     "/api/v1/auth/register",
     "POST",
-    { username, password, organization },
+    { email, password, organization },
+    undefined,
+    true,
+  );
+export const verifyRegistration = (registration_token: string, code: string) =>
+  request<{ registered: boolean }>(
+    "/api/v1/auth/register/verify",
+    "POST",
+    { registration_token, code },
     undefined,
     true,
   );
@@ -259,7 +289,10 @@ export type Deployment = {
     | "interrupted"
     | "cancelled"
     | "removed";
-  action: "deploy" | "remove";
+  action: "deploy" | "remove" | "restart";
+  certificate_expires_at?: string | null;
+  service_status?: string;
+  service_checked_at?: string | null;
   result: string;
   created_at: string;
   finished_at: string | null;
@@ -318,3 +351,82 @@ export const deploymentConnection = (
     undefined,
     signal,
   );
+
+export type ManagedNode = Deployment & {
+  host_name: string;
+  address: string;
+  host_status: Host["status"];
+  installed_at: string;
+};
+export const loadNodes = (signal: AbortSignal) =>
+  request<ManagedNode[]>("/api/v1/nodes", "GET", undefined, signal);
+
+export type SubscriptionRule = {
+  type: "domain" | "domain_suffix" | "ip_cidr";
+  value: string;
+  target: "proxy" | "direct" | "reject";
+};
+export type SubscriptionInput = {
+  format: "stash" | "mihomo" | "surge" | "loon" | "hysteria2_uri";
+  name: string;
+  node_ids: string[];
+  rules: SubscriptionRule[];
+  final_action: "proxy" | "direct";
+  enabled: boolean;
+};
+export type Subscription = SubscriptionInput & {
+  id: string;
+  created_at: string;
+  updated_at: string;
+};
+export const listSubscriptions = (signal: AbortSignal) =>
+  request<Subscription[]>("/api/v1/subscriptions", "GET", undefined, signal);
+export const createSubscription = (
+  input: SubscriptionInput,
+  signal: AbortSignal,
+) =>
+  request<{ subscription: Subscription; subscription_path: string }>(
+    "/api/v1/subscriptions",
+    "POST",
+    input,
+    signal,
+  );
+export const updateSubscription = (
+  id: string,
+  input: SubscriptionInput,
+  signal: AbortSignal,
+) => request<Subscription>(`/api/v1/subscriptions/${id}`, "PUT", input, signal);
+export const deleteSubscription = (id: string, signal: AbortSignal) =>
+  request<void>(`/api/v1/subscriptions/${id}`, "DELETE", undefined, signal);
+export const rotateSubscription = (id: string, signal: AbortSignal) =>
+  request<{ subscription_path: string }>(
+    `/api/v1/subscriptions/${id}/rotate`,
+    "POST",
+    undefined,
+    signal,
+  );
+
+export const protocolNames: Record<Protocol, string> = {
+  trojan: "Trojan",
+  vless: "VLESS",
+  vmess: "VMess",
+  hysteria2: "Hysteria 2",
+  tuic: "TUIC v5",
+};
+
+export const getAvatar = (signal: AbortSignal) =>
+  request<{ image: string }>(
+    "/api/v1/account/avatar",
+    "GET",
+    undefined,
+    signal,
+  );
+export const saveAvatar = (image: string, signal: AbortSignal) =>
+  request<{ image: string }>(
+    "/api/v1/account/avatar",
+    "PUT",
+    { image },
+    signal,
+  );
+export const removeAvatar = (signal: AbortSignal) =>
+  request<void>("/api/v1/account/avatar", "DELETE", undefined, signal);

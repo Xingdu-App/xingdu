@@ -8,29 +8,32 @@ import (
 )
 
 type Deployment struct {
-	ID          string     `json:"id"`
-	HostID      string     `json:"host_id"`
-	Name        string     `json:"name"`
-	Protocol    string     `json:"protocol"`
-	Port        int        `json:"port"`
-	ServerName  string     `json:"server_name"`
-	State       string     `json:"state"`
-	Action      string     `json:"action"`
-	Result      string     `json:"result"`
-	CreatedAt   time.Time  `json:"created_at"`
-	FinishedAt  *time.Time `json:"finished_at"`
-	OrgID       string     `json:"-"`
-	UserID      string     `json:"-"`
-	OperationID string     `json:"-"`
-	Lease       string     `json:"-"`
-	Encrypted   []byte     `json:"-"`
-	Server      string     `json:"-"`
+	ID                   string     `json:"id"`
+	HostID               string     `json:"host_id"`
+	Name                 string     `json:"name"`
+	Protocol             string     `json:"protocol"`
+	Port                 int        `json:"port"`
+	ServerName           string     `json:"server_name"`
+	State                string     `json:"state"`
+	Action               string     `json:"action"`
+	Result               string     `json:"result"`
+	CreatedAt            time.Time  `json:"created_at"`
+	FinishedAt           *time.Time `json:"finished_at"`
+	OrgID                string     `json:"-"`
+	UserID               string     `json:"-"`
+	OperationID          string     `json:"-"`
+	Lease                string     `json:"-"`
+	Encrypted            []byte     `json:"-"`
+	Server               string     `json:"-"`
+	CertificateExpiresAt *time.Time `json:"certificate_expires_at"`
+	ServiceStatus        string     `json:"service_status"`
+	ServiceCheckedAt     *time.Time `json:"service_checked_at"`
 }
 
-const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at"
+const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at"
 
 func scanDeployment(row pgx.Row, d *Deployment) error {
-	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt)
+	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt)
 }
 func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	_, err := tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,result='interrupted_or_expired',encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,finished_at=now() WHERE host_id=$1 AND ((state='running' AND lease_until<=now()) OR (state='queued' AND queued_at<now()-interval '30 minutes'))`, host)
@@ -38,7 +41,7 @@ func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 }
 func managingAgent(ctx context.Context, tx pgx.Tx, host string) (string, error) {
 	var hash string
-	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version'='0.5.0-dev' FOR UPDATE OF a`, host).Scan(&hash)
+	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' IN ('0.5.0-dev','0.6.0-dev') FOR UPDATE OF a`, host).Scan(&hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrConflict
 	}
@@ -92,7 +95,7 @@ func (s *Store) QueueDeployment(ctx context.Context, d Deployment) error {
 	if err = cleanupDeployments(ctx, tx, d.HostID); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,operation_id,encrypted,agent_hash) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9)`, d.ID, d.HostID, d.Name, d.Protocol, d.Port, d.ServerName, d.OperationID, d.Encrypted, hash)
+	_, err = tx.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,operation_id,encrypted,agent_hash,certificate_expires_at) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9,$10)`, d.ID, d.HostID, d.Name, d.Protocol, d.Port, d.ServerName, d.OperationID, d.Encrypted, hash, d.CertificateExpiresAt)
 	if err != nil {
 		return mapError(err)
 	}
@@ -108,7 +111,7 @@ func (s *Store) DeploymentSecret(ctx context.Context, host, id string) (Deployme
 		return d, err
 	}
 	defer tx.Rollback(ctx)
-	err = tx.QueryRow(ctx, `SELECT d.encrypted,h.address FROM protocol_deployments d JOIN hosts h ON h.id=d.host_id WHERE d.id=$1 AND d.host_id=$2 AND d.state='succeeded' AND d.action='deploy'`, id, host).Scan(&d.Encrypted, &d.Server)
+	err = tx.QueryRow(ctx, `SELECT d.encrypted,h.address FROM protocol_deployments d JOIN hosts h ON h.id=d.host_id WHERE d.id=$1 AND d.host_id=$2 AND d.installed_at IS NOT NULL AND d.state <> 'removed' AND d.action <> 'remove'`, id, host).Scan(&d.Encrypted, &d.Server)
 	if err != nil {
 		return d, mapError(err)
 	}
@@ -231,7 +234,7 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 	if !live {
 		return ErrConflict
 	}
-	if success && ((d.Action == "deploy" && code != "deployed") || (d.Action == "remove" && code != "removed")) || !success && (code == "deployed" || code == "removed") {
+	if success && ((d.Action == "deploy" && code != "deployed") || (d.Action == "remove" && code != "removed") || (d.Action == "restart" && code != "restarted")) || !success && (code == "deployed" || code == "removed" || code == "restarted") {
 		return ErrInvalid
 	}
 	if err = setScope(ctx, tx, d.UserID, org); err != nil {
@@ -251,7 +254,7 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 			state = "removed"
 		}
 	}
-	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,finished_at=now(),encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END WHERE id=$1`, d.ID, state, code)
+	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,action=CASE WHEN action='restart' AND $2='succeeded' THEN 'deploy' ELSE action END,finished_at=now(),installed_at=CASE WHEN $2='succeeded' AND action='deploy' THEN COALESCE(installed_at,now()) ELSE installed_at END,encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END WHERE id=$1`, d.ID, state, code)
 	if err != nil {
 		return err
 	}

@@ -13,6 +13,11 @@ import (
 )
 
 type DeploymentStore interface {
+	DeploymentPreflight(context.Context, string, int) error
+	RestartDeployment(context.Context, string, string) error
+	ReportServices(context.Context, string, []protocol.ServiceStatus) error
+	ServiceInventory(context.Context, string) ([]string, error)
+	Nodes(context.Context) ([]storage.Node, error)
 	Deployments(context.Context, string) ([]storage.Deployment, error)
 	QueueDeployment(context.Context, storage.Deployment) error
 	DeploymentSecret(context.Context, string, string) (storage.Deployment, error)
@@ -25,6 +30,14 @@ func deploymentAAD(org, host, id string) string {
 	return strings.Join([]string{"xingdu-protocol-v1", org, host, id}, ":")
 }
 func (a *api) deploymentRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /api/v1/nodes", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		out, err := a.store.Nodes(r.Context())
+		if err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, http.StatusOK, map[string]any{"data": out})
+	}))
 	mux.HandleFunc("GET /api/v1/hosts/{id}/deployments", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validID(w, r) {
 			return
@@ -35,6 +48,32 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			return
 		}
 		reply(w, 200, map[string]any{"data": out})
+	}))
+	mux.HandleFunc("POST /api/v1/hosts/{id}/deployments/preflight", a.tenant(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
+		if !validID(w, r) {
+			return
+		}
+		if !a.attempts.allow("preflight:" + u.ID) {
+			failure(w, 429, "rate_limited", "请稍后重试")
+			return
+		}
+		var in protocol.Input
+		if !decodeLimit(w, r, &in, 64*1024) {
+			return
+		}
+		if protocol.ValidateInput(in) != nil {
+			failure(w, 422, "invalid_deployment", "协议、端口、TLS 域名或证书与私钥无效")
+			return
+		}
+		if a.vault == nil {
+			failure(w, 503, "credential_key_required", "部署者尚未配置凭据加密密钥")
+			return
+		}
+		if err := a.store.DeploymentPreflight(r.Context(), r.PathValue("id"), in.Port); err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 200, map[string]any{"data": map[string]any{"certificate_expires_at": protocol.CertificateExpiry(in.Certificate), "control_plane_ready": true, "port_check": "inventory_only", "external_connectivity": "not_checked"}})
 	}))
 	mux.HandleFunc("POST /api/v1/hosts/{id}/deployments", a.tenant(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
 		if !validID(w, r) {
@@ -64,7 +103,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			failure(w, 422, "invalid_deployment", "协议、端口、TLS 域名或证书与私钥无效")
 			return
 		}
-		d := storage.Deployment{ID: storage.NewID(), OperationID: storage.NewID(), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName}
+		d := storage.Deployment{ID: storage.NewID(), OperationID: storage.NewID(), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
 		plain, _ := json.Marshal(spec)
 		d.Encrypted = a.vault.Seal(plain, deploymentAAD(storage.TenantOrg(r.Context()), d.HostID, d.ID))
 		clear(plain)
@@ -103,6 +142,55 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		}
 		reply(w, 202, map[string]any{"data": map[string]string{"id": r.PathValue("deployment"), "state": "queued"}})
 	}))
+	mux.HandleFunc("POST /api/v1/hosts/{id}/deployments/{deployment}/restart", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		if !validDeploymentID(w, r) {
+			return
+		}
+		var in struct {
+			Confirm bool `json:"confirm"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		if !in.Confirm {
+			failure(w, 422, "confirmation_required", "重启会短暂中断连接，请确认")
+			return
+		}
+		if err := a.store.RestartDeployment(r.Context(), r.PathValue("id"), r.PathValue("deployment")); err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 202, map[string]any{"data": map[string]string{"state": "queued"}})
+	}))
+	mux.HandleFunc("GET /api/v1/agent/deployments/status", func(w http.ResponseWriter, r *http.Request) {
+		hash, ok := deploymentIdentity(w, r)
+		if !ok {
+			return
+		}
+		ids, err := a.store.ServiceInventory(r.Context(), hash)
+		if err != nil {
+			deploymentAgentError(w, err)
+			return
+		}
+		reply(w, 200, map[string]any{"data": ids})
+	})
+	mux.HandleFunc("POST /api/v1/agent/deployments/status", func(w http.ResponseWriter, r *http.Request) {
+		hash, ok := deploymentIdentity(w, r)
+		if !ok {
+			return
+		}
+		var in struct {
+			Reports []protocol.ServiceStatus `json:"reports"`
+		}
+		if !decodeLimit(w, r, &in, 16384) {
+			return
+		}
+		if err := a.store.ReportServices(r.Context(), hash, in.Reports); err != nil {
+			deploymentAgentError(w, err)
+			return
+		}
+		reply(w, 200, map[string]bool{"ok": true})
+	})
 	mux.HandleFunc("POST /api/v1/agent/deployments/claim", func(w http.ResponseWriter, r *http.Request) {
 		hash, ok := deploymentIdentity(w, r)
 		if !ok {

@@ -1,3 +1,4 @@
+import { t, useLocale } from "./i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
@@ -10,6 +11,7 @@ type Props = {
   onChange: (value: string) => void;
   disabled?: boolean;
   variant?: "default" | "organization";
+  action?: { label: string; onClick: () => void };
 };
 
 // Native popovers live above dialogs and avoid clipping inside scrolling panels.
@@ -21,10 +23,13 @@ export default function Select({
   onChange,
   disabled = false,
   variant = "default",
+  action,
 }: Props) {
+  useLocale();
   const uid = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const popup = useRef<HTMLDivElement>(null);
+  const actionButton = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const search = useRef({ text: "", time: 0 });
@@ -65,6 +70,11 @@ export default function Select({
   }
   function keydown(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "Tab") {
+      if (open && action && !event.shiftKey) {
+        event.preventDefault();
+        actionButton.current?.focus();
+        return;
+      }
       close();
       return;
     }
@@ -170,7 +180,7 @@ export default function Select({
           </span>
         )}
         <span className="select-value">
-          <span>{selected?.label || "请选择"}</span>
+          <span>{selected?.label || t("请选择")}</span>
           {selected?.description && <small>{selected.description}</small>}
         </span>
         <svg
@@ -234,6 +244,35 @@ export default function Select({
             </div>
           ))}
         </div>
+        {action && (
+          <div className="select-menu-footer">
+            <button
+              ref={actionButton}
+              type="button"
+              className="select-menu-action"
+              disabled={disabled}
+              onClick={() => {
+                close();
+                trigger.current?.focus();
+                action.onClick();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  close();
+                  trigger.current?.focus();
+                } else if (event.key === "Tab") {
+                  close();
+                  trigger.current?.focus();
+                  if (event.shiftKey) event.preventDefault();
+                }
+              }}
+            >
+              {action.label}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

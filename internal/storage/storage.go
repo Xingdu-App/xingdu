@@ -29,8 +29,20 @@ func Open(ctx context.Context, url string) (*Store, error) {
 }
 func (s *Store) Close() { s.Pool.Close() }
 func (s *Store) Ready(ctx context.Context) error {
-	var version string
-	return s.Pool.QueryRow(ctx, "SELECT version FROM schema_migrations WHERE version = '007_protocol_deployments.sql'").Scan(&version)
+	entries, err := migrations.ReadDir("migrations")
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		var exists bool
+		if err := s.Pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version=$1)", entry.Name()).Scan(&exists); err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("database migrations pending")
+		}
+	}
+	return nil
 }
 
 // Migrate applies embedded migrations transactionally under a database-wide lock.

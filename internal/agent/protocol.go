@@ -218,7 +218,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if !protocol.ValidID(t.ID) || !protocol.ValidID(t.DeploymentID) {
 		return "invalid_task"
 	}
-	if t.Action != "deploy" && t.Action != "remove" {
+	if t.Action != "deploy" && t.Action != "remove" && t.Action != "restart" {
 		return "invalid_task"
 	}
 	if err := secureDir(x.stateDir); err != nil {
@@ -227,6 +227,23 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	dir := filepath.Join(x.stateDir, t.DeploymentID)
 	unitPath := filepath.Join(x.unitDir, serviceName(t.DeploymentID))
 	marker := filepath.Join(dir, "owner")
+	if t.Action == "restart" {
+		if !x.owned(t.DeploymentID) {
+			return "ownership_mismatch"
+		}
+		if x.run(ctx, "systemctl", "restart", serviceName(t.DeploymentID)) != nil {
+			return "start_failed"
+		}
+		select {
+		case <-ctx.Done():
+			return "start_failed"
+		case <-time.After(2 * time.Second):
+		}
+		if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(t.DeploymentID)) != nil {
+			return "start_failed"
+		}
+		return "restarted"
+	}
 	if t.Action == "remove" {
 		st, e := os.Lstat(dir)
 		if os.IsNotExist(e) {
@@ -412,7 +429,7 @@ func (x *protocolExecutor) apply(ctx context.Context, c Config, t protocol.Task)
 		return result
 	}
 	result.Code = x.execute(ctx, c, t)
-	result.Success = result.Code == "deployed" || result.Code == "removed"
+	result.Success = result.Code == "deployed" || result.Code == "removed" || result.Code == "restarted"
 	journal.Result = &result
 	b, _ = json.Marshal(journal)
 	if atomicProtocolFile(path, b, 0600) != nil {
@@ -437,6 +454,7 @@ func pollProtocols(ctx context.Context, c Config) error {
 		return nil
 	}
 	defer unlock()
+	_ = x.reportServices(ctx, c)
 	jobCtx, cancel := context.WithTimeout(ctx, 110*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(jobCtx, "POST", c.Server+"/api/v1/agent/deployments/claim", bytes.NewBufferString("{}"))

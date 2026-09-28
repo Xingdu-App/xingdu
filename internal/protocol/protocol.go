@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"regexp"
@@ -198,9 +199,27 @@ func Render(s Spec) ([]byte, error) {
 // ValidResultCode bounds agent reports to non-sensitive, user-facing codes.
 func ValidResultCode(code string) bool {
 	switch code {
-	case "deployed", "removed", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
+	case "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
 		return true
 	default:
 		return false
 	}
+}
+
+// CertificateExpiry returns public certificate metadata, never key material.
+func CertificateExpiry(certificate string) *time.Time {
+	block, _ := pem.Decode([]byte(certificate))
+	if block == nil {
+		return nil
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil
+	}
+	return &cert.NotAfter
+}
+
+type ServiceStatus struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
 }

@@ -12,6 +12,7 @@ import (
 
 	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/config"
+	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/httpapi"
 	"xingdu.app/xingdu/internal/storage"
 )
@@ -40,7 +41,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies, RegistrationEnabled: os.Getenv("XINGDU_REGISTRATION_ENABLED") == "true", AgentOrigin: agentOrigin, ArtifactDir: connector.ArtifactDir, CredentialVault: credentialVault, SSHConnector: connector}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{EmailSender: emailverification.NewResend(os.Getenv("RESEND_API_KEY"), os.Getenv("XINGDU_EMAIL_FROM")), PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies, RegistrationEnabled: os.Getenv("XINGDU_REGISTRATION_ENABLED") == "true", AgentOrigin: agentOrigin, ArtifactDir: connector.ArtifactDir, CredentialVault: credentialVault, SSHConnector: connector}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan error, 1)
 	go func() { done <- srv.ListenAndServe() }()
 	slog.Info("xingdu API starting", "address", cfg.HTTPAddr, "stage", "multi-tenant")

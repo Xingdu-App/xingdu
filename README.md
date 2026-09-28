@@ -15,7 +15,7 @@ Xingdu is an open-source project building a multi-tenant SaaS control panel for 
 
 Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; managed Agent protocol deployment is implemented; route orchestration and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
+> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; managed Agent protocol deployment is implemented; client exports have explicit protocol and certificate limits; account security, node restart/status and operational quota/audit/backup tools are implemented; route orchestration is not yet available. Keep this preview local; it is not ready for public or production deployment.
 
 ## What you can try today
 
@@ -24,7 +24,9 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **Tenant isolation:** PostgreSQL row-level security and a separate low-privilege runtime database account.
 - **User sign-in:** optional registration, revocable sessions, and protected management endpoints.
 - **Machine access:** manual Agent enrollment or SSH password/private-key installation, with pinned host keys and optional encrypted credential retention. See [machine access](docs/MACHINE-ACCESS.md) for setup and current validation limits.
+- **Node inventory:** browse successfully deployed nodes across your organization, search and filter by protocol, and open node details. Nodes remain listed until uninstall succeeds; operation results stay in deployment records.
 - **Protocol deployment:** install and uninstall Trojan, VLESS, VMess, Hysteria 2 and TUIC v5 with user-provided TLS certificates through a managed Agent. View task progress and explicitly reveal client credentials as an administrator. See [protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) for prerequisites and validation limits.
+- **Basic subscriptions:** select deployed nodes, add ordered domain/CIDR rules, and generate a revocable Stash (default), Mihomo, Surge or Loon configuration link, or a Hysteria 2 URI, subject to each format’s protocol and certificate restrictions. See [subscriptions](docs/SUBSCRIPTIONS.md) for access controls and client compatibility limits.
 - **Live service status:** API and database availability, with error messages and retry when the connection fails.
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.

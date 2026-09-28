@@ -4,10 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"regexp"
-	"strings"
 	"xingdu.app/xingdu/internal/hosts"
 	"xingdu.app/xingdu/internal/storage"
 )
@@ -24,47 +21,6 @@ type TenantStore interface {
 	AcceptInvitation(context.Context, string, string) (string, error)
 }
 
-func (a *api) register(w http.ResponseWriter, r *http.Request) {
-	if !a.registration {
-		failure(w, 403, "registration_disabled", "注册未开放")
-		return
-	}
-	if !a.attempts.allow("register") {
-		failure(w, 429, "rate_limited", "注册过于频繁，请稍后再试")
-		return
-	}
-	var in struct {
-		Username     string `json:"username"`
-		Password     string `json:"password"`
-		Organization string `json:"organization"`
-	}
-	if !decode(w, r, &in) {
-		return
-	}
-	in.Username = strings.TrimSpace(in.Username)
-	if !regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`).MatchString(in.Username) || len(in.Password) < 12 || len(in.Password) > 72 {
-		failure(w, 422, "invalid_account", "用户名需为 3–32 位字母、数字、下划线或连字符，密码需为 12–72 字节")
-		return
-	}
-	select {
-	case a.hashSlots <- struct{}{}:
-		defer func() { <-a.hashSlots }()
-	default:
-		failure(w, 429, "rate_limited", "请稍后再试")
-		return
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
-	if err != nil {
-		storeError(w, err)
-		return
-	}
-	_, err = a.store.Register(r.Context(), in.Username, string(hash), in.Organization)
-	if err != nil {
-		storeError(w, err)
-		return
-	}
-	reply(w, 201, map[string]any{"data": map[string]bool{"registered": true}})
-}
 func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User, string)) http.HandlerFunc {
 	return a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, token string) {
 		org := r.Header.Get("X-Xingdu-Organization")
@@ -77,9 +33,10 @@ func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User,
 }
 func (a *api) tenantRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
-		reply(w, 200, map[string]any{"data": map[string]bool{"registration_enabled": a.registration}})
+		reply(w, 200, map[string]any{"data": map[string]bool{"registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady()}})
 	})
 	mux.HandleFunc("POST /api/v1/auth/register", a.register)
+	mux.HandleFunc("POST /api/v1/auth/register/verify", a.verifyRegistration)
 	mux.HandleFunc("GET /api/v1/organizations", a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
 		out, err := a.store.Organizations(r.Context(), u.ID)
 		if err != nil {

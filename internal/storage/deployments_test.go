@@ -10,6 +10,7 @@ import (
 	"testing"
 	"xingdu.app/xingdu/internal/hosts"
 	"xingdu.app/xingdu/internal/machine"
+	"xingdu.app/xingdu/internal/protocol"
 )
 
 func TestDeploymentTenantAgentLifecycle(t *testing.T) {
@@ -110,6 +111,22 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.QueueDeployment(ca, next(8443)); !errors.Is(e, ErrConflict) {
 		t.Fatal("parallel operation accepted", e)
 	}
+	assertNodes := func(scope context.Context, count int, state string) []Node {
+		t.Helper()
+		nodes, e := s.Nodes(scope)
+		if e != nil || len(nodes) != count {
+			t.Fatalf("nodes count: got %d want %d: %v", len(nodes), count, e)
+		}
+		if count > 0 && (nodes[0].State != state || nodes[0].InstalledAt.IsZero() || nodes[0].HostName != h.Name || nodes[0].Address != h.Address) {
+			t.Fatalf("incorrect node metadata: %+v", nodes[0])
+		}
+		encoded, _ := json.Marshal(nodes)
+		if strings.Contains(string(encoded), "encrypted") || strings.Contains(string(encoded), "agent_hash") || strings.Contains(string(encoded), "credential") {
+			t.Fatal("node secrets exposed")
+		}
+		return nodes
+	}
+	assertNodes(ca, 0, "") // Queued installation is not yet a node.
 	claimed, e := s.ClaimDeployment(ctx, hash)
 	if e != nil || claimed == nil {
 		t.Fatal("claim", e)
@@ -130,6 +147,56 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.FinishDeployment(ctx, hash, d.OperationID, claimed.Lease, true, "deployed"); e != nil {
 		t.Fatal(e)
 	}
+	nodes := assertNodes(ca, 1, "succeeded")
+	installedAt := nodes[0].InstalledAt
+	if e := s.RestartDeployment(ca, h.ID, d.ID); !errors.Is(e, ErrConflict) {
+		t.Fatal("old agent restart", e)
+	}
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active"}}); e != nil {
+		t.Fatal(e)
+	}
+	checked := assertNodes(ca, 1, "succeeded")[0]
+	if checked.ServiceStatus != "active" || checked.ServiceCheckedAt == nil {
+		t.Fatal("missing service report")
+	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "arbitrary output"}}); !errors.Is(e, ErrInvalid) {
+		t.Fatal("unbounded report", e)
+	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: NewID(), Status: "active"}}); !errors.Is(e, ErrNotFound) {
+		t.Fatal("foreign node report", e)
+	}
+	if e := s.RestartDeployment(cb, h.ID, d.ID); e == nil {
+		t.Fatal("cross tenant restart")
+	}
+	if e := s.RestartDeployment(ca, h.ID, d.ID); e != nil {
+		t.Fatal(e)
+	}
+	restarted, e := s.ClaimDeployment(ctx, hash)
+	if e != nil || restarted == nil || restarted.Action != "restart" {
+		t.Fatal("restart claim", e)
+	}
+	if e := s.FinishDeployment(ctx, hash, restarted.OperationID, restarted.Lease, true, "deployed"); !errors.Is(e, ErrInvalid) {
+		t.Fatal("restart wrong result", e)
+	}
+	if e := s.FinishDeployment(ctx, hash, restarted.OperationID, restarted.Lease, true, "restarted"); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.FinishDeployment(ctx, hash, restarted.OperationID, restarted.Lease, true, "restarted"); e != nil {
+		t.Fatal("restart ack replay", e)
+	}
+	if nodes := assertNodes(ca, 1, "succeeded"); nodes[0].Action != "deploy" || !nodes[0].InstalledAt.Equal(installedAt) {
+		t.Fatal("restart changed node identity")
+	}
+
+	assertNodes(cb, 0, "")
+	admin.Pool.Exec(ctx, "UPDATE hosts SET last_seen_at=now()-interval '91 seconds' WHERE id=$1", h.ID)
+	if nodes := assertNodes(ca, 1, "succeeded"); nodes[0].HostStatus != "offline" {
+		t.Fatal("stale agent shown online")
+	}
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.5.0-dev", CPUs: 1})
 	list, e := s.Deployments(ca, h.ID)
 	if e != nil || len(list) != 1 || list[0].State != "succeeded" {
 		t.Fatal("state", list, e)
@@ -140,6 +207,10 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	}
 	admin.Pool.Exec(ctx, "INSERT INTO memberships(organization_id,user_id,role) VALUES($1,$2,'member')", org, b)
 	member := WithTenant(ctx, b, org)
+	assertNodes(member, 1, "succeeded")
+	admin.Pool.Exec(ctx, "UPDATE memberships SET role='viewer' WHERE organization_id=$1 AND user_id=$2", org, b)
+	assertNodes(member, 1, "succeeded")
+	admin.Pool.Exec(ctx, "UPDATE memberships SET role='member' WHERE organization_id=$1 AND user_id=$2", org, b)
 	if _, e := s.Deployments(member, h.ID); e != nil {
 		t.Fatal("member read", e)
 	}
@@ -155,16 +226,52 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.QueueDeployment(ca, next(443)); !errors.Is(e, ErrConflict) {
 		t.Fatal("reserved port", e)
 	}
+	// Revoking management access does not uninstall the already deployed service.
+	if e := s.RevokeMachine(ca, h.ID); e != nil {
+		t.Fatal(e)
+	}
+	if nodes := assertNodes(ca, 1, "succeeded"); nodes[0].HostStatus != "offline" {
+		t.Fatal("revoked agent shown online")
+	}
+	hash = enroll("manage")
 	if e := s.RemoveDeployment(ca, h.ID, d.ID); e != nil {
 		t.Fatal(e)
 	}
+	assertNodes(ca, 1, "queued")
 	rem, e := s.ClaimDeployment(ctx, hash)
 	if e != nil || rem.OperationID == claimed.OperationID || rem.Action != "remove" {
 		t.Fatal("remove not new operation", e)
 	}
+	assertNodes(ca, 1, "running")
+	if e := s.FinishDeployment(ctx, hash, rem.OperationID, rem.Lease, false, "runtime_failed"); e != nil {
+		t.Fatal(e)
+	}
+	if nodes := assertNodes(ca, 1, "failed"); !nodes[0].InstalledAt.Equal(installedAt) {
+		t.Fatal("removal changed installation time")
+	}
+	if e := s.RemoveDeployment(ca, h.ID, d.ID); e != nil {
+		t.Fatal(e)
+	}
+	rem, e = s.ClaimDeployment(ctx, hash)
+	if e != nil || rem == nil {
+		t.Fatal("retry remove", e)
+	}
+	admin.Pool.Exec(ctx, "UPDATE protocol_deployments SET lease_until=now()-interval '1 second' WHERE id=$1", d.ID)
+	if _, e := s.ClaimDeployment(ctx, hash); e != nil {
+		t.Fatal(e)
+	}
+	assertNodes(ca, 1, "interrupted")
+	if e := s.RemoveDeployment(ca, h.ID, d.ID); e != nil {
+		t.Fatal(e)
+	}
+	rem, e = s.ClaimDeployment(ctx, hash)
+	if e != nil || rem == nil {
+		t.Fatal("retry interrupted remove", e)
+	}
 	if e := s.FinishDeployment(ctx, hash, rem.OperationID, rem.Lease, true, "removed"); e != nil {
 		t.Fatal(e)
 	}
+	assertNodes(ca, 0, "")
 	var cleared bool
 	if e := admin.Pool.QueryRow(ctx, "SELECT encrypted IS NULL FROM protocol_deployments WHERE id=$1", d.ID).Scan(&cleared); e != nil || !cleared {
 		t.Fatal("removed secret retained", e)

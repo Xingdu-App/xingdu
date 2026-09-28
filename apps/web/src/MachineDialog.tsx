@@ -1,3 +1,4 @@
+import { t, useLocale, localeTag } from "./i18n";
 import Select from "./Select";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -11,28 +12,65 @@ import {
 } from "./api";
 import type { Enrollment, Host, MachineState } from "./api";
 const jobStates: Record<string, string> = {
-  queued: "等待安装",
-  running: "正在安装",
-  installed: "安装命令完成",
-  failed: "安装失败",
-  cancelled: "已取消",
+  get queued() {
+    return t("等待安装");
+  },
+  get running() {
+    return t("正在安装");
+  },
+  get installed() {
+    return t("安装命令完成");
+  },
+  get failed() {
+    return t("安装失败");
+  },
+  get cancelled() {
+    return t("已取消");
+  },
 };
 const failures: Record<string, string> = {
-  service_installed: "服务已安装，请以下方心跳状态为准。",
-  host_key_changed: "SSH 指纹发生变化，未发送登录凭据。",
-  ssh_target_blocked: "目标被网络访问策略阻止。",
-  ssh_auth_or_handshake_failed: "SSH 认证或握手失败。",
-  ssh_unreachable: "无法连接 SSH。",
-  dns_failed: "域名解析失败。",
-  unsupported_platform: "当前仅支持 Linux amd64 / arm64。",
-  agent_artifact_unavailable: "控制端缺少 Agent 构建产物。",
-  install_failed_check_vps:
-    "请在 VPS 检查 systemd、sudo 权限、已有安装及控制端连通性。",
-  target_changed: "连接地址已变更，任务已停止。",
-  authorization_revoked: "提交者的组织管理权限已撤销。",
-  interrupted_or_expired: "任务中断或过期，未自动重试。",
-  revoked: "已撤销接入。",
-  credential_unavailable: "无法解密任务凭据，请检查部署密钥。",
+  get service_installed() {
+    return t("服务已安装，请以下方心跳状态为准。");
+  },
+  get host_key_changed() {
+    return t("SSH 指纹发生变化，未发送登录凭据。");
+  },
+  get ssh_target_blocked() {
+    return t("目标被网络访问策略阻止。");
+  },
+  get ssh_auth_or_handshake_failed() {
+    return t("SSH 认证或握手失败。");
+  },
+  get ssh_unreachable() {
+    return t("无法连接 SSH。");
+  },
+  get dns_failed() {
+    return t("域名解析失败。");
+  },
+  get unsupported_platform() {
+    return t("当前仅支持 Linux amd64 / arm64。");
+  },
+  get agent_artifact_unavailable() {
+    return t("控制端缺少 Agent 构建产物。");
+  },
+  get install_failed_check_vps() {
+    return t("请在 VPS 检查 systemd、sudo 权限、已有安装及控制端连通性。");
+  },
+  get target_changed() {
+    return t("连接地址已变更，任务已停止。");
+  },
+  get authorization_revoked() {
+    return t("提交者的组织管理权限已撤销。");
+  },
+  get interrupted_or_expired() {
+    return t("任务中断或过期，未自动重试。");
+  },
+  get revoked() {
+    return t("已撤销接入。");
+  },
+  get credential_unavailable() {
+    return t("无法解密任务凭据，请检查部署密钥。");
+  },
 };
 export default function MachineDialog({
   host,
@@ -45,6 +83,7 @@ export default function MachineDialog({
   onClose: () => void;
   onChanged: () => void;
 }) {
+  useLocale();
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, setState] = useState<MachineState | null>(null),
     [error, setError] = useState(""),
@@ -118,11 +157,14 @@ export default function MachineDialog({
       <div className="dialog-heading">
         <div>
           <p className="eyebrow">MACHINE ACCESS</p>
-          <h2 id="machine-title">{host.name} · 机器接入</h2>
+          <h2 id="machine-title">
+            {host.name}
+            {t("· 机器接入")}
+          </h2>
         </div>
         <button
           className="icon-button"
-          aria-label="关闭机器接入"
+          aria-label={t("关闭机器接入")}
           disabled={busy}
           onClick={onClose}
         >
@@ -135,23 +177,23 @@ export default function MachineDialog({
         </p>
         {error && (
           <p role="alert" className="form-error">
-            {error}
+            {t(error)}
           </p>
         )}
         {notice && (
           <p role="status" className="notice">
-            {notice}
+            {t(notice)}
           </p>
         )}
         <section className="machine-summary">
           <strong>
             {state?.agent
               ? state.agent.revoked_at
-                ? "机器授权已撤销"
+                ? t("机器授权已撤销")
                 : state.agent.mode === "monitor"
-                  ? "已注册 · 探针模式"
-                  : "已注册 · 托管模式"
-              : "尚未注册 Agent"}
+                  ? t("已注册 · 探针模式")
+                  : t("已注册 · 托管模式")
+              : t("尚未注册 Agent")}
           </strong>
           {metrics?.hostname && (
             <>
@@ -160,16 +202,25 @@ export default function MachineDialog({
                 {metrics.version}
               </p>
               <p>
-                {metrics.cpus} 核 · 内存{" "}
-                {Math.round(metrics.memory_total_bytes / 1024 / 1024)} MiB ·
-                可用 {Math.round(metrics.memory_available_bytes / 1024 / 1024)}{" "}
-                MiB · 负载 {metrics.load_1.toFixed(2)}
+                {metrics.cpus}
+                {t("核 · 内存")}{" "}
+                {Math.round(metrics.memory_total_bytes / 1024 / 1024)}
+                {t("MiB · 可用")}
+                {Math.round(metrics.memory_available_bytes / 1024 / 1024)}{" "}
+                {t("MiB · 负载")}
+                {metrics.load_1.toFixed(2)}
               </p>
-              <p>运行 {Math.floor(metrics.uptime_seconds / 3600)} 小时</p>
+              <p>
+                {t("运行")}
+                {Math.floor(metrics.uptime_seconds / 3600)}
+                {t("小时")}
+              </p>
             </>
           )}
           <p>
-            在线状态以服务器列表中的最近心跳为准，超过 90 秒未上报会显示离线。
+            {t(
+              "在线状态以服务器列表中的最近心跳为准，超过 90 秒未上报会显示离线。",
+            )}
           </p>
         </section>
         {manage && (
@@ -180,19 +231,19 @@ export default function MachineDialog({
                 disabled={busy}
                 onClick={() => setPath("manual")}
               >
-                主动安装 Agent
+                {t("主动安装 Agent")}
               </button>
               <button
                 className={path === "ssh" ? "primary" : "secondary"}
                 disabled={busy}
                 onClick={() => setPath("ssh")}
               >
-                SSH 自动安装
+                {t("SSH 自动安装")}
               </button>
             </div>
-            <label htmlFor="agent-mode">运行权限</label>
+            <label htmlFor="agent-mode">{t("运行权限")}</label>
             <Select
-              label="运行权限"
+              label={t("运行权限")}
               id="agent-mode"
               value={mode}
               disabled={busy}
@@ -204,13 +255,13 @@ export default function MachineDialog({
               options={[
                 {
                   value: "monitor",
-                  label: "探针模式",
-                  description: "专用低权限用户 · 只采集状态",
+                  label: t("探针模式"),
+                  description: t("专用低权限用户 · 只采集状态"),
                 },
                 {
                   value: "manage",
-                  label: "托管模式",
-                  description: "以 root 运行 · 支持授权的协议部署",
+                  label: t("托管模式"),
+                  description: t("以 root 运行 · 支持授权的协议部署"),
                 },
               ]}
             />
@@ -222,15 +273,17 @@ export default function MachineDialog({
                   onChange={(e) => setConfirmManage(e.target.checked)}
                   disabled={busy}
                 />
-                我授权在此 VPS 上以 root 运行
-                Agent，用于状态采集及明确授权的协议安装与卸载；不提供任意远程命令。
+                {t(
+                  "我授权在此 VPS 上以 root 运行 Agent，用于状态采集及明确授权的协议安装与卸载；不提供任意远程命令。",
+                )}
               </label>
             )}
             {path === "manual" ? (
               <section>
                 <p className="form-hint">
-                  在 VPS 终端执行安装命令，按提示输入注册令牌。无需向星渡提供
-                  SSH 密码或私钥。支持 Linux systemd，安装不会覆盖已有 Agent。
+                  {t(
+                    "在 VPS 终端执行安装命令，按提示输入注册令牌。无需向星渡提供 SSH 密码或私钥。支持 Linux systemd，安装不会覆盖已有 Agent。",
+                  )}
                 </p>
                 <button
                   className="primary"
@@ -243,32 +296,37 @@ export default function MachineDialog({
                     })
                   }
                 >
-                  生成一次性安装令牌
+                  {t("生成一次性安装令牌")}
                 </button>
                 {enrollment && (
                   <div className="enrollment-result">
-                    <label>安装命令</label>
+                    <label>{t("安装命令")}</label>
                     <textarea
                       readOnly
                       rows={4}
                       value={enrollment.command}
                       onFocus={(e) => e.target.select()}
                     />
-                    <label>注册令牌（仅显示这一次，不放入命令参数）</label>
+                    <label>
+                      {t("注册令牌（仅显示这一次，不放入命令参数）")}
+                    </label>
                     <input
                       readOnly
                       value={enrollment.token}
                       onFocus={(e) => e.target.select()}
                     />
                     <p>
-                      有效期至{" "}
-                      {new Date(enrollment.expires_at).toLocaleString()}
-                      。新令牌接入后，旧 Agent 身份会失效。
+                      {t("有效期至")}{" "}
+                      {new Date(enrollment.expires_at).toLocaleString(
+                        localeTag(),
+                      )}
+                      {t("。新令牌接入后，旧 Agent 身份会失效。")}
                     </p>
                     {!enrollment.origin.startsWith("https://") && (
                       <p className="form-error">
-                        当前控制端是本地地址，仅适合本机验证。远程 VPS
-                        需要可访问的 HTTPS 控制端地址。
+                        {t(
+                          "当前控制端是本地地址，仅适合本机验证。远程 VPS 需要可访问的 HTTPS 控制端地址。",
+                        )}
                       </p>
                     )}
                   </div>
@@ -277,8 +335,9 @@ export default function MachineDialog({
             ) : (
               <section>
                 <p className="form-hint">
-                  使用已登记的 SSH 用户。安装需要 root 或免密 sudo；不会修改 SSH
-                  配置或防火墙。先通过云厂商控制台或已有可信连接核对指纹。
+                  {t(
+                    "使用已登记的 SSH 用户。安装需要 root 或免密 sudo；不会修改 SSH 配置或防火墙。先通过云厂商控制台或已有可信连接核对指纹。",
+                  )}
                 </p>
                 <button
                   className="secondary"
@@ -291,10 +350,10 @@ export default function MachineDialog({
                     })
                   }
                 >
-                  获取 SSH 主机指纹（不发送凭据）
+                  {t("获取 SSH 主机指纹（不发送凭据）")}
                 </button>
                 <label htmlFor="ssh-fingerprint">
-                  已核实的 SHA256 主机指纹
+                  {t("已核实的 SHA256 主机指纹")}
                 </label>
                 <input
                   id="ssh-fingerprint"
@@ -313,7 +372,7 @@ export default function MachineDialog({
                     onChange={(e) => setConfirmFingerprint(e.target.checked)}
                     disabled={busy}
                   />
-                  我已通过可信来源核对该指纹
+                  {t("我已通过可信来源核对该指纹")}
                 </label>
                 {state?.credential && (
                   <label className="check-row">
@@ -329,16 +388,20 @@ export default function MachineDialog({
                         }
                       }}
                     />
-                    使用加密保存的{" "}
-                    {state.credential.method === "pem" ? "私钥" : "密码"}（
-                    {new Date(state.credential.saved_at).toLocaleString()}）
+                    {t("使用加密保存的")}{" "}
+                    {state.credential.method === "pem" ? t("私钥") : t("密码")}
+                    （
+                    {new Date(state.credential.saved_at).toLocaleString(
+                      localeTag(),
+                    )}
+                    ）
                   </label>
                 )}
                 {!useSaved && (
                   <>
-                    <label htmlFor="ssh-method">认证方式</label>
+                    <label htmlFor="ssh-method">{t("认证方式")}</label>
                     <Select
-                      label="认证方式"
+                      label={t("认证方式")}
                       id="ssh-method"
                       value={method}
                       disabled={busy}
@@ -350,13 +413,13 @@ export default function MachineDialog({
                         setFilename("");
                       }}
                       options={[
-                        { value: "pem", label: "PEM / OpenSSH 私钥" },
-                        { value: "password", label: "SSH 密码" },
+                        { value: "pem", label: t("PEM / OpenSSH 私钥") },
+                        { value: "password", label: t("SSH 密码") },
                       ]}
                     />
                     {method === "password" ? (
                       <>
-                        <label htmlFor="ssh-password">SSH 密码</label>
+                        <label htmlFor="ssh-password">{t("SSH 密码")}</label>
                         <input
                           id="ssh-password"
                           type="password"
@@ -368,7 +431,9 @@ export default function MachineDialog({
                       </>
                     ) : (
                       <>
-                        <label htmlFor="ssh-key">私钥文件（最大 24 KiB）</label>
+                        <label htmlFor="ssh-key">
+                          {t("私钥文件（最大 24 KiB）")}
+                        </label>
                         <input
                           id="ssh-key"
                           type="file"
@@ -378,7 +443,7 @@ export default function MachineDialog({
                             const f = e.target.files?.[0];
                             if (!f) return;
                             if (f.size > 24 * 1024) {
-                              setError("私钥文件过大");
+                              setError(t("私钥文件过大"));
                               return;
                             }
                             setPrivateKey(await f.text());
@@ -386,10 +451,14 @@ export default function MachineDialog({
                           }}
                         />
                         {filename && (
-                          <small>已选择：{filename}，内容不会回显</small>
+                          <small>
+                            {t("已选择：")}
+                            {filename}
+                            {t("，内容不会回显")}
+                          </small>
                         )}
                         <label htmlFor="ssh-passphrase">
-                          私钥口令（加密私钥必填）
+                          {t("私钥口令（加密私钥必填）")}
                         </label>
                         <input
                           id="ssh-passphrase"
@@ -408,10 +477,12 @@ export default function MachineDialog({
                         onChange={(e) => setRetain(e.target.checked)}
                         disabled={busy}
                       />
-                      长期加密保存凭据，供此组织管理员再次使用
+                      {t("长期加密保存凭据，供此组织管理员再次使用")}
                     </label>
                     <p className="form-hint">
-                      不勾选时，凭据仅加密暂存于本次任务，结束或过期后清除。已保存的凭据不会因取消勾选而自动删除，可在下方单独删除。
+                      {t(
+                        "不勾选时，凭据仅加密暂存于本次任务，结束或过期后清除。已保存的凭据不会因取消勾选而自动删除，可在下方单独删除。",
+                      )}
                     </p>
                   </>
                 )}
@@ -440,7 +511,7 @@ export default function MachineDialog({
                           confirm_fingerprint: confirmFingerprint,
                         });
                         setNotice(
-                          "安装任务已提交。凭据不会回显，进度每 5 秒更新。",
+                          t("安装任务已提交。凭据不会回显，进度每 5 秒更新。"),
                         );
                       } finally {
                         setPassword("");
@@ -451,25 +522,27 @@ export default function MachineDialog({
                     })
                   }
                 >
-                  开始 SSH 安装
+                  {t("开始 SSH 安装")}
                 </button>
               </section>
             )}
-            <h3>安装记录</h3>
+            <h3>{t("安装记录")}</h3>
             {!state?.jobs.length && (
-              <p className="form-hint">暂无 SSH 安装任务。</p>
+              <p className="form-hint">{t("暂无 SSH 安装任务。")}</p>
             )}
             {state?.jobs.map((j) => (
               <article className="machine-job" key={j.id}>
                 <strong>
                   {jobStates[j.state] ?? j.state} ·{" "}
-                  {j.mode === "manage" ? "托管" : "探针"}
+                  {j.mode === "manage" ? t("托管") : t("探针")}
                 </strong>
-                <small>{new Date(j.created_at).toLocaleString()}</small>
+                <small>
+                  {new Date(j.created_at).toLocaleString(localeTag())}
+                </small>
                 {j.result && (
                   <p>
                     {failures[j.result] ??
-                      "任务未完成，请检查服务端与 VPS 状态。"}
+                      t("任务未完成，请检查服务端与 VPS 状态。")}
                   </p>
                 )}
               </article>
@@ -481,7 +554,7 @@ export default function MachineDialog({
                   disabled={busy}
                   onClick={() => setConfirmAction("forget")}
                 >
-                  删除保存的 SSH 凭据
+                  {t("删除保存的 SSH 凭据")}
                 </button>
               )}
               <button
@@ -489,15 +562,19 @@ export default function MachineDialog({
                 disabled={busy}
                 onClick={() => setConfirmAction("revoke")}
               >
-                撤销机器接入
+                {t("撤销机器接入")}
               </button>
             </div>
             {confirmAction && (
               <div className="delete-confirm">
                 <p>
                   {confirmAction === "forget"
-                    ? "删除长期保存的凭据？已提交的任务仍会继续使用其临时副本。"
-                    : "撤销 Agent、所有未使用的安装令牌并取消安装任务？已在 VPS 上发出的操作无法自动回滚；此操作不会停止或卸载已部署的协议服务。需要终止服务时，请先在「协议部署」中卸载并确认完成。"}
+                    ? t(
+                        "删除长期保存的凭据？已提交的任务仍会继续使用其临时副本。",
+                      )
+                    : t(
+                        "撤销 Agent、所有未使用的安装令牌并取消安装任务？已在 VPS 上发出的操作无法自动回滚；此操作不会停止或卸载已部署的协议服务。需要终止服务时，请先在「协议部署」中卸载并确认完成。",
+                      )}
                 </p>
                 <button
                   className="danger"
@@ -515,14 +592,14 @@ export default function MachineDialog({
                     })
                   }
                 >
-                  确认
+                  {t("确认")}
                 </button>
                 <button
                   className="secondary"
                   disabled={busy}
                   onClick={() => setConfirmAction(null)}
                 >
-                  取消
+                  {t("取消")}
                 </button>
               </div>
             )}
