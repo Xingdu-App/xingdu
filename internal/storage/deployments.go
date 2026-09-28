@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"time"
+	"xingdu.app/xingdu/internal/machine"
 )
 
 type Deployment struct {
@@ -41,7 +42,7 @@ func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 }
 func managingAgent(ctx context.Context, tx pgx.Tx, host string) (string, error) {
 	var hash string
-	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' ='0.7.0-dev' FOR UPDATE OF a`, host).Scan(&hash)
+	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' =$2 FOR UPDATE OF a`, host, machine.Version).Scan(&hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrConflict
 	}
@@ -177,7 +178,7 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 	}
 	defer tx.Rollback(ctx)
 	var compatible bool
-	if err = tx.QueryRow(ctx, `SELECT metrics->>'version'='0.7.0-dev' FROM machine_agents WHERE token_hash=$1`, hash).Scan(&compatible); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT COALESCE(metrics->>'version'=$2,false) FROM machine_agents WHERE token_hash=$1`, hash, machine.Version).Scan(&compatible); err != nil {
 		return nil, err
 	}
 	if !compatible {

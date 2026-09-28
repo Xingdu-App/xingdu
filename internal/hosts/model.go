@@ -20,8 +20,9 @@ type Input struct {
 type Host struct {
 	ID string `json:"id"`
 	Input
-	Status     string     `json:"status"`
-	LastSeenAt *time.Time `json:"last_seen_at"`
+	Status       string     `json:"status"`
+	LastSeenAt   *time.Time `json:"last_seen_at"`
+	AgentVersion *string    `json:"agent_version"`
 }
 
 var label = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)

@@ -371,6 +371,7 @@ function App({
                             <th>{t("地址 / SSH")}</th>
                             <th>{t("标签")}</th>
                             <th>{t("状态")}</th>
+                            <th>{t("Agent 版本")}</th>
                             <th>{t("操作")}</th>
                           </tr>
                         </thead>
@@ -419,6 +420,7 @@ function App({
                                   </small>
                                 )}
                               </td>
+                              <td>{host.agent_version || "—"}</td>
                               <td>
                                 <button
                                   className="secondary compact"
@@ -481,6 +483,9 @@ function App({
                               )}
                             </p>
                           )}
+                          <p className="host-card-ssh">
+                            {t("Agent 版本")} · {host.agent_version || "—"}
+                          </p>
                           <p className="host-card-ssh">
                             SSH · {host.ssh_user} · {host.ssh_port}
                           </p>

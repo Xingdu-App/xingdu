@@ -12,6 +12,7 @@ export type Host = HostInput & {
   id: string;
   status: "pending" | "online" | "offline";
   last_seen_at: string | null;
+  agent_version: string | null;
 };
 export type Session = { id: string; username: string; csrf_token: string };
 export type System = {
@@ -218,6 +219,7 @@ export type MachineMetrics = {
   cpus: number;
 };
 export type MachineState = {
+  required_agent_version: string;
   agent: null | {
     mode: "monitor" | "manage";
     enrolled_at: string;

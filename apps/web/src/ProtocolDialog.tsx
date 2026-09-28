@@ -241,12 +241,16 @@ export default function ProtocolDialog({
   }, [host.id]);
 
   const agent = machine?.agent;
+  const requiredVersion = machine?.required_agent_version;
+  const versionCompatible = Boolean(
+    requiredVersion && agent?.metrics.version === requiredVersion,
+  );
   const eligible =
     loaded &&
     host.status === "online" &&
     agent?.mode === "manage" &&
     !agent.revoked_at &&
-    ["0.5.0-dev", "0.6.0-dev"].includes(agent.metrics.version);
+    versionCompatible;
   const pending = rows.some(
     (r) => r.state === "queued" || r.state === "running",
   );
@@ -260,10 +264,13 @@ export default function ProtocolDialog({
           ? t(
               "当前为只读探针。请在「接入 / 状态」中明确授权并重新接入托管模式 Agent。",
             )
-          : !["0.5.0-dev", "0.6.0-dev"].includes(agent.metrics.version)
-            ? t(
-                "需要 0.5.0-dev Agent。请按项目升级说明更新机器上的 Agent 后再部署。",
-              )
+          : !versionCompatible
+            ? requiredVersion
+              ? t(
+                  "当前 Agent 版本为 {0}，部署需要 {1}。请更新机器上的 Agent 后再部署。",
+                  { 0: agent.metrics.version || "—", 1: requiredVersion },
+                )
+              : t("控制端未提供 Agent 版本要求，请更新控制端后重试。")
             : host.status !== "online"
               ? t("机器暂未在线，请恢复 Agent 心跳后再操作。")
               : pending

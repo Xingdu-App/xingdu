@@ -1,4 +1,5 @@
 {
+  "Agent 版本": "Agent version",
   "从一个入口，连接更多可能": "One entry, more connections",
   "线路编排将在后续版本开放，支持直连与单层中转。": "Route orchestration is planned, with direct and single-hop relay routes.",
   "{0} · 星渡 Xingdu": "{0} · Xingdu",
@@ -376,7 +377,8 @@
   "正在读取机器状态…": "Reading machine status…",
   "请先通过「接入 / 状态」安装并注册托管模式 Agent。": "Install and enroll a managed Agent via Connect / Status first.",
   "当前为只读探针。请在「接入 / 状态」中明确授权并重新接入托管模式 Agent。": "This is a read-only monitor. Explicitly authorize and enroll a managed Agent via Connect / Status.",
-  "需要 0.5.0-dev Agent。请按项目升级说明更新机器上的 Agent 后再部署。": "Agent 0.5.0-dev is required. Follow the project upgrade instructions before deploying.",
+  "当前 Agent 版本为 {0}，部署需要 {1}。请更新机器上的 Agent 后再部署。": "Current Agent version: {0}. Deployment requires {1}. Update the Agent before deploying.",
+  "控制端未提供 Agent 版本要求，请更新控制端后重试。": "The control plane did not provide an Agent version requirement. Update the control plane and try again.",
   "机器暂未在线，请恢复 Agent 心跳后再操作。": "Machine offline. Restore Agent heartbeats before continuing.",
   "这台机器已有任务等待完成，请稍后再创建或卸载。": "This machine has a pending job. Wait before creating or uninstalling another service.",
   "任务已提交，Agent 将安装并启动服务。状态每 5 秒更新。": "Job submitted. The Agent will install and start the service. Status updates every 5 seconds.",

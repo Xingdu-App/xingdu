@@ -10,9 +10,10 @@ import (
 )
 
 type MachineState struct {
-	Agent      *machine.AgentInfo       `json:"agent"`
-	Credential *machine.SavedCredential `json:"credential"`
-	Jobs       []machine.Job            `json:"jobs"`
+	RequiredAgentVersion string                   `json:"required_agent_version"`
+	Agent                *machine.AgentInfo       `json:"agent"`
+	Credential           *machine.SavedCredential `json:"credential"`
+	Jobs                 []machine.Job            `json:"jobs"`
 }
 
 func audit(ctx context.Context, tx pgx.Tx, host, event string) error {
@@ -30,7 +31,7 @@ func (s *Store) MachineTarget(ctx context.Context, id string) (machine.Target, e
 	return t, mapError(err)
 }
 func (s *Store) MachineState(ctx context.Context, id string) (MachineState, error) {
-	out := MachineState{Jobs: []machine.Job{}}
+	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.Version}
 	tx, role, err := s.tenantTx(ctx, false, false)
 	if err != nil {
 		return out, err

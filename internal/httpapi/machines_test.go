@@ -57,6 +57,9 @@ func TestMachineLifecycle(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	if host.AgentVersion != nil {
+		t.Fatal("new host exposes an Agent version")
+	}
 	token := machine.Token()
 	if _, e = s.Enrollment(scoped, host.ID, "monitor", machine.Hash(token)); e != nil {
 		t.Fatal(e)
@@ -74,11 +77,11 @@ func TestMachineLifecycle(t *testing.T) {
 		t.Fatal("bootstrap token persisted", e)
 	}
 	state, e := s.MachineState(scoped, host.ID)
-	if e != nil || state.Agent == nil || state.Agent.Metrics.Hostname == "" {
+	if e != nil || state.RequiredAgentVersion != machine.Version || state.Agent == nil || state.Agent.Metrics.Hostname == "" {
 		t.Fatal("heartbeat metrics missing", e)
 	}
 	records, _ := s.Hosts(scoped)
-	if len(records) != 1 || records[0].Status != "online" {
+	if len(records) != 1 || records[0].Status != "online" || records[0].AgentVersion == nil || *records[0].AgentVersion != machine.Version {
 		t.Fatal("no live heartbeat")
 	}
 	if e = s.EnrollAgent(ctx, machine.Hash(token), machine.Hash(machine.Token()), "monitor"); !errors.Is(e, storage.ErrNotFound) {
@@ -103,7 +106,7 @@ func TestMachineLifecycle(t *testing.T) {
 	}
 	admin.Pool.Exec(ctx, "UPDATE hosts SET last_seen_at=now()-interval '91 seconds' WHERE id=$1", host.ID)
 	records, _ = s.Hosts(scoped)
-	if records[0].Status != "offline" {
+	if records[0].Status != "offline" || records[0].AgentVersion == nil || *records[0].AgentVersion != machine.Version {
 		t.Fatal("stale heartbeat online")
 	}
 	if e = agent.Sync(ctx, path, &config); e != nil {
@@ -114,6 +117,10 @@ func TestMachineLifecycle(t *testing.T) {
 	}
 	if e = agent.Sync(ctx, path, &config); !errors.Is(e, agent.ErrRevoked) {
 		t.Fatal("revoked agent still active", e)
+	}
+	records, e = s.Hosts(scoped)
+	if e != nil || len(records) != 1 || records[0].AgentVersion != nil {
+		t.Fatal("revoked Agent version still visible", e)
 	}
 	// A pending enrollment cannot silently escalate its authorized mode.
 	token = machine.Token()
