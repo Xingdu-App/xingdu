@@ -1,15 +1,14 @@
-resolver 127.0.0.11 valid=5s ipv6=off;
+resolver ${XINGDU_DNS_RESOLVERS} valid=10s ipv6=off;
 upstream xingdu_api {
     zone xingdu_api 64k;
-    server api:8080 resolve;
+    server ${XINGDU_API_UPSTREAM} resolve;
 }
-
 server {
     listen 8080;
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
-    # Subscription query strings are bearer credentials; never write them to proxy logs.
+    # Credentials may appear in subscription query strings. Suppress both logs.
     location ~ ^/api/v1/subscriptions/[^/]+/content$ {
         access_log off;
         error_log /dev/null crit;
@@ -18,6 +17,7 @@ server {
         proxy_read_timeout 10s;
     }
     location /api/ { proxy_pass http://xingdu_api; proxy_connect_timeout 3s; proxy_read_timeout 10s; }
+    location = /health/web { access_log off; return 200 'ok\n'; add_header Content-Type text/plain; }
     location /health/ { proxy_pass http://xingdu_api; proxy_connect_timeout 3s; proxy_read_timeout 10s; }
     location /assets/ { try_files $uri =404; }
     location = / { try_files /index.html =404; }
