@@ -1,54 +1,97 @@
-# 星渡 · Xingdu
+# Xingdu · 星渡
 
-连点成网，一键抵达。
+**Your servers. Your routes. One place to manage them.**
 
-星渡是计划开源的 VPS 与线路自动化管理平台：接入服务器、选择协议和线路模板、自动部署与验证，再生成适用于不同客户端的订阅。
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-## 项目状态
+[![CI](https://github.com/Xingdu-App/xingdu/actions/workflows/ci.yml/badge.svg)](https://github.com/Xingdu-App/xingdu/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-当前已完成可运行的开发脚手架：React 控制台、Go API、PostgreSQL 迁移及 Worker / Agent 进程入口。服务器接入、认证、协议部署和订阅生成尚未实现，协议与客户端兼容性尚未验证。
+Xingdu is an open-source project building a self-hosted control panel for VPS and proxy infrastructure. Its goal is to bring server onboarding, protocol deployment, direct and relay routes, and client subscriptions into one workflow.
 
-- 品牌：星渡 · Xingdu
-- 选定域名：`xingdu.app`（本项目未完成注册购买或配置）
-- 产品独立于 Stash，不绑定任何客户端或协议引擎。
-- 目标客户端：Stash、Surge、Loon、Shadowrocket。
-- 初期目标：个人与小团队自托管，接入已有 Linux VPS。
+Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-## 本地启动
+> **Early development preview.** You can run the console locally today. Authentication, VPS onboarding, protocol deployment, and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
 
-需要 Docker 与 Docker Compose：
+## What you can try today
+
+- **Web console:** responsive navigation, an empty server inventory, and clear placeholders for upcoming features.
+- **Live service status:** API and database availability, with error messages and retry when the connection fails.
+- **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
+- **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
+
+The worker does not execute deployment jobs yet, and the agent does not enroll or configure servers. The current console UI is in Simplified Chinese.
+
+## Where Xingdu is heading
+
+```text
+Connect a VPS → Choose a protocol and route → Deploy and verify → Import into your client
+```
+
+| Area | Planned capabilities |
+| --- | --- |
+| Server management | Onboard existing Linux VPS instances and track their health |
+| Protocol deployment | Generate and validate configurations through runtime adapters |
+| Route management | Direct connections and single-relay routes |
+| Reliable changes | Versioned deployments, progress tracking, retries, and rollback |
+| Client subscriptions | Dedicated export adapters for Stash, Surge, Loon, and Shadowrocket |
+
+These are roadmap items, not supported features in the current preview. Protocol and client-version compatibility will be documented as combinations are tested. See the [development plan](docs/PLAN.md) for milestones.
+
+## Try it locally
+
+You need **Git, Docker, and Docker Compose v2**. Go and Node.js are not required for the container-based preview.
 
 ```sh
+git clone https://github.com/Xingdu-App/xingdu.git
+cd xingdu
 cp .env.example .env
-make up
+docker compose up --build -d --wait
 ```
 
-打开 http://127.0.0.1:15173 查看控制台。API 位于 http://127.0.0.1:18080。
+Open the console at **[http://127.0.0.1:15173](http://127.0.0.1:15173)**. The first build downloads dependencies and container images, so it may take a few minutes.
 
-当前脚手架仅供本地开发，未实现身份认证；Compose 发布的端口仅绑定回环地址。
+A fresh installation shows an empty server list. Adding a server is intentionally disabled until onboarding is implemented.
+
+| Service | Local address |
+| --- | --- |
+| Web console | `http://127.0.0.1:15173` |
+| API | `http://127.0.0.1:18080` |
+| PostgreSQL | `127.0.0.1:54329` |
+
+All published ports bind to loopback. The example credentials are for local development only. If you already have a `.env` file, keep it instead of copying over it.
+
+To stop the preview while keeping database data:
 
 ```sh
-make down # 停止服务，保留数据库卷
+docker compose down
 ```
 
-热更新开发与验证命令见 [开发指南](docs/DEVELOPMENT.md)。
+## Development and contributions
 
-## 核心流程
+Want to help build Xingdu? Bug reports, use cases, documentation improvements, and code contributions are welcome. For larger changes, open an [issue](https://github.com/Xingdu-App/xingdu/issues) first to discuss the scope.
 
-添加 VPS → 选择协议与线路 → 自动部署 → 验证连通 → 生成订阅。
+For development outside containers, install the Go version specified in `go.mod`, Node.js 24 LTS, and Make. Then run:
 
-首版目标包括服务器管理、单机节点、单层中转、版本化部署与回滚、多客户端订阅和基本监控。
+```sh
+make setup
+make check
+```
 
-## 文档
+The [development guide](docs/DEVELOPMENT.md) covers hot reload, database setup, and integration tests. Database integration tests require a dedicated test database; they are skipped unless `XINGDU_TEST_DATABASE_URL` is set.
 
-- [开发计划](docs/PLAN.md)
-- [开发指南](docs/DEVELOPMENT.md)
-- [适配器边界](docs/ADAPTERS.md)
-- [贡献说明](CONTRIBUTING.md)
-- [安全说明](SECURITY.md)
+| Resource | Contents |
+| --- | --- |
+| [Development guide](docs/DEVELOPMENT.md) | Local setup, commands, and API endpoints |
+| [Development plan](docs/PLAN.md) | Scope and milestones |
+| [Adapter design](docs/ADAPTERS.md) | Runtime and client integration boundaries |
+| [Contributing](CONTRIBUTING.md) | Contribution guidelines |
+| [Security](SECURITY.md) | Vulnerability reporting guidance |
 
-## 开源与许可
+Supporting documents are currently in Simplified Chinese. Do not include credentials, private server details, or subscription tokens in public issues.
 
-本项目采用 [MIT 许可证](LICENSE)，允许个人及商业用途的使用、修改和分发，无须另行购买商业授权。分发软件副本或重要部分时须保留版权和许可声明；软件按原样提供，不作担保。
+## License
 
-第三方依赖与协议引擎遵循各自许可证，其集成和再分发要求需单独核查。
+Xingdu is licensed under the [MIT License](LICENSE). Personal and commercial use, modification, and redistribution are permitted under its terms. Retain the copyright and license notices when distributing copies or substantial portions of the software.
+
+Third-party dependencies and protocol engines remain subject to their own licenses.
