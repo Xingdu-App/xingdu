@@ -27,6 +27,7 @@ export function BlogCards({ posts = blogPosts }: { posts?: BlogPost[] }) {
   );
 }
 export default function Blog({ slug }: { slug?: string }) {
+  const t = useMarketingText();
   const post = blogPosts.find((item) => item.slug === slug);
   if (!post)
     return (
@@ -34,44 +35,47 @@ export default function Blog({ slug }: { slug?: string }) {
         <section className="site-page-intro">
           <p className="site-eyebrow">XINGDU JOURNAL</p>
           <h1>
-            服务器管理，<em>从方法开始。</em>
+            {t("服务器管理，")}
+            <em>{t("从方法开始。")}</em>
           </h1>
           <p>
-            从 VPS 台账、Agent
-            接入到客户端配置，找到适合个人使用或多人协作的管理流程。
+            {t(
+              "从 VPS 台账、Agent 接入到客户端配置，找到适合个人使用或多人协作的管理流程。",
+            )}
           </p>
         </section>
         <BlogCards />
         <p className="blog-meta">
-          星渡产品内容 · 以当前预览版本为基础 ·{" "}
-          <a href="/blog/feed.xml">RSS 订阅</a>
+          {t("星渡产品内容 · 以当前预览版本为基础 ·")}{" "}
+          <a href="/blog/feed.xml">{t("RSS 订阅")}</a>
         </p>
       </div>
     );
   return (
     <article className="site-container blog-article">
-      <nav className="blog-breadcrumbs" aria-label="面包屑">
-        <a href="/">首页</a>
+      <nav className="blog-breadcrumbs" aria-label={t("面包屑")}>
+        <a href="/">{t("首页")}</a>
         <span aria-hidden="true">/</span>
-        <a href="/blog">博客</a>
+        <a href="/blog">{t("博客")}</a>
         <span aria-hidden="true">/</span>
-        <span aria-current="page">{post.title}</span>
+        <span aria-current="page">{t(post.title)}</span>
       </nav>
       <header className="site-page-intro">
-        <p className="site-eyebrow">{post.category}</p>
-        <h1>{post.title}</h1>
-        <p>{post.description}</p>
+        <p className="site-eyebrow">{t(post.category)}</p>
+        <h1>{t(post.title)}</h1>
+        <p>{t(post.description)}</p>
         <div className="blog-meta">
-          作者：<a href="/">星渡 Xingdu</a> · 更新于{" "}
+          {t("作者：")}
+          <a href="/">{t("星渡 Xingdu")}</a> {t(" · 更新于")}{" "}
           <time dateTime={post.updated}>{post.updated}</time>
         </div>
       </header>
       <div className="site-document-layout">
-        <nav aria-label="文章目录">
+        <nav aria-label={t("文章目录")}>
           {post.sections.map((section, i) => (
             <a key={section.id} href={`#${section.id}`}>
               <span>
-                {String(i + 1).padStart(2, "0")} · {section.title}
+                {String(i + 1).padStart(2, "0")} · {t(section.title)}
               </span>
             </a>
           ))}
@@ -79,44 +83,46 @@ export default function Blog({ slug }: { slug?: string }) {
         <div className="site-document">
           {post.sections.map((section) => (
             <section key={section.id} id={section.id}>
-              <h2>{section.title}</h2>
+              <h2>{t(section.title)}</h2>
               {section.paragraphs.map((text) => (
-                <p key={text}>{text}</p>
+                <p key={t(text)}>{t(text)}</p>
               ))}
               {section.checklist && (
                 <ul>
                   {section.checklist.map((text) => (
-                    <li key={text}>{text}</li>
+                    <li key={t(text)}>{t(text)}</li>
                   ))}
                 </ul>
               )}
             </section>
           ))}
           <section>
-            <h2>进一步阅读</h2>
+            <h2>{t("进一步阅读")}</h2>
             <ul>
               {post.references.map((reference) => (
                 <li key={reference.href}>
-                  <a href={reference.href}>{reference.title}</a>
+                  <a href={reference.href}>{t(reference.title)}</a>
                 </li>
               ))}
             </ul>
           </section>
           <aside className="document-note">
-            <h2>把流程落实到你的工作空间</h2>
+            <h2>{t("把流程落实到你的工作空间")}</h2>
             <p>
-              从第一台服务器开始，验证接入、部署与客户端配置。星渡当前为产品预览，请先了解功能范围。
+              {t(
+                "从第一台服务器开始，验证接入、部署与客户端配置。星渡当前为产品预览，请先了解功能范围。",
+              )}
             </p>
             <p>
-              <a href="/app">进入星渡控制台</a> ·{" "}
-              <a href="/help">查看入门帮助</a> ·{" "}
-              <a href="/pricing">比较部署方式</a>
+              <a href="/app">{t("进入星渡控制台")}</a> ·{" "}
+              <a href="/help">{t("查看入门帮助")}</a> ·{" "}
+              <a href="/pricing">{t("比较部署方式")}</a>
             </p>
           </aside>
         </div>
       </div>
       <section className="blog-related">
-        <h2>继续阅读</h2>
+        <h2>{t("继续阅读")}</h2>
         <BlogCards
           posts={post.related.flatMap((slug) =>
             blogPosts.filter((item) => item.slug === slug),

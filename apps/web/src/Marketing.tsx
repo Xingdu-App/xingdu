@@ -1,7 +1,11 @@
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { useLocale } from "./i18n";
 import MarketingLanguage from "./MarketingLanguage";
-import { MarketingLocale, useMarketingText } from "./marketing-locale";
+import {
+  MarketingLocale,
+  useMarketingText,
+  translateMarketing,
+} from "./marketing-locale";
 import { publicPages } from "./public-pages";
 import Blog, { BlogCards } from "./Blog";
 import { blogPosts } from "./blog-posts";
@@ -11,7 +15,10 @@ import "./Marketing.css";
 import type { PublicPage } from "./public-pages";
 
 const repository = "https://github.com/Xingdu-App/xingdu";
-const docs = `${repository}/blob/main/README.zh-CN.md`;
+function useDocumentationLink() {
+  const locale = useContext(MarketingLocale);
+  return `${repository}/blob/main/${locale === "en" ? "README.md" : "README.zh-CN.md"}`;
+}
 function Arrow() {
   return <span aria-hidden="true">↗</span>;
 }
@@ -178,6 +185,7 @@ function GettingStarted() {
   );
 }
 function Plans({ compact = false }: { compact?: boolean }) {
+  const docs = useDocumentationLink();
   const t = useMarketingText();
   return (
     <div className="site-plans">
@@ -447,220 +455,241 @@ function Home() {
   );
 }
 function Pricing() {
+  const t = useMarketingText();
   return (
     <div className="site-container">
       <section className="site-page-intro">
         <p className="site-eyebrow">SIMPLE CHOICES</p>
         <h1>
-          自由部署，<em>按需选择。</em>
+          {t("自由部署，")}
+          <em>{t("按需选择。")}</em>
         </h1>
-        <p>自部署版免费。云端版每个组织 $5/月，年付 $40，包含 5 台服务器。</p>
+        <p>
+          {t("自部署版免费。云端版每个组织 $5/月，年付 $40，包含 5 台服务器。")}
+        </p>
       </section>
       <Plans />
       <section className="pricing-explanation">
         <span aria-hidden="true">✧</span>
         <div>
-          <h2>开源免费，不等于基础设施零成本。</h2>
+          <h2>{t("开源免费，不等于基础设施零成本。")}</h2>
           <p>
-            自托管版本采用 MIT
-            许可证，不收取软件许可费。你需要自行提供服务器并负责部署、备份与维护。云端版的费用与额度不会改变已发布代码的
-            MIT 许可。
+            {t(
+              "自托管版本采用 MIT 许可证，不收取软件许可费。你需要自行提供服务器并负责部署、备份与维护。云端版的费用与额度不会改变已发布代码的 MIT 许可。",
+            )}
           </p>
         </div>
       </section>
       <section className="site-section site-faq">
-        <SectionTitle eyebrow="A FEW MORE THINGS" title="你可能还想知道" />
+        <SectionTitle eyebrow="A FEW MORE THINGS" title={t("你可能还想知道")} />
         <details>
-          <summary>如何购买和取消云端套餐？</summary>
+          <summary>{t("如何购买和取消云端套餐？")}</summary>
           <p>
-            组织所有者可在控制台的「套餐与账单」查看当前实例是否开放购买。已开放时，可选择月付或年付，并通过账单管理入口取消后续续费。请在付款前核对金额、计费周期和生效时间。
+            {t(
+              "组织所有者可在控制台的「套餐与账单」查看当前实例是否开放购买。已开放时，可选择月付或年付，并通过账单管理入口取消后续续费。请在付款前核对金额、计费周期和生效时间。",
+            )}
           </p>
         </details>
         <details>
-          <summary>免费版本有机器或成员数量限制吗？</summary>
+          <summary>{t("免费版本有机器或成员数量限制吗？")}</summary>
           <p>
-            当前版本已有组织资源配额，组织管理员可在设置中查看资源用量与上限。额度由服务管理员配置，自托管软件免费不代表资源无限。
+            {t(
+              "当前版本已有组织资源配额。组织管理员可在设置中查看服务器、节点部署、客户端订阅与成员的用量和上限，额度由服务管理员配置。自托管软件免费不代表资源无限。",
+            )}
           </p>
         </details>
         <details>
-          <summary>价格包含 VPS 和流量吗？</summary>
+          <summary>{t("价格包含 VPS 和流量吗？")}</summary>
           <p>
-            价格仅包含星渡控制端的管理服务。自部署版与云端版都需要你自行提供
-            VPS，服务器、域名和网络流量费用另行承担。
+            {t(
+              "价格仅包含星渡控制端的管理服务。自部署版与云端版都需要你自行提供 VPS，服务器、域名和网络流量费用另行承担。",
+            )}
           </p>
         </details>
         <details>
-          <summary>开源代码可以用于商业项目吗？</summary>
+          <summary>{t("开源代码可以用于商业项目吗？")}</summary>
           <p>
-            已发布代码采用 MIT
-            许可证，允许商业使用，需遵守其版权与许可声明保留要求。具体以项目中的{" "}
+            {t(
+              "已发布代码采用 MIT 许可证，允许商业使用，需遵守其版权与许可声明保留要求。具体以项目中的",
+            )}{" "}
             <a href={`${repository}/blob/main/LICENSE`}>LICENSE</a>{" "}
-            为准；商标与托管服务不等同于代码许可。
+            {t("为准；商标与托管服务不等同于代码许可。")}
           </p>
         </details>
         <details>
-          <summary>支持一键部署协议和客户端订阅吗？</summary>
+          <summary>{t("支持一键部署协议和客户端订阅吗？")}</summary>
           <p>
-            已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC
-            v5，须提供 TLS 证书并明确授权。已提供 Stash、Mihomo、Surge、Loon
-            配置及 Hysteria 2 分享链接，具体协议和证书支持范围不同；实际 App
-            联网仍需验证。
+            {t(
+              "已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC v5，须提供 TLS 证书并明确授权。可按支持范围导出 Stash、Mihomo、Surge、Loon 配置及 Hysteria 2 分享链接。自动证书签发、线路编排与真实客户端验收尚未完成。",
+            )}
           </p>
         </details>
       </section>
     </div>
   );
 }
-const privacySections = [
-  {
-    title: "这份说明适用于什么",
-    body: (
-      <>
-        <p>
-          本页说明星渡当前开源版本与官网页面的数据处理方式，更新于 2026 年 9 月
-          28
-          日。不同自托管实例由各自部署者运行；部署位置、日志、备份和保留期限由实际部署配置决定。
-        </p>
-        <p>
-          星渡目前提供产品预览。邮箱注册需要有效邮件服务；Google / GitHub
-          登录需要部署者分别配置，未配置的方式不可用。正式托管服务的运营主体、处理地区、服务商、保留期限及具体数据处理政策将在开放前单独公布。本页不替代未来托管服务的正式隐私政策。隐私咨询可发送至
-          info@xingdu.app；自托管实例的数据请求应联系实际部署者。
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "控制台处理的数据",
-    body: (
-      <>
-        <p>
-          邮箱注册保存邮箱、验证时间和密码哈希；已有用户名账号仍可登录。通过
-          Google / GitHub
-          创建的账号保存该服务的用户标识与返回的已验证邮箱，不会获得你的第三方账号密码。验证完成前只保存限时注册挑战，不创建可登录账户。组织名称、成员关系、角色、邀请状态，以及你添加的服务器地址、SSH
-          用户、端口、标签和备注会保存在该实例的数据库中。
-        </p>
-        <p>
-          Agent 上报主机名、系统类型、架构、版本、运行时间、CPU
-          核数、内存与负载，用于显示机器状态。当前探针不采集文件内容、环境变量或进程列表。
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "SSH 密码、私钥与机器身份",
-    body: (
-      <>
-        <p>
-          主动安装 Agent 无需把 SSH 凭据交给控制端。选择 SSH
-          安装时，密码、私钥和私钥口令会由控制端处理，用于连接你指定的机器。
-        </p>
-        <p>
-          任务凭据以 AES-256-GCM
-          加密保存，任务完成、失败、取消或过期后清除任务中的密文；自动过期清理需要任务服务正常运行。你也可以明确选择长期加密保存，并在控制台删除长期副本。
-        </p>
-        <p>
-          加密密钥由部署者保管，控制端执行 SSH
-          安装时需要解密凭据。这是静态存储加密，不是对服务端不可见的端到端加密。每台
-          Agent 另有独立身份，数据库保存其摘要。
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "协议证书与连接凭据",
-    body: (
-      <>
-        <p>
-          创建协议部署时，控制端处理你提供的 TLS
-          证书与私钥，并生成客户端认证凭据。敏感配置采用 AES-256-GCM
-          加密保存，绑定所属组织、机器与部署，交付给授权的托管 Agent
-          用于运行服务。
-        </p>
-        <p>
-          部署列表不返回凭据。只有组织所有者或管理员主动查看连接信息时，才返回客户端认证凭据及公开证书，并记录审计；TLS
-          私钥不回显。机器上的服务配置仍需包含运行所需的密钥，并以受限权限保存。
-        </p>
-        <p>
-          当前生成的协议运行时配置禁用流量日志。机器心跳、部署任务结果与审计事件仍会保存；这不代替对实际操作系统、代理或云平台日志配置的检查。
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "Cookie、访问日志与第三方",
-    body: (
-      <>
-        <p>
-          控制台使用必要的 xingdu_session Cookie 维持登录，会话有效期为 24
-          小时，并设置 HttpOnly 与 SameSite 限制。是否使用 Secure
-          属性取决于部署配置；公网部署应使用 HTTPS。退出登录会撤销对应会话并清除
-          Cookie。
-        </p>
-        <p>
-          当前官网未接入广告或第三方行为分析脚本，也不加载第三方字体。Web
-          服务器或部署平台可能记录 IP
-          地址、访问时间、浏览器信息与请求路径，具体以部署配置为准。
-        </p>
-        <p>
-          部署者配置 Resend 后，注册邮箱、验证码及邮件内容会发送给 Resend
-          用于投递验证邮件。密码、SSH
-          凭据和节点私钥不会包含在邮件中；星渡数据库只保存验证码摘要，不保存明文验证码。未配置有效邮件服务时，不发送邮件，也不绕过邮箱验证。
-        </p>
-        <p>
-          选择 Google 或 GitHub
-          登录、绑定时，浏览器会跳转至对应服务授权。第三方会处理该次访问和授权请求，星渡服务端会获取用于核验身份的用户标识与已验证邮箱。星渡不会请求访问代码仓库、联系人或云盘；用于身份核验的访问令牌不作为长期凭据保存。第三方提供的已验证邮箱与星渡账号的已验证邮箱一致时，会自动关联并登录已有账号，无需先手动绑定。仅用户名相同不会触发关联；已经关联的第三方身份仍以其稳定标识识别账号。
-        </p>
-        <p>
-          第三方授权流程使用短期安全状态与 Cookie
-          校验请求来源。解绑会移除星渡账号与第三方身份的关联，不会删除第三方账号，也不一定撤销第三方服务中的应用授权；你可以在对应服务的账号设置中撤销授权。至少需要保留一种星渡登录方式。
-        </p>
-        <p>
-          云端计费启用后，支付页面与账单管理由 Stripe 提供。星渡保存组织对应的
-          Stripe
-          客户、订阅标识、账期和状态，不保存完整银行卡号或安全码；银行卡信息直接交给
-          Stripe。星渡不会把机器地址、SSH 凭据或节点密钥发送给 Stripe。
-        </p>
-        <p>
-          点击 GitHub 等外部链接后，将适用对应网站的数据处理规则。请不要把 SSH
-          凭据、邀请令牌或私人服务器信息提交到公开 issue。
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "你的控制方式与删除边界",
-    body: (
-      <>
-        <p>
-          组织管理员可删除服务器资料、删除保存的 SSH
-          凭据、撤销邀请或机器接入，也可移除成员。普通成员可访问的数据取决于其组织角色。
-        </p>
-        <p>
-          删除保存的 SSH
-          凭据不取消已提交任务持有的临时副本；需要同时终止后续接入时，应撤销机器接入。撤销不会停止已部署的协议服务，也不会卸载机器上的软件；需要终止服务时，应先卸载并确认完成，再撤销接入。已发出的操作无法撤回。
-        </p>
-        <p>
-          在线数据删除不意味着备份中的历史副本立即消失，已记录的审计事件也可能继续保留。当前尚无账号和组织的一键删除功能。星渡相关数据咨询请通过下方邮箱联系，并说明请求类型和账号邮箱；请勿发送密码或密钥。自托管实例的数据查阅、删除与备份请求，请联系该实例部署者。
-        </p>
-      </>
-    ),
-  },
-];
 function Privacy() {
+  const t = useMarketingText();
+  const privacySections = [
+    {
+      title: t("这份说明适用于什么"),
+      body: (
+        <>
+          <p>
+            {t(
+              "本页说明星渡当前开源版本与官网页面的数据处理方式，更新于 2026 年 9 月 28 日。不同自托管实例由各自部署者运行；部署位置、日志、备份和保留期限由实际部署配置决定。",
+            )}
+          </p>
+          <p>
+            {t(
+              "星渡目前提供产品预览。邮箱注册需要有效邮件服务；Google / GitHub 登录需要部署者分别配置，未配置的方式不可用。正式托管服务的运营主体、处理地区、服务商、保留期限及具体数据处理政策将在开放前单独公布。本页不替代未来托管服务的正式隐私政策。隐私咨询可发送至 info@xingdu.app；自托管实例的数据请求应联系实际部署者。",
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      title: t("控制台处理的数据"),
+      body: (
+        <>
+          <p>
+            {t(
+              "邮箱注册保存邮箱、验证时间和密码哈希；已有用户名账号仍可登录。通过 Google / GitHub 创建的账号保存该服务的用户标识与返回的已验证邮箱，不会获得你的第三方账号密码。验证完成前只保存限时注册挑战，不创建可登录账户。组织名称、成员关系、角色、邀请状态，以及你添加的服务器地址、SSH 用户、端口、标签和备注会保存在该实例的数据库中。",
+            )}
+          </p>
+          <p>
+            {t(
+              "Agent 上报主机名、系统类型、架构、版本、运行时间、CPU 核数、内存与负载，用于显示机器状态。当前探针不采集文件内容、环境变量或进程列表。",
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      title: t("SSH 密码、私钥与机器身份"),
+      body: (
+        <>
+          <p>
+            {t(
+              "主动安装 Agent 无需把 SSH 凭据交给控制端。选择 SSH 安装时，密码、私钥和私钥口令会由控制端处理，用于连接你指定的机器。",
+            )}
+          </p>
+          <p>
+            {t(
+              "任务凭据以 AES-256-GCM 加密保存，任务完成、失败、取消或过期后清除任务中的密文；自动过期清理需要任务服务正常运行。你也可以明确选择长期加密保存，并在控制台删除长期副本。",
+            )}
+          </p>
+          <p>
+            {t(
+              "加密密钥由部署者保管，控制端执行 SSH 安装时需要解密凭据。这是静态存储加密，不是对服务端不可见的端到端加密。每台 Agent 另有独立身份，数据库保存其摘要。",
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      title: t("协议证书与连接凭据"),
+      body: (
+        <>
+          <p>
+            {t(
+              "创建协议部署时，控制端处理你提供的 TLS 证书与私钥，并生成客户端认证凭据。敏感配置采用 AES-256-GCM 加密保存，绑定所属组织、机器与部署，交付给授权的托管 Agent 用于运行服务。",
+            )}
+          </p>
+          <p>
+            {t(
+              "部署列表不返回凭据。只有组织所有者或管理员主动查看连接信息时，才返回客户端认证凭据及公开证书，并记录审计；TLS 私钥不回显。机器上的服务配置仍需包含运行所需的密钥，并以受限权限保存。",
+            )}
+          </p>
+          <p>
+            {t(
+              "当前生成的协议运行时配置禁用流量日志。机器心跳、部署任务结果与审计事件仍会保存；这不代替对实际操作系统、代理或云平台日志配置的检查。",
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      title: t("Cookie、访问日志与第三方"),
+      body: (
+        <>
+          <p>
+            {t(
+              "控制台使用必要的 xingdu_session Cookie 维持登录，会话有效期为 24 小时，并设置 HttpOnly 与 SameSite 限制。是否使用 Secure 属性取决于部署配置；公网部署应使用 HTTPS。退出登录会撤销对应会话并清除 Cookie。",
+            )}
+          </p>
+          <p>
+            {t(
+              "当前官网未接入广告或第三方行为分析脚本，也不加载第三方字体。Web 服务器或部署平台可能记录 IP 地址、访问时间、浏览器信息与请求路径，具体以部署配置为准。",
+            )}
+          </p>
+          <p>
+            {t(
+              "部署者配置 Resend 后，注册邮箱、验证码及邮件内容会发送给 Resend 用于投递验证邮件。密码、SSH 凭据和节点私钥不会包含在邮件中；星渡数据库只保存验证码摘要，不保存明文验证码。未配置有效邮件服务时，不发送邮件，也不绕过邮箱验证。",
+            )}
+          </p>
+          <p>
+            {t(
+              "选择 Google 或 GitHub 登录、绑定时，浏览器会跳转至对应服务授权。第三方会处理该次访问和授权请求，星渡服务端会获取用于核验身份的用户标识与已验证邮箱。星渡不会请求访问代码仓库、联系人或云盘；用于身份核验的访问令牌不作为长期凭据保存。第三方提供的已验证邮箱与星渡账号的已验证邮箱一致时，会自动关联并登录已有账号，无需先手动绑定。仅用户名相同不会触发关联；已经关联的第三方身份仍以其稳定标识识别账号。",
+            )}
+          </p>
+          <p>
+            {t(
+              "第三方授权流程使用短期安全状态与 Cookie 校验请求来源。解绑会移除星渡账号与第三方身份的关联，不会删除第三方账号，也不一定撤销第三方服务中的应用授权；你可以在对应服务的账号设置中撤销授权。至少需要保留一种星渡登录方式。",
+            )}
+          </p>
+          <p>
+            {t(
+              "云端计费启用后，支付页面与账单管理由 Stripe 提供。星渡保存组织对应的 Stripe 客户、订阅标识、账期和状态，不保存完整银行卡号或安全码；银行卡信息直接交给 Stripe。星渡不会把机器地址、SSH 凭据或节点密钥发送给 Stripe。",
+            )}
+          </p>
+          <p>
+            {t(
+              "点击 GitHub 等外部链接后，将适用对应网站的数据处理规则。请不要把 SSH 凭据、邀请令牌或私人服务器信息提交到公开 issue。",
+            )}
+          </p>
+        </>
+      ),
+    },
+    {
+      title: t("你的控制方式与删除边界"),
+      body: (
+        <>
+          <p>
+            {t(
+              "组织管理员可删除服务器资料、删除保存的 SSH 凭据、撤销邀请或机器接入，也可移除成员。普通成员可访问的数据取决于其组织角色。",
+            )}
+          </p>
+          <p>
+            {t(
+              "删除保存的 SSH 凭据不取消已提交任务持有的临时副本；需要同时终止后续接入时，应撤销机器接入。撤销不会停止已部署的协议服务，也不会卸载机器上的软件；需要终止服务时，应先卸载并确认完成，再撤销接入。已发出的操作无法撤回。",
+            )}
+          </p>
+          <p>
+            {t(
+              "在线数据删除不意味着备份中的历史副本立即消失，已记录的审计事件也可能继续保留。当前尚无账号和组织的一键删除功能。星渡相关数据咨询请通过下方邮箱联系，并说明请求类型和账号邮箱；请勿发送密码或密钥。自托管实例的数据查阅、删除与备份请求，请联系该实例部署者。",
+            )}
+          </p>
+        </>
+      ),
+    },
+  ];
+
   return (
     <div className="site-container">
       <section className="site-page-intro">
         <p className="site-eyebrow">PRIVACY, IN PLAIN WORDS</p>
         <h1>
-          数据的去向，<em>应当清楚。</em>
+          {t("数据的去向，")}
+          <em>{t("应当清楚。")}</em>
         </h1>
-        <p>说明收集什么、用于什么，以及你可以控制什么。</p>
+        <p>{t("说明收集什么、用于什么，以及你可以控制什么。")}</p>
         <span className="document-version">
-          当前版本数据说明 · 更新于 2026.09.28
+          {t("当前版本数据说明 · 更新于 2026.09.28")}
         </span>
       </section>
       <div className="site-document-layout">
-        <nav aria-label="隐私说明目录">
+        <nav aria-label={t("隐私说明目录")}>
           {privacySections.map((s, i) => (
             <a key={s.title} href={`#privacy-${i}`}>
               {String(i + 1).padStart(2, "0")}
@@ -676,10 +705,12 @@ function Privacy() {
             </section>
           ))}
           <div className="document-note">
-            隐私与数据咨询：<a href="mailto:info@xingdu.app">info@xingdu.app</a>
-            。想进一步了解权限和凭据保护？
+            {t("隐私与数据咨询：")}
+            <a href="mailto:info@xingdu.app">info@xingdu.app</a>
+            {t("。想进一步了解权限和凭据保护？")}
             <a href="/security">
-              查看安全设计 <Arrow />
+              {t("查看安全设计 ")}
+              <Arrow />
             </a>
           </div>
         </div>
@@ -688,52 +719,73 @@ function Privacy() {
   );
 }
 function Help() {
+  const docs = useDocumentationLink();
+  const t = useMarketingText();
   return (
     <div className="site-container">
       <section className="site-page-intro">
         <p className="site-eyebrow">HELP & SUPPORT</p>
         <h1>
-          从第一次登录，<em>到第一台服务器。</em>
+          {t("从第一次登录，")}
+          <em>{t("到第一台服务器。")}</em>
         </h1>
-        <p>了解使用步骤、权限分工，以及遇到问题时如何继续。</p>
+        <p>{t("了解使用步骤、权限分工，以及遇到问题时如何继续。")}</p>
       </section>
       <section className="site-faq">
         {[
           [
-            "只有自己使用、一台 VPS，也适合吗？",
-            "可以。星渡支持个人管理自己的 VPS，一台服务器也可以开始使用。注册时创建的组织就是资源工作空间，不要求有多名成员，也不需要邀请他人。以后需要共同维护时，再按需邀请成员。",
+            t("只有自己使用、一台 VPS，也适合吗？"),
+            t(
+              "可以。星渡支持个人管理自己的 VPS，一台服务器也可以开始使用。注册时创建的组织就是资源工作空间，不要求有多名成员，也不需要邀请他人。以后需要共同维护时，再按需邀请成员。",
+            ),
           ],
           [
-            "没有账号，如何开始？",
-            "在控制台使用已开放的登录方式。邮箱注册需要完成验证码验证；如果注册未开放，请联系当前服务管理员。第三方已验证邮箱与已有账号的已验证邮箱相同时，可直接登录并自动关联，无需先手动绑定。",
+            t("没有账号，如何开始？"),
+            t(
+              "在控制台使用已开放的登录方式。邮箱注册需要完成验证码验证；如果注册未开放，请联系当前服务管理员。第三方已验证邮箱与已有账号的已验证邮箱相同时，可直接登录并自动关联，无需先手动绑定。",
+            ),
           ],
           [
-            "收到团队邀请后怎么做？",
-            "打开邀请链接并登录，核对组织名称后接受邀请。链接过期或已撤销时，请邀请人重新发送。加入后，在侧边栏组织菜单切换工作空间。",
+            t("收到团队邀请后怎么做？"),
+            t(
+              "打开邀请链接并登录，核对组织名称后接受邀请。链接过期或已撤销时，请邀请人重新发送。加入后，在侧边栏组织菜单切换工作空间。",
+            ),
           ],
           [
-            "服务器、节点和客户端订阅有什么区别？",
-            "服务器是你管理的机器；节点是部署在机器上的协议服务；客户端订阅把选中的节点和分流规则生成可导入的配置。客户端订阅不是星渡云服务的付费套餐。",
+            t("服务器、节点和客户端订阅有什么区别？"),
+            t(
+              "服务器是你管理的机器；节点是部署在机器上的协议服务；客户端订阅把选中的节点和分流规则生成可导入的配置。客户端订阅不是星渡云服务的付费套餐。",
+            ),
           ],
           [
-            "为什么有些操作不可用？",
-            "操作范围由组织角色决定。接入机器、部署协议和管理客户端订阅需要所有者或管理员权限。达到资源上限时，请先在设置中查看用量，再联系服务管理员。",
+            t("为什么有些操作不可用？"),
+            t(
+              "操作范围由组织角色决定。接入机器、部署协议和管理客户端订阅需要所有者或管理员权限。达到资源上限时，请先在设置中查看用量，再联系服务管理员。",
+            ),
           ],
           [
-            "显示在线或部署成功，就能连接了吗？",
-            "在线表示 Agent 最近成功上报心跳；部署成功表示机器完成了对应任务。客户端连接还取决于域名解析、防火墙、端口、证书和 App 支持情况，需要实际导入并测试。",
+            t("显示在线或部署成功，就能连接了吗？"),
+            t(
+              "在线表示 Agent 最近成功上报心跳；部署成功表示机器完成了对应任务。客户端连接还取决于域名解析、防火墙、端口、证书和 App 支持情况，需要实际导入并测试。",
+            ),
           ],
           [
-            "客户端格式应该怎么选？",
-            "按实际使用的客户端选择，不能把一种格式直接当作另一种使用。Surge 不导出 VLESS，Loon 不导出 TUIC 且要求系统信任的完整证书链；Hysteria 2 分享链接仅用于该协议且不支持分流规则。Shadowrocket 暂无专用输出。",
+            t("客户端格式应该怎么选？"),
+            t(
+              "按实际使用的客户端选择，不能把一种格式直接当作另一种使用。Surge 不导出 VLESS，Loon 不导出 TUIC 且要求系统信任的完整证书链；Hysteria 2 分享链接仅用于该协议且不支持分流规则。Shadowrocket 暂无专用输出。",
+            ),
           ],
           [
-            "没有收到验证码或忘记密码怎么办？",
-            "先检查垃圾邮件、邮箱拼写和重发倒计时，重发后请使用最新验证码。当前尚未提供邮件找回密码；若已绑定其他登录方式，可用它登录。仍无法登录时，请联系当前服务管理员，不要向他人发送密码或验证码。",
+            t("没有收到验证码或忘记密码怎么办？"),
+            t(
+              "先检查垃圾邮件、邮箱拼写和重发倒计时，重发后请使用最新验证码。当前尚未提供邮件找回密码；若已绑定其他登录方式，可用它登录。仍无法登录时，请联系当前服务管理员，不要向他人发送密码或验证码。",
+            ),
           ],
           [
-            "删除订阅或撤销 Agent 会停止节点吗？",
-            "停用、删除或重置订阅链接会阻止旧链接继续获取配置，但不会撤回已下载的节点凭据。撤销 Agent 也不会停止机器上运行的服务。需要终止服务时，应先完成协议卸载并确认结果，再撤销接入。",
+            t("删除订阅或撤销 Agent 会停止节点吗？"),
+            t(
+              "停用、删除或重置订阅链接会阻止旧链接继续获取配置，但不会撤回已下载的节点凭据。撤销 Agent 也不会停止机器上运行的服务。需要终止服务时，应先完成协议卸载并确认结果，再撤销接入。",
+            ),
           ],
         ].map(([title, body]) => (
           <details key={title}>
@@ -743,86 +795,99 @@ function Help() {
         ))}
       </section>
       <section className="security-boundary">
-        <h2>获取帮助与反馈</h2>
+        <h2>{t("获取帮助与反馈")}</h2>
         <p>
-          星渡使用与隐私问题可联系
-          info@xingdu.app。自托管实例的账号、组织权限、额度和数据处理问题，请联系当前实例的服务管理员。自托管部署步骤见部署文档；可公开的问题可提交到项目
-          Issue，附上操作步骤、发生时间和脱敏后的错误提示。
+          {t(
+            "星渡使用与隐私问题可联系 info@xingdu.app。自托管实例的账号、组织权限、额度和数据处理问题，请联系当前实例的服务管理员。自托管部署步骤见部署文档；可公开的问题可提交到项目 Issue，附上操作步骤、发生时间和脱敏后的错误提示。",
+          )}
         </p>
         <p>
-          请勿公开密码、验证码、SSH
-          私钥、订阅链接或服务器地址。安全漏洞的报告要求见安全说明；当前没有已公布的客服响应时限。
+          {t(
+            "请勿公开密码、验证码、SSH 私钥、订阅链接或服务器地址。安全漏洞的报告要求见安全说明；当前没有已公布的客服响应时限。",
+          )}
         </p>
         <p>
-          <a href="mailto:info@xingdu.app">联系支持：info@xingdu.app</a>
+          <a href="mailto:info@xingdu.app">{t("联系支持：info@xingdu.app")}</a>
         </p>
         <p>
-          <a href={docs}>部署文档</a> ·{" "}
-          <a href={`${repository}/issues`}>问题反馈</a> ·{" "}
-          <a href={`${repository}/blob/main/SECURITY.md`}>安全报告说明</a>
+          <a href={docs}>{t("部署文档")}</a> ·{" "}
+          <a href={`${repository}/issues`}>{t("问题反馈")}</a> ·{" "}
+          <a href={`${repository}/blob/main/SECURITY.md`}>
+            {t("安全报告说明")}
+          </a>
         </p>
       </section>
     </div>
   );
 }
 function Service() {
+  const t = useMarketingText();
   return (
     <div className="site-container">
       <section className="site-page-intro">
         <p className="site-eyebrow">SERVICE SCOPE</p>
         <h1>
-          开始使用前，<em>了解服务范围。</em>
+          {t("开始使用前，")}
+          <em>{t("了解服务范围。")}</em>
         </h1>
-        <p>当前产品预览的使用说明。正式运营条款与信息仍需在服务开放前补齐。</p>
+        <p>
+          {t(
+            "当前产品预览的使用说明。正式运营条款与信息仍需在服务开放前补齐。",
+          )}
+        </p>
       </section>
       <div className="site-document">
         <section>
-          <h2>你在星渡管理什么</h2>
+          <h2>{t("你在星渡管理什么")}</h2>
           <p>
-            星渡提供服务器资料管理、Agent
-            接入、协议部署、客户端配置与组织协作。服务器、域名、证书及网络流量由你自行准备；星渡不提供
-            VPS，也不承诺特定网络环境下的连接效果。
+            {t(
+              "星渡提供服务器资料管理、Agent 接入、协议部署、客户端配置与组织协作。服务器、域名、证书及网络流量由你自行准备；星渡不提供 VPS，也不承诺特定网络环境下的连接效果。",
+            )}
           </p>
         </section>
         <section>
-          <h2>按授权使用资源</h2>
+          <h2>{t("按授权使用资源")}</h2>
           <p>
-            只添加你拥有或已获授权管理的服务器。邀请成员前确认其职责，按需分配权限；不要分享个人账号。启用托管
-            Agent 前，请了解其安装、重启和卸载服务所需的权限。
+            {t(
+              "只添加你拥有或已获授权管理的服务器。邀请成员前确认其职责，按需分配权限；不要分享个人账号。启用托管 Agent 前，请了解其安装、重启和卸载服务所需的权限。",
+            )}
           </p>
         </section>
         <section>
-          <h2>预览范围与后续变化</h2>
+          <h2>{t("预览范围与后续变化")}</h2>
           <p>
-            当前版本处于早期预览，功能与接口可能调整。自动证书签发与续期、配置回滚、线路编排和客户端
-            App
-            全量兼容验收尚未完成。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。
+            {t(
+              "当前版本处于早期预览，功能与接口可能调整。自动证书签发与续期、配置回滚、线路编排和客户端 App 全量兼容验收尚未完成。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。",
+            )}
           </p>
         </section>
         <section>
-          <h2>费用与资源上限</h2>
+          <h2>{t("费用与资源上限")}</h2>
           <p>
-            MIT
-            开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。组织配额以控制台显示为准。云端套餐与包含额度见价格页，实际购买入口以当前实例控制台为准。付款前请核对计费周期与续费信息；退款和特殊账单问题请联系
-            info@xingdu.app，不预设退款结果。
+            {t(
+              "MIT 开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。组织配额以控制台显示为准。云端套餐与包含额度见价格页，实际购买入口以当前实例控制台为准。付款前请核对计费周期与续费信息；退款和特殊账单问题请联系 info@xingdu.app，不预设退款结果。",
+            )}
           </p>
         </section>
         <section>
-          <h2>停止使用与数据处理</h2>
+          <h2>{t("停止使用与数据处理")}</h2>
           <p>
-            停止使用前，请确认机器上的服务是否需要卸载，处理订阅链接和访问凭据，再撤销机器接入。当前未提供账号或组织的一键删除入口；数据查阅、删除及备份处理请联系实际部署者，处理边界见隐私说明。
+            {t(
+              "停止使用前，请确认机器上的服务是否需要卸载，处理订阅链接和访问凭据，再撤销机器接入。当前未提供账号或组织的一键删除入口；数据查阅、删除及备份处理请联系实际部署者，处理边界见隐私说明。",
+            )}
           </p>
         </section>
         <section>
-          <h2>文档与支持</h2>
+          <h2>{t("文档与支持")}</h2>
           <p>
-            使用问题请先查看帮助中心。自托管实例由各自部署者维护；可通过
-            info@xingdu.app
-            联系星渡。正式托管服务的运营主体、支持时间与数据处理政策尚待公布。
+            {t(
+              "使用问题请先查看帮助中心。自托管实例由各自部署者维护；可通过 info@xingdu.app 联系星渡。正式托管服务的运营主体、支持时间与数据处理政策尚待公布。",
+            )}
           </p>
           <p>
-            <a href="/help">帮助中心</a> · <a href="/privacy">隐私说明</a> ·{" "}
-            <a href="/pricing">价格与部署方式</a>
+            <a href="/help">{t("帮助中心")}</a> ·{" "}
+            <a href="/privacy">{t("隐私说明")}</a> ·{" "}
+            <a href="/pricing">{t("价格与部署方式")}</a>
           </p>
         </section>
       </div>
@@ -830,40 +895,54 @@ function Service() {
   );
 }
 function Security() {
+  const t = useMarketingText();
   return (
     <div className="site-container">
       <section className="site-page-intro">
         <p className="site-eyebrow">SMALLER ACCESS. CLEARER BOUNDARIES.</p>
         <h1>
-          需要的权限，<em>清晰的边界。</em>
+          {t("需要的权限，")}
+          <em>{t("清晰的边界。")}</em>
         </h1>
-        <p>安全来自每一步具体设计，而不是一句笼统的保证。</p>
+        <p>{t("安全来自每一步具体设计，而不是一句笼统的保证。")}</p>
       </section>
       <div className="security-design-grid">
         {[
           [
-            "组织访问隔离",
-            "组织数据受到成员角色校验与 PostgreSQL 行级安全策略约束。机器身份与浏览器登录身份独立，Agent 凭据不能代替用户账号访问控制台。",
+            t("组织访问隔离"),
+            t(
+              "组织数据受到成员角色校验与 PostgreSQL 行级安全策略约束。机器身份与浏览器登录身份独立，Agent 凭据不能代替用户账号访问控制台。",
+            ),
           ],
           [
-            "先确认机器，再提交凭据",
-            "SSH 安装必须固定并校验主机指纹。用户应通过云控制台或已有可信连接独立核对指纹；自动扫描本身不证明机器身份。",
+            t("先确认机器，再提交凭据"),
+            t(
+              "SSH 安装必须固定并校验主机指纹。用户应通过云控制台或已有可信连接独立核对指纹；自动扫描本身不证明机器身份。",
+            ),
           ],
           [
-            "凭据按用途加密",
-            "SSH 凭据、TLS 私钥及协议认证凭据采用 AES-256-GCM 加密存储，上下文绑定组织、机器与用途。TLS 私钥不回显；客户端连接凭据仅组织管理员主动查看。",
+            t("凭据按用途加密"),
+            t(
+              "SSH 凭据、TLS 私钥及协议认证凭据采用 AES-256-GCM 加密存储，上下文绑定组织、机器与用途。TLS 私钥不回显；客户端连接凭据仅组织管理员主动查看。",
+            ),
           ],
           [
-            "默认托管，按需探针",
-            "默认选择托管模式，需明确授权 root 权限，可执行固定的协议安装与卸载任务，不开放任意远程命令。只需采集状态时可选择使用专用低权限用户和 systemd 限制的探针模式。",
+            t("默认托管，按需探针"),
+            t(
+              "默认选择托管模式，需明确授权 root 权限，可执行固定的协议安装与卸载任务，不开放任意远程命令。只需采集状态时可选择使用专用低权限用户和 systemd 限制的探针模式。",
+            ),
           ],
           [
-            "控制连接范围",
-            "SSH 目标默认拒绝私有、回环、链路本地和已知云元数据地址。私有管理网段需由部署者单独允许，租户不能自行放宽。",
+            t("控制连接范围"),
+            t(
+              "SSH 目标默认拒绝私有、回环、链路本地和已知云元数据地址。私有管理网段需由部署者单独允许，租户不能自行放宽。",
+            ),
           ],
           [
-            "独立身份，可撤销",
-            "Agent 使用 HTTPS 和独立机器凭据主动连接控制端。管理员可撤销身份，阻止后续心跳和未完成注册；撤销不等同于远程卸载。",
+            t("独立身份，可撤销"),
+            t(
+              "Agent 使用 HTTPS 和独立机器凭据主动连接控制端。管理员可撤销身份，阻止后续心跳和未完成注册；撤销不等同于远程卸载。",
+            ),
           ],
         ].map(([title, body], i) => (
           <article key={title}>
@@ -874,44 +953,55 @@ function Security() {
         ))}
       </div>
       <section className="security-boundary">
-        <h2>当前的验收范围</h2>
+        <h2>{t("当前的验收范围")}</h2>
         <p>
-          Ubuntu 24.04、Debian 13 和 Amazon Linux 2023 已完成 arm64 Docker
-          环境中的 systemd 安装、SSH 接入、心跳、重启、断联恢复与撤销验证。真实
-          VPS、EC2 和 amd64 运行验收仍需单独完成。
+          {t(
+            "Ubuntu 24.04、Debian 13 和 Amazon Linux 2023 已完成 arm64 Docker 环境中的 systemd 安装、SSH 接入、心跳、重启、断联恢复与撤销验证。真实 VPS、EC2 和 amd64 运行验收仍需单独完成。",
+          )}
         </p>
         <p>
-          当前是开发预览，尚未完成公网生产运营准备，也没有独立安全认证或 SLA
-          承诺。已提供加密备份与隔离恢复工具；生产恢复演练、密钥轮换和正式运营隐私政策仍需在服务开放前完成。
+          {t(
+            "当前是开发预览，尚未完成公网生产运营准备，也没有独立安全认证或 SLA 承诺。已提供加密备份与隔离恢复工具；生产恢复演练、密钥轮换和正式运营隐私政策仍需在服务开放前完成。",
+          )}
         </p>
         <a
           className="site-text-link"
           href={`${repository}/blob/main/docs/MACHINE-ACCESS.md`}
         >
-          阅读完整的安全边界 <Arrow />
+          {t("阅读完整的安全边界 ")}
+          <Arrow />
         </a>
       </section>
     </div>
   );
 }
 export default function Marketing({ page }: { page: PublicPage }) {
-  const selected = useLocale();
-  const locale = page === "home" ? selected : "zh-CN";
+  const locale = useLocale();
   useEffect(() => {
     document.documentElement.lang = locale;
-    if (page !== "home") return;
-    document.title =
-      locale === "en"
-        ? "Xingdu — Open-source VPS management"
-        : publicPages.home.title;
-    document
-      .querySelector('meta[name="description"]')
-      ?.setAttribute(
-        "content",
-        locale === "en"
-          ? "Manage VPS servers, deploy protocols and generate client configs in one workspace. Self-host for free or choose Xingdu Cloud."
-          : publicPages.home.description,
-      );
+    const info = publicPages[page];
+    const article = info.articleSlug
+      ? blogPosts.find((post) => post.slug === info.articleSlug)
+      : undefined;
+    const title =
+      locale === "en" && article
+        ? `${translateMarketing(article.title, locale)} · Xingdu Blog`
+        : translateMarketing(info.title, locale);
+    const description = translateMarketing(info.description, locale);
+    document.title = title;
+    for (const selector of [
+      'meta[name="description"]',
+      'meta[property="og:description"]',
+      'meta[name="twitter:description"]',
+    ]) {
+      document.querySelector(selector)?.setAttribute("content", description);
+    }
+    for (const selector of [
+      'meta[property="og:title"]',
+      'meta[name="twitter:title"]',
+    ]) {
+      document.querySelector(selector)?.setAttribute("content", title);
+    }
   }, [locale, page]);
   return (
     <MarketingLocale value={locale}>
@@ -920,6 +1010,7 @@ export default function Marketing({ page }: { page: PublicPage }) {
   );
 }
 function MarketingContent({ page }: { page: PublicPage }) {
+  const docs = useDocumentationLink();
   const t = useMarketingText();
   return (
     <div className="marketing-site">
@@ -962,7 +1053,7 @@ function MarketingContent({ page }: { page: PublicPage }) {
             </a>
           </nav>
           <div className="site-header-actions">
-            {page === "home" && <MarketingLanguage />}
+            <MarketingLanguage />
             <a className="site-login" href="/app">
               {t("登录控制台 ")}
               <Arrow />
