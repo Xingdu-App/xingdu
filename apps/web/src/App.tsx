@@ -186,7 +186,6 @@ function App({
         <main>
           {organizationBanner}
 
-          {page === "settings" && <TeamPanel organization={organization} />}
           <div className="page-heading" hidden={page === "settings"}>
             <div>
               <p className="eyebrow">YOUR NETWORK, TOGETHER</p>
@@ -221,7 +220,11 @@ function App({
               <button onClick={refresh}>重试</button>
             </div>
           )}
-          <div className="status-line" role="status">
+          <div
+            className="status-line"
+            role="status"
+            hidden={page === "settings"}
+          >
             <span className={`dot ${connected ? "healthy" : ""}`} />
             {state === "loading"
               ? "正在连接控制端…"
@@ -231,6 +234,7 @@ function App({
             <span className="status-divider">/</span>
             <span>开发预览 · Agent 心跳与机器接入</span>
           </div>
+          {page === "settings" && <TeamPanel organization={organization} />}
           {(page === "overview" || page === "hosts") && (
             <>
               {page === "overview" && (

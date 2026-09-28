@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import Select from "./Select";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import {
   acceptInvitation,
   createOrganization,
@@ -84,43 +85,69 @@ export default function OrganizationGate({
   const controls = (
     <div className="org-switch">
       <label htmlFor="organization-switch">当前组织</label>
-      <select
+      <Select
         id="organization-switch"
+        label="切换组织"
+        variant="organization"
         value={selected}
         disabled={busy}
-        onChange={(e) => {
-          setOrganization(e.target.value);
-          setSelected(e.target.value);
+        options={orgs.map((o) => ({
+          value: o.id,
+          label: o.name,
+          description: roleNames[o.role],
+        }))}
+        onChange={(value) => {
+          setOrganization(value);
+          setSelected(value);
           setError("");
         }}
+      />
+      <button
+        className="org-create-button"
+        onClick={() => setCreating(!creating)}
       >
-        {orgs.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name} · {roleNames[o.role]}
-          </option>
-        ))}
-      </select>
-      <button className="secondary" onClick={() => setCreating(!creating)}>
         ＋ 创建组织
       </button>
     </div>
   );
-  const overlay = (creating || (!org && !loading)) && (
-    <div className="org-create">
-      <form onSubmit={create}>
-        <h2>创建组织</h2>
-        <label htmlFor="org-name">组织名称</label>
-        <input
-          id="org-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          maxLength={64}
-          required
-          disabled={busy}
-        />
-        <button className="primary" disabled={busy}>
-          创建组织
-        </button>
+  const createForm = (
+    <form onSubmit={create}>
+      <div className="dialog-heading">
+        <div>
+          <p className="eyebrow">NEW WORKSPACE</p>
+          <h2 id="org-create-title">创建组织</h2>
+        </div>
+        {org && (
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="关闭创建组织"
+            disabled={busy}
+            onClick={() => setCreating(false)}
+          >
+            ×
+          </button>
+        )}
+      </div>
+      <p className="form-hint">
+        为团队建立独立的协作空间，分别管理成员和服务器。
+      </p>
+      <label htmlFor="org-name">组织名称</label>
+      <input
+        id="org-name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        maxLength={64}
+        required
+        disabled={busy}
+        placeholder="例如：我的团队"
+      />
+      {error && (
+        <p role="alert" className="form-error">
+          {error}
+        </p>
+      )}
+      <div className="dialog-actions">
         {org && (
           <button
             type="button"
@@ -131,12 +158,23 @@ export default function OrganizationGate({
             取消
           </button>
         )}
-      </form>
-    </div>
+        <button className="primary" disabled={busy}>
+          {busy ? "正在创建…" : "创建组织"}
+        </button>
+      </div>
+    </form>
   );
+  const overlay =
+    creating && org ? (
+      <OrganizationDialog busy={busy} onClose={() => setCreating(false)}>
+        {createForm}
+      </OrganizationDialog>
+    ) : !org && !loading ? (
+      <div className="org-create">{createForm}</div>
+    ) : null;
   const banner = (
     <>
-      {error && (
+      {error && !creating && org && (
         <div className="team-banner" role="alert">
           {error}
           <button
@@ -221,5 +259,36 @@ export default function OrganizationGate({
       organizationControls={controls}
       organizationBanner={banner}
     />
+  );
+}
+
+function OrganizationDialog({
+  children,
+  busy,
+  onClose,
+}: {
+  children: ReactNode;
+  busy: boolean;
+  onClose: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    element?.showModal();
+    element?.querySelector<HTMLInputElement>("#org-name")?.focus();
+    return () => element?.close();
+  }, []);
+  return (
+    <dialog
+      ref={dialog}
+      className="host-dialog organization-dialog"
+      aria-labelledby="org-create-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) onClose();
+      }}
+    >
+      {children}
+    </dialog>
   );
 }

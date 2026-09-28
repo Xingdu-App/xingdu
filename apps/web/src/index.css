@@ -36,8 +36,8 @@ button:disabled {
 }
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid #58a6c7;
-  outline-offset: 4px;
+  outline: 2px solid #79aa9c;
+  outline-offset: 3px;
 }
 a {
   color: inherit;

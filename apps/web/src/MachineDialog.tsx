@@ -1,3 +1,4 @@
+import Select from "./Select";
 import { useEffect, useRef, useState } from "react";
 import {
   errorMessage,
@@ -190,19 +191,29 @@ export default function MachineDialog({
               </button>
             </div>
             <label htmlFor="agent-mode">运行权限</label>
-            <select
+            <Select
+              label="运行权限"
               id="agent-mode"
               value={mode}
               disabled={busy}
-              onChange={(e) => {
-                setMode(e.target.value);
+              onChange={(value) => {
+                setMode(value);
                 setConfirmManage(false);
                 setEnrollment(null);
               }}
-            >
-              <option value="monitor">探针：专用低权限用户，只采集状态</option>
-              <option value="manage">托管：root 运行，预留部署管理权限</option>
-            </select>
+              options={[
+                {
+                  value: "monitor",
+                  label: "探针模式",
+                  description: "专用低权限用户 · 只采集状态",
+                },
+                {
+                  value: "manage",
+                  label: "托管模式",
+                  description: "以 root 运行 · 预留部署管理权限",
+                },
+              ]}
+            />
             {mode === "manage" && (
               <label className="check-row">
                 <input
@@ -326,21 +337,23 @@ export default function MachineDialog({
                 {!useSaved && (
                   <>
                     <label htmlFor="ssh-method">认证方式</label>
-                    <select
+                    <Select
+                      label="认证方式"
                       id="ssh-method"
                       value={method}
                       disabled={busy}
-                      onChange={(e) => {
-                        setMethod(e.target.value);
+                      onChange={(value) => {
+                        setMethod(value);
                         setPassword("");
                         setPrivateKey("");
                         setPassphrase("");
                         setFilename("");
                       }}
-                    >
-                      <option value="pem">PEM / OpenSSH 私钥</option>
-                      <option value="password">SSH 密码</option>
-                    </select>
+                      options={[
+                        { value: "pem", label: "PEM / OpenSSH 私钥" },
+                        { value: "password", label: "SSH 密码" },
+                      ]}
+                    />
                     {method === "password" ? (
                       <>
                         <label htmlFor="ssh-password">SSH 密码</label>
