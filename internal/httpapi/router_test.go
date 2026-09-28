@@ -16,12 +16,12 @@ type fakeStore struct {
 }
 
 func (s fakeStore) Ready(context.Context) error { return s.err }
-func (s fakeStore) Session(context.Context, string) (storage.Admin, error) {
-	return storage.Admin{Username: "test"}, nil
+func (s fakeStore) Session(context.Context, string) (storage.User, error) {
+	return storage.User{Username: "test"}, nil
 }
 func TestHealthAndAuthBoundaries(t *testing.T) {
 	h := New(fakeStore{err: errors.New("private database error")}, Options{PublicOrigin: "http://127.0.0.1:15173"})
-	for path, want := range map[string]int{"/health/live": 200, "/health/ready": 503, "/api/v1/hosts": 401, "/api/v1/system": 401} {
+	for path, want := range map[string]int{"/health/live": 200, "/health/ready": 503, "/api/v1/hosts": 401, "/api/v1/system": 401, "/api/v1/organizations": 401, "/api/v1/members": 401, "/api/v1/invitations": 401} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != want {
@@ -65,5 +65,18 @@ func TestLimiterBounded(t *testing.T) {
 	}
 	if l.allow("one") {
 		t.Fatal("limit bypassed")
+	}
+}
+
+func TestRegistrationDisabledByDefault(t *testing.T) {
+	h := New(fakeStore{}, Options{PublicOrigin: "http://127.0.0.1:15173"})
+	r := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{}`))
+	r.Header.Set("Origin", "http://127.0.0.1:15173")
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("X-Xingdu-Request", "1")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 403 {
+		t.Fatalf("registration enabled by default: %d", w.Code)
 	}
 }

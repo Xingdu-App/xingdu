@@ -28,7 +28,7 @@ func TestMigrateIdempotent(t *testing.T) {
 	if err := s.Ready(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Hosts(ctx); err != nil {
+	if _, err := s.Hosts(ctx); err != ErrForbidden {
 		t.Fatal(err)
 	}
 }

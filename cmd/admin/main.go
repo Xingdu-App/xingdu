@@ -1,4 +1,4 @@
-// Command admin creates the initial administrator without a public setup endpoint.
+// Command admin creates a user and initial organization without public registration.
 package main
 
 import (
@@ -24,7 +24,7 @@ func main() {
 	}
 }
 func run() error {
-	username := flag.String("username", "admin", "administrator username")
+	username := flag.String("username", "admin", "username")
 	flag.Parse()
 	if !regexp.MustCompile(`^[a-zA-Z0-9_-]{3,32}$`).MatchString(*username) {
 		return errors.New("username must contain 3–32 letters, digits, underscores or hyphens")
@@ -32,7 +32,7 @@ func run() error {
 	var password []byte
 	var err error
 	if term.IsTerminal(int(os.Stdin.Fd())) {
-		fmt.Fprint(os.Stderr, "Administrator password (12–72 bytes): ")
+		fmt.Fprint(os.Stderr, "Account password (12–72 bytes): ")
 		password, err = term.ReadPassword(int(os.Stdin.Fd()))
 		fmt.Fprintln(os.Stderr)
 	} else {
@@ -63,10 +63,10 @@ func run() error {
 	defer store.Close()
 	if err := store.CreateAdmin(ctx, *username, string(hash)); err != nil {
 		if errors.Is(err, storage.ErrConflict) {
-			return errors.New("an administrator already exists; no changes were made")
+			return errors.New("username already exists; no changes were made")
 		}
 		return errors.New("could not create administrator; check database and migrations")
 	}
-	fmt.Println("Administrator created. Sign in through the console.")
+	fmt.Println("Account and organization created. Sign in through the console.")
 	return nil
 }

@@ -13,8 +13,8 @@ import (
 var ErrNotFound = errors.New("not found")
 var ErrConflict = errors.New("conflict")
 
-type Admin struct {
-	ID           string `json:"-"`
+type User struct {
+	ID           string `json:"id"`
 	Username     string `json:"username"`
 	PasswordHash string `json:"-"`
 }
@@ -37,17 +37,17 @@ func mapError(err error) error {
 	return err
 }
 func (s *Store) CreateAdmin(ctx context.Context, username, hash string) error {
-	_, err := s.Pool.Exec(ctx, "INSERT INTO admins(id,username,password_hash) VALUES($1,$2,$3)", NewID(), username, hash)
-	return mapError(err)
+	_, err := s.Register(ctx, username, hash, "默认组织")
+	return err
 }
-func (s *Store) Credentials(ctx context.Context, username string) (Admin, error) {
-	var a Admin
-	err := s.Pool.QueryRow(ctx, "SELECT id::text,username,password_hash FROM admins WHERE username=$1", username).Scan(&a.ID, &a.Username, &a.PasswordHash)
+func (s *Store) Credentials(ctx context.Context, username string) (User, error) {
+	var a User
+	err := s.Pool.QueryRow(ctx, "SELECT id::text,username,password_hash FROM users WHERE username=$1", username).Scan(&a.ID, &a.Username, &a.PasswordHash)
 	return a, mapError(err)
 }
-func (s *Store) Session(ctx context.Context, hash string) (Admin, error) {
-	var a Admin
-	err := s.Pool.QueryRow(ctx, "SELECT a.id::text,a.username FROM sessions s JOIN admins a ON a.id=s.admin_id WHERE s.token_hash=$1 AND s.expires_at>now()", hash).Scan(&a.ID, &a.Username)
+func (s *Store) Session(ctx context.Context, hash string) (User, error) {
+	var a User
+	err := s.Pool.QueryRow(ctx, "SELECT a.id::text,a.username FROM sessions s JOIN users a ON a.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()", hash).Scan(&a.ID, &a.Username)
 	return a, mapError(err)
 }
 func (s *Store) NewSession(ctx context.Context, hash, id string, expires time.Time) error {
@@ -55,7 +55,7 @@ func (s *Store) NewSession(ctx context.Context, hash, id string, expires time.Ti
 	if _, err := s.Pool.Exec(ctx, "DELETE FROM sessions WHERE expires_at<=now()"); err != nil {
 		return err
 	}
-	_, err := s.Pool.Exec(ctx, "INSERT INTO sessions(token_hash,admin_id,expires_at) VALUES($1,$2,$3)", hash, id, expires)
+	_, err := s.Pool.Exec(ctx, "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)", hash, id, expires)
 	return err
 }
 func (s *Store) DeleteSession(ctx context.Context, hash string) error {

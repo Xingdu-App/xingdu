@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
   APIError,
+  authConfig,
+  register,
   errorMessage,
   getSession,
   login,
@@ -9,9 +11,17 @@ import {
   setSessionToken,
 } from "./api";
 import type { Session } from "./api";
-import App from "./App";
+import OrganizationGate from "./OrganizationGate";
 
 export default function SessionGate() {
+  const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [registering, setRegistering] = useState(false);
+  const [organization, setOrganization] = useState("");
+  useEffect(() => {
+    authConfig()
+      .then((c) => setRegistrationEnabled(c.registration_enabled))
+      .catch(() => {});
+  }, []);
   const [session, setSession] = useState<Session | null>(null);
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState("");
@@ -60,6 +70,7 @@ export default function SessionGate() {
     setBusy(true);
     setError("");
     try {
+      if (registering) await register(username.trim(), password, organization);
       accept(await login(username.trim(), password));
     } catch (reason) {
       setError(errorMessage(reason));
@@ -74,14 +85,19 @@ export default function SessionGate() {
     setPassword("");
     setError("");
   }
-  if (session) return <App username={session.username} onLogout={signOut} />;
+  if (session) return <OrganizationGate session={session} onLogout={signOut} />;
   return (
     <div className="auth-page">
       <section className="auth-card">
         <img className="auth-logo" src="/xingdu-logo.png" alt="星渡 Logo" />
         <p className="eyebrow">XINGDU · 星渡</p>
         <h1>连接，从这里开始。</h1>
-        <p className="auth-subtitle">登录你的星渡控制台</p>
+        <p className="auth-subtitle">
+          {registering ? "创建账号与组织" : "登录你的星渡控制台"}
+        </p>
+        {window.location.hash.startsWith("#invite=") && (
+          <p>登录或注册后，可接受组织邀请。</p>
+        )}
         {checking ? (
           <p role="status">正在检查登录状态…</p>
         ) : checkError ? (
@@ -116,29 +132,61 @@ export default function SessionGate() {
               id="password"
               name="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete={registering ? "new-password" : "current-password"}
+              minLength={registering ? 12 : undefined}
+              maxLength={72}
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               disabled={busy}
             />
+            {registering && (
+              <>
+                <label htmlFor="initial-org">组织名称</label>
+                <input
+                  id="initial-org"
+                  value={organization}
+                  onChange={(e) => setOrganization(e.target.value)}
+                  maxLength={64}
+                  required
+                  disabled={busy}
+                />
+                <small>创建你的组织后，也可以加入受邀组织。</small>
+              </>
+            )}
             {error && (
               <p role="alert" className="form-error">
                 {error}
               </p>
             )}
             <button className="primary auth-submit" disabled={busy}>
-              {busy ? "正在登录…" : "登录控制台"}
+              {busy ? "正在处理…" : registering ? "注册并登录" : "登录控制台"}
             </button>
+            {registrationEnabled && (
+              <button
+                className="secondary auth-submit"
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setRegistering(!registering);
+                  setError("");
+                }}
+              >
+                {registering ? "已有账号，去登录" : "创建账号"}
+              </button>
+            )}
           </form>
         )}
         <details className="setup-help">
           <summary>首次使用？</summary>
           <p>
-            请在本地终端创建管理员，再使用该账号登录。密码会隐藏输入，没有默认密码。
+            请在本地终端创建账号，再使用该账号登录。密码会隐藏输入，没有默认密码。
           </p>
           <code>docker compose exec api admin --username admin</code>
-          <p>当前版本支持服务器资料管理，Agent 接入与协议部署仍在开发中。</p>
+          <p>
+            组织管理员可以分享邀请链接。公开注册由部署者控制；Agent
+            接入与协议部署仍在开发中。
+          </p>
         </details>
         <div className="auth-footer">开源 · 自托管 · 自由连接</div>
       </section>

@@ -27,5 +27,11 @@ func main() {
 		slog.Error("migration failed; check database availability and migration schema")
 		os.Exit(1)
 	}
+	if password := os.Getenv("XINGDU_APP_DATABASE_PASSWORD"); password != "" {
+		if err := store.ConfigureRuntime(ctx, password); err != nil {
+			slog.Error("runtime database role provisioning failed")
+			os.Exit(1)
+		}
+	}
 	slog.Info("migrations applied")
 }

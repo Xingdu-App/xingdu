@@ -11,7 +11,7 @@ export type Host = HostInput & {
   status: "pending" | "online" | "offline";
   last_seen_at: string | null;
 };
-export type Session = { username: string; csrf_token: string };
+export type Session = { id: string; username: string; csrf_token: string };
 export type System = {
   name: string;
   version: string;
@@ -45,6 +45,7 @@ async function request<T>(
   const timeout = AbortSignal.timeout(10000);
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const headers: Record<string, string> = {};
+  if (organizationID) headers["X-Xingdu-Organization"] = organizationID;
   if (method !== "GET") {
     headers["Content-Type"] = "application/json";
     headers["X-Xingdu-Request"] = "1";
@@ -102,3 +103,61 @@ export function errorMessage(error: unknown) {
     return "请求超时，请刷新确认当前状态后再试。";
   return error instanceof Error ? error.message : "操作失败，请稍后重试。";
 }
+
+export type Role = "owner" | "admin" | "member" | "viewer";
+export type Organization = { id: string; name: string; role: Role };
+export type Member = { id: string; username: string; role: Role };
+export type Invitation = {
+  id: string;
+  role: Role;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+};
+export const roleNames: Record<Role, string> = {
+  owner: "所有者",
+  admin: "管理员",
+  member: "成员",
+  viewer: "只读成员",
+};
+let organizationID = "";
+export const setOrganization = (id: string) => {
+  organizationID = id;
+};
+export const authConfig = () =>
+  request<{ registration_enabled: boolean }>("/api/v1/auth/config");
+export const register = (
+  username: string,
+  password: string,
+  organization: string,
+) =>
+  request<void>(
+    "/api/v1/auth/register",
+    "POST",
+    { username, password, organization },
+    undefined,
+    true,
+  );
+export const listOrganizations = () =>
+  request<Organization[]>("/api/v1/organizations");
+export const createOrganization = (name: string) =>
+  request<Organization>("/api/v1/organizations", "POST", { name });
+export const listMembers = () => request<Member[]>("/api/v1/members");
+export const changeMember = (id: string, role: Role) =>
+  request<void>(`/api/v1/members/${id}`, "PUT", { role });
+export const removeMember = (id: string) =>
+  request<void>(`/api/v1/members/${id}`, "DELETE");
+export const listInvitations = () =>
+  request<Invitation[]>("/api/v1/invitations");
+export const createInvitation = (role: Role) =>
+  request<{ invitation: Invitation; url: string }>(
+    "/api/v1/invitations",
+    "POST",
+    { role },
+  );
+export const revokeInvitation = (id: string) =>
+  request<void>(`/api/v1/invitations/${id}`, "DELETE");
+export const acceptInvitation = (token: string) =>
+  request<{ organization_id: string }>("/api/v1/invitations/accept", "POST", {
+    token,
+  });

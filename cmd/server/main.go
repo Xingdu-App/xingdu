@@ -29,16 +29,16 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
-	store, err := storage.Open(startup, cfg.DatabaseURL)
+	store, err := storage.OpenRuntime(startup, cfg.DatabaseURL)
 	cancel()
 	if err != nil {
 		return err
 	}
 	defer store.Close()
-	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
+	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies, RegistrationEnabled: os.Getenv("XINGDU_REGISTRATION_ENABLED") == "true"}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan error, 1)
 	go func() { done <- srv.ListenAndServe() }()
-	slog.Info("xingdu API starting", "address", cfg.HTTPAddr, "stage", "inventory")
+	slog.Info("xingdu API starting", "address", cfg.HTTPAddr, "stage", "multi-tenant")
 	select {
 	case err := <-done:
 		if errors.Is(err, http.ErrServerClosed) {

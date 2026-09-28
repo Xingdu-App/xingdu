@@ -943,3 +943,157 @@ th {
     display: block;
   }
 }
+
+.org-switch {
+  display: grid;
+  gap: 8px;
+  margin: 0 16px 24px;
+  min-width: 0;
+}
+.org-switch label {
+  font-size: 11px;
+  color: #a5b8bd;
+}
+.org-switch select {
+  width: 100%;
+  min-width: 0;
+  background: #263944;
+  color: #fff;
+  border: 1px solid #41545d;
+  border-radius: 8px;
+  padding: 10px;
+  font: inherit;
+  font-size: 12px;
+}
+.org-switch .secondary {
+  font-size: 11px;
+  background: transparent;
+  color: #bbd2d3;
+  border-color: #41545d;
+}
+.team-panel {
+  padding: 32px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.team-panel h1 {
+  margin: 8px 0 12px;
+}
+.team-panel h2 {
+  margin-top: 32px;
+  font-size: 18px;
+}
+.team-panel p {
+  color: #70838c;
+  line-height: 1.8;
+  font-size: 13px;
+}
+.member-list {
+  display: grid;
+  gap: 10px;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e7ebee;
+  border-radius: 10px;
+}
+.member-row small {
+  display: block;
+  margin-top: 6px;
+  color: #788b94;
+  font-size: 12px;
+}
+.member-row strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.member-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.member-actions select {
+  border: 1px solid #dbe4e7;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+.team-banner {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 18px;
+  margin-bottom: 20px;
+  border: 1px solid #c8dedb;
+  border-radius: 12px;
+  background: #eef7f5;
+  font-size: 13px;
+}
+.team-banner p {
+  margin: 5px 0;
+  line-height: 1.7;
+}
+.team-banner > div {
+  flex: 1;
+  min-width: 180px;
+}
+.invite-result {
+  display: grid;
+  gap: 10px;
+  background: #f0f7f5;
+  padding: 18px;
+  margin-top: 18px;
+  border-radius: 10px;
+}
+.invite-result input,
+.org-create input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d5e1df;
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+  min-width: 0;
+}
+.org-create {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #c8dedb;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.org-create form {
+  display: grid;
+  gap: 12px;
+}
+.org-create h2 {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .team-panel {
+    padding: 18px;
+  }
+  .member-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .org-switch {
+    margin: 0 0 12px;
+  }
+  .member-actions {
+    width: 100%;
+  }
+}
+
+[hidden] {
+  display: none !important;
+}

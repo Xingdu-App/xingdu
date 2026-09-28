@@ -7,6 +7,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -15,13 +16,13 @@ import (
 )
 
 func TestAuthenticatedInventory(t *testing.T) {
-	url := os.Getenv("XINGDU_TEST_DATABASE_URL")
-	if url == "" {
+	databaseURL := os.Getenv("XINGDU_TEST_DATABASE_URL")
+	if databaseURL == "" {
 		t.Skip("set XINGDU_TEST_DATABASE_URL for database integration test")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	s, err := storage.Open(ctx, url)
+	s, err := storage.Open(ctx, databaseURL)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,8 +36,22 @@ func TestAuthenticatedInventory(t *testing.T) {
 	if err := s.CreateAdmin(ctx, username, string(hash)); err != nil {
 		t.Fatal("dedicated test database must not contain an administrator:", err)
 	}
-	defer s.Pool.Exec(context.Background(), "DELETE FROM admins WHERE username=$1", username)
-	h := New(s, Options{PublicOrigin: "http://127.0.0.1:15173", SecureCookies: true})
+	defer func() {
+		s.Pool.Exec(context.Background(), "DELETE FROM organizations WHERE created_by=(SELECT id FROM users WHERE username=$1)", username)
+		s.Pool.Exec(context.Background(), "DELETE FROM users WHERE username=$1", username)
+	}()
+	admin, _ := s.Credentials(ctx, username)
+	organizations, _ := s.Organizations(ctx, admin.ID)
+	runtimeURL, _ := url.Parse(databaseURL)
+	query := runtimeURL.Query()
+	query.Set("options", "-crole=xingdu_app")
+	runtimeURL.RawQuery = query.Encode()
+	runtime, err := storage.Open(ctx, runtimeURL.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer runtime.Close()
+	h := New(runtime, Options{PublicOrigin: "http://127.0.0.1:15173", SecureCookies: true})
 	var cookie *http.Cookie
 	csrf := ""
 	request := func(method, path string, body any) *httptest.ResponseRecorder {
@@ -45,6 +60,7 @@ func TestAuthenticatedInventory(t *testing.T) {
 			_ = json.NewEncoder(&b).Encode(body)
 		}
 		r := httptest.NewRequest(method, path, &b)
+		r.Header.Set("X-Xingdu-Organization", organizations[0].ID)
 		r.Header.Set("Origin", "http://127.0.0.1:15173")
 		r.Header.Set("X-Xingdu-Request", "1")
 		r.Header.Set("Content-Type", "application/json")
@@ -79,7 +95,7 @@ func TestAuthenticatedInventory(t *testing.T) {
 	csrf = session.Data.CSRF
 	// Only token digests are stored, not bearer tokens.
 	var stored string
-	if err := s.Pool.QueryRow(ctx, "SELECT token_hash FROM sessions WHERE admin_id=(SELECT id FROM admins WHERE username=$1)", username).Scan(&stored); err != nil {
+	if err := s.Pool.QueryRow(ctx, "SELECT token_hash FROM sessions WHERE user_id=(SELECT id FROM users WHERE username=$1)", username).Scan(&stored); err != nil {
 		t.Fatal(err)
 	}
 	if stored == cookie.Value || stored != tokenHash(cookie.Value) {
@@ -116,7 +132,7 @@ func TestAuthenticatedInventory(t *testing.T) {
 	expect(request("DELETE", "/api/v1/hosts/"+id, nil), 404)
 	expect(request("POST", "/api/v1/auth/logout", nil), 204)
 	expect(request("GET", "/api/v1/auth/session", nil), 401)
-	if _, err := s.Pool.Exec(ctx, "INSERT INTO sessions(token_hash,admin_id,expires_at) SELECT $1,id,now()-interval '1 second' FROM admins WHERE username=$2", tokenHash(cookie.Value), username); err != nil {
+	if _, err := s.Pool.Exec(ctx, "INSERT INTO sessions(token_hash,user_id,expires_at) SELECT $1,id,now()-interval '1 second' FROM users WHERE username=$2", tokenHash(cookie.Value), username); err != nil {
 		t.Fatal(err)
 	}
 	expect(request("GET", "/api/v1/hosts", nil), 401)

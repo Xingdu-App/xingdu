@@ -108,9 +108,9 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		_ = a.store.DeleteSession(r.Context(), tokenHash(old.Value))
 	}
 	http.SetCookie(w, &http.Cookie{Name: cookieName, Value: token, Path: "/", HttpOnly: true, Secure: a.secure, SameSite: http.SameSiteStrictMode, MaxAge: int(sessionLifetime.Seconds()), Expires: expires})
-	reply(w, 200, map[string]any{"data": map[string]string{"username": admin.Username, "csrf_token": csrfToken(token)}})
+	reply(w, 200, map[string]any{"data": map[string]string{"id": admin.ID, "username": admin.Username, "csrf_token": csrfToken(token)}})
 }
-func (a *api) require(next func(http.ResponseWriter, *http.Request, storage.Admin, string)) http.HandlerFunc {
+func (a *api) require(next func(http.ResponseWriter, *http.Request, storage.User, string)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(cookieName)
 		if err != nil || len(cookie.Value) != 64 {
@@ -133,7 +133,7 @@ func (a *api) require(next func(http.ResponseWriter, *http.Request, storage.Admi
 		next(w, r, admin, cookie.Value)
 	}
 }
-func (a *api) logout(w http.ResponseWriter, r *http.Request, _ storage.Admin, token string) {
+func (a *api) logout(w http.ResponseWriter, r *http.Request, _ storage.User, token string) {
 	if err := a.store.DeleteSession(r.Context(), tokenHash(token)); err != nil {
 		failure(w, 503, "unavailable", "退出失败，请重试")
 		return

@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+import TeamPanel from "./TeamPanel";
+import { roleNames } from "./api";
+import type { Organization } from "./api";
 import { useEffect, useState } from "react";
 import { errorMessage, loadHosts, loadSystem } from "./api";
 import HostDialog from "./HostDialog";
@@ -10,7 +14,7 @@ const pages = [
   { id: "routes", label: "线路", icon: "⌁" },
   { id: "subscriptions", label: "订阅", icon: "▧" },
   { id: "deployments", label: "部署记录", icon: "◷" },
-  { id: "settings", label: "设置", icon: "⚙" },
+  { id: "settings", label: "组织与成员", icon: "⚙" },
 ] as const;
 
 type Page = (typeof pages)[number]["id"];
@@ -29,19 +33,22 @@ const pendingCopy: Record<string, { title: string; description: string }> = {
     title: "每一次变更，都有迹可循",
     description: "部署任务、进度记录和配置回滚将在后续版本开放。",
   },
-  settings: {
-    title: "让星渡成为你的控制中心",
-    description: "当前支持单管理员登录。团队权限、通知与凭据管理将在后续开放。",
-  },
 };
 
 function App({
   username,
   onLogout,
+  organization,
+  organizationControls,
+  organizationBanner,
 }: {
+  organization: Organization;
+  organizationControls: ReactNode;
+  organizationBanner: ReactNode;
   username: string;
   onLogout: () => Promise<void>;
 }) {
+  const canWrite = organization.role !== "viewer";
   const [editing, setEditing] = useState<Host | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -90,7 +97,7 @@ function App({
   };
   const title = pages.find((item) => item.id === page)?.label;
   const connected = state === "ready" && system?.database_ready;
-  const pending = pendingCopy[page];
+  const pending = page === "settings" ? undefined : pendingCopy[page];
 
   return (
     <div className="shell">
@@ -113,10 +120,11 @@ function App({
           <span className="workspace-avatar">X</span>
           <div>
             {username}
-            <small>管理员</small>
+            <small>{roleNames[organization.role]}</small>
           </div>
           <span className="workspace-dot" />
         </div>
+        {organizationControls}
         <p className="nav-label">工作台</p>
         <nav aria-label="主导航">
           {pages.map((item) => (
@@ -139,7 +147,7 @@ function App({
             <br />
             <strong>一键抵达。</strong>
           </p>
-          <span className="version">{system?.version ?? "0.2.0-dev"}</span>
+          <span className="version">{system?.version ?? "0.3.0-dev"}</span>
         </div>
       </aside>
       <div className="body">
@@ -168,7 +176,10 @@ function App({
           </div>
         </header>
         <main>
-          <div className="page-heading">
+          {organizationBanner}
+
+          {page === "settings" && <TeamPanel organization={organization} />}
+          <div className="page-heading" hidden={page === "settings"}>
             <div>
               <p className="eyebrow">YOUR NETWORK, TOGETHER</p>
               <h1>{page === "overview" ? "一切连接，从这里开始。" : title}</h1>
@@ -250,7 +261,7 @@ function App({
                   <div className="inventory-actions">
                     <button
                       className="primary compact"
-                      disabled={state !== "ready"}
+                      disabled={state !== "ready" || !canWrite}
                       onClick={() => setEditing(null)}
                     >
                       ＋ 添加服务器
@@ -317,6 +328,7 @@ function App({
                                 <button
                                   className="secondary"
                                   aria-label={`编辑 ${host.name}`}
+                                  disabled={!canWrite}
                                   onClick={() => setEditing(host)}
                                 >
                                   编辑
@@ -335,6 +347,7 @@ function App({
                             <button
                               className="secondary"
                               aria-label={`编辑 ${host.name}`}
+                              disabled={!canWrite}
                               onClick={() => setEditing(host)}
                             >
                               编辑
@@ -392,7 +405,7 @@ function App({
                     </p>
                     <button
                       className="primary"
-                      disabled={state !== "ready"}
+                      disabled={state !== "ready" || !canWrite}
                       onClick={() => setEditing(null)}
                     >
                       ＋ 添加服务器

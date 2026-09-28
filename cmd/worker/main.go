@@ -25,7 +25,7 @@ func run() bool {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
-	store, err := storage.Open(startup, cfg.DatabaseURL)
+	store, err := storage.OpenRuntime(startup, cfg.DatabaseURL)
 	cancel()
 	if err != nil {
 		slog.Error("worker database connection failed")

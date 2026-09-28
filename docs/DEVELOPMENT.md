@@ -15,7 +15,7 @@ cp .env.example .env
 make up
 ```
 
-如果已有 `.env`，不要覆盖。示例密码仅供本地开发；`DATABASE_URL` 中的密码必须与 `POSTGRES_PASSWORD` 一致，特殊字符需要 URL 编码。当前 Compose 用于开发；当前只有单管理员登录，生产 TLS、凭据管理及完整部署加固仍未实现。
+如果已有 `.env`，不要覆盖。示例密码仅供本地开发；迁移使用 `POSTGRES_PASSWORD`；API/Worker 使用独立 `XINGDU_APP_DATABASE_PASSWORD`（至少 16 字节）。Compose 中建议使用 URL 安全的随机十六进制密码；手动配置连接串时对特殊字符进行 URL 编码。当前 Compose 用于多租户开发预览，公网运维尚未完成。已有 `.env` 需新增运行账号密码，不能继续让 API 使用迁移账号。
 
 | 服务 | 地址 / 行为 |
 | --- | --- |
@@ -40,7 +40,8 @@ set -a
 . ./.env
 set +a
 make setup
-make migrate
+docker compose run --rm migrate
+# DATABASE_URL 必须指向 xingdu_app，且使用对应密码
 make dev-api
 ```
 
@@ -61,12 +62,12 @@ make build
 
 ```sh
 docker compose exec -T db createdb -U xingdu xingdu_test
-XINGDU_TEST_DATABASE_URL='postgres://xingdu:xingdu-local-dev@127.0.0.1:54329/xingdu_test?sslmode=disable' go test -race ./internal/storage -count=1
+XINGDU_TEST_DATABASE_URL='postgres://xingdu:xingdu-local-dev@127.0.0.1:54329/xingdu_test?sslmode=disable' go test -race ./internal/storage ./internal/httpapi -count=1
 ```
 
 已有测试数据库时不重复执行 createdb；如修改了密码，同步修改测试连接。未设置 `XINGDU_TEST_DATABASE_URL` 时，数据库集成测试会明确跳过。CI 提供独立测试数据库。
 
-## 管理员初始化与登录
+## 用户初始化与登录
 
 完整容器环境启动后执行：
 
@@ -74,7 +75,7 @@ XINGDU_TEST_DATABASE_URL='postgres://xingdu:xingdu-local-dev@127.0.0.1:54329/xin
 docker compose exec api admin --username admin
 ```
 
-密码在终端隐藏输入，长度为 12–72 字节，不放入命令参数或日志。该命令仅创建首个管理员，不覆盖已有账号。自动化可通过标准输入传入密码，勿将真实密码写入脚本或提交历史。
+密码在终端隐藏输入，长度为 12–72 字节，不放入命令参数或日志。该命令创建用户及其初始组织，可多次创建不同用户名，不覆盖已有账号。自动化可通过标准输入传入密码，勿将真实密码写入脚本或提交历史。
 
 本机 Go 开发环境加载 `.env` 并应用迁移后可用 `go run ./cmd/admin --username admin`。
 
@@ -83,6 +84,19 @@ docker compose exec api admin --username admin
 `XINGDU_PUBLIC_ORIGIN` 默认 `http://127.0.0.1:15173`，必须与浏览器地址的协议、主机和端口一致，不带末尾斜杠。非回环来源必须使用 HTTPS；不得通过伪造代理头关闭保护。当前 Compose 仍仅面向本地开发。
 
 写请求同时校验 Origin、Sec-Fetch-Site（若存在）、JSON Content-Type 和 `X-Xingdu-Request: 1`；登录后的写操作还必须提供 `X-CSRF-Token`。前端自动处理这些请求头。登录有每来源 IP 每分钟 10 次限流以及密码计算并发限制；当前反向代理下来源地址可能聚合，公网部署前需设计可信代理与分布式限流。
+
+## 组织与成员
+
+架构、角色、RLS 和邀请语义见 [SaaS 设计](SAAS.md)。
+
+- `GET/POST /api/v1/organizations`：列出自己的组织 / 创建组织。
+- `GET /api/v1/members`、`PUT/DELETE /api/v1/members/{id}`：当前组织成员及权限管理。
+- `GET/POST /api/v1/invitations`、`DELETE /api/v1/invitations/{id}`：邀请列表、生成和撤销。
+- `POST /api/v1/invitations/accept`：使用请求体中的 `token` 接受邀请，不自动提升现有成员权限。
+- `GET /api/v1/auth/config`：查询公开注册是否开放。
+- `POST /api/v1/auth/register`：显式开启注册后使用用户名、密码和 `organization` 名称创建账号。
+
+服务器、成员和邀请管理请求必须携带 `X-Xingdu-Organization` UUID，服务端在每次操作时验证成员关系；无成员资格返回 403。接受邀请和组织列表不依赖当前选择。公开注册默认关闭，设置 `XINGDU_REGISTRATION_ENABLED=true` 可启用。
 
 ## 当前 API
 
@@ -94,7 +108,7 @@ docker compose exec api admin --username admin
 
 需要登录：
 
-- `GET /api/v1/auth/session`：当前用户名与 CSRF 令牌。
+- `GET /api/v1/auth/session`：当前用户 ID、用户名与 CSRF 令牌。
 - `POST /api/v1/auth/logout`：撤销当前会话并清除 Cookie。
 - `GET /api/v1/system`：版本、阶段、数据库状态及功能能力。
 - `GET /api/v1/hosts`：真实服务器资料列表，空库返回 `data: []`。
@@ -102,7 +116,7 @@ docker compose exec api admin --username admin
 - `PUT /api/v1/hosts/{id}`：完整更新服务器资料。
 - `DELETE /api/v1/hosts/{id}`：删除资料，不操作实际 VPS。
 
-服务器字段为 `name`、`address`、`ssh_port`、`ssh_user`、`tags`、`notes`。地址与端口组合不能重复。状态由服务端管理，新增固定为 pending；不能通过更新资料伪造在线状态。当前不收集 SSH 密码和私钥。
+服务器字段为 `name`、`address`、`ssh_port`、`ssh_user`、`tags`、`notes`。同一组织内地址与端口组合不能重复。状态由服务端管理，新增固定为 pending；不能通过更新资料伪造在线状态。当前不收集 SSH 密码和私钥。
 
 未登录返回 401，跨站或 CSRF 验证失败返回 403，重复记录返回 409，字段校验失败返回 422，数据库不可用返回 503。底层数据库错误不会直接返回给客户端。
 

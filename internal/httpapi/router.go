@@ -14,10 +14,11 @@ import (
 )
 
 type Store interface {
+	TenantStore
 	Ready(context.Context) error
 	Hosts(context.Context) ([]storage.Host, error)
-	Credentials(context.Context, string) (storage.Admin, error)
-	Session(context.Context, string) (storage.Admin, error)
+	Credentials(context.Context, string) (storage.User, error)
+	Session(context.Context, string) (storage.User, error)
 	NewSession(context.Context, string, string, time.Time) error
 	DeleteSession(context.Context, string) error
 	CreateHost(context.Context, hosts.Input) (storage.Host, error)
@@ -25,22 +26,25 @@ type Store interface {
 	DeleteHost(context.Context, string) error
 }
 type Options struct {
-	PublicOrigin  string
-	SecureCookies bool
+	PublicOrigin        string
+	SecureCookies       bool
+	RegistrationEnabled bool
 }
 type api struct {
-	store     Store
-	origin    string
-	secure    bool
-	dummyHash []byte
-	attempts  limiter
-	hashSlots chan struct{}
+	registration bool
+	store        Store
+	origin       string
+	secure       bool
+	dummyHash    []byte
+	attempts     limiter
+	hashSlots    chan struct{}
 }
 
 func New(store Store, opts Options) http.Handler {
 	dummy, _ := bcrypt.GenerateFromPassword([]byte("non-authenticating-dummy-password"), bcrypt.DefaultCost)
-	a := &api{store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
+	a := &api{registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
 	mux := http.NewServeMux()
+	a.tenantRoutes(mux)
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { reply(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
 		if err := store.Ready(r.Context()); err != nil {
@@ -51,13 +55,13 @@ func New(store Store, opts Options) http.Handler {
 	})
 	mux.HandleFunc("POST /api/v1/auth/login", a.login)
 	mux.HandleFunc("POST /api/v1/auth/logout", a.require(a.logout))
-	mux.HandleFunc("GET /api/v1/auth/session", a.require(func(w http.ResponseWriter, r *http.Request, admin storage.Admin, token string) {
-		reply(w, 200, map[string]any{"data": map[string]string{"username": admin.Username, "csrf_token": csrfToken(token)}})
+	mux.HandleFunc("GET /api/v1/auth/session", a.require(func(w http.ResponseWriter, r *http.Request, admin storage.User, token string) {
+		reply(w, 200, map[string]any{"data": map[string]string{"id": admin.ID, "username": admin.Username, "csrf_token": csrfToken(token)}})
 	}))
-	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
-		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.2.0-dev", "stage": "inventory", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": false, "deployment": false, "subscription_export": false}}})
+	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.3.0-dev", "stage": "multi-tenant", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": false, "deployment": false, "subscription_export": false}}})
 	}))
-	mux.HandleFunc("GET /api/v1/hosts", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+	mux.HandleFunc("GET /api/v1/hosts", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		result, err := store.Hosts(r.Context())
 		if err != nil {
 			storeError(w, err)
@@ -65,7 +69,7 @@ func New(store Store, opts Options) http.Handler {
 		}
 		reply(w, 200, map[string]any{"data": result})
 	}))
-	mux.HandleFunc("POST /api/v1/hosts", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+	mux.HandleFunc("POST /api/v1/hosts", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		var in hosts.Input
 		if !decode(w, r, &in) {
 			return
@@ -81,7 +85,7 @@ func New(store Store, opts Options) http.Handler {
 		}
 		reply(w, 201, map[string]any{"data": host})
 	}))
-	mux.HandleFunc("PUT /api/v1/hosts/{id}", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+	mux.HandleFunc("PUT /api/v1/hosts/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validID(w, r) {
 			return
 		}
@@ -100,7 +104,7 @@ func New(store Store, opts Options) http.Handler {
 		}
 		reply(w, 200, map[string]any{"data": host})
 	}))
-	mux.HandleFunc("DELETE /api/v1/hosts/{id}", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.Admin, _ string) {
+	mux.HandleFunc("DELETE /api/v1/hosts/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validID(w, r) {
 			return
 		}
@@ -135,7 +139,7 @@ func New(store Store, opts Options) http.Handler {
 }
 func validID(w http.ResponseWriter, r *http.Request) bool {
 	if !hosts.IDPattern.MatchString(r.PathValue("id")) {
-		failure(w, 400, "invalid_id", "服务器 ID 无效")
+		failure(w, 400, "invalid_id", "记录 ID 无效")
 		return false
 	}
 	return true
@@ -156,10 +160,14 @@ func decode(w http.ResponseWriter, r *http.Request, out any) bool {
 }
 func storeError(w http.ResponseWriter, err error) {
 	switch {
+	case errors.Is(err, storage.ErrForbidden):
+		failure(w, 403, "forbidden", "你没有此组织的操作权限")
+	case errors.Is(err, storage.ErrInvalid):
+		failure(w, 422, "invalid_input", "输入内容不正确")
 	case errors.Is(err, storage.ErrNotFound):
 		failure(w, 404, "not_found", "记录不存在或已删除")
 	case errors.Is(err, storage.ErrConflict):
-		failure(w, 409, "conflict", "地址与端口已存在，或记录仍被其他资源使用")
+		failure(w, 409, "conflict", "记录已存在或与当前状态冲突")
 	default:
 		failure(w, 503, "unavailable", "服务暂时不可用，请稍后重试")
 	}
