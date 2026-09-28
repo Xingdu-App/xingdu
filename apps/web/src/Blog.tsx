@@ -1,23 +1,25 @@
+import { useMarketingText } from "./marketing-locale";
 import { blogPath, blogPosts } from "./blog-posts";
 import type { BlogPost } from "./blog-posts";
 import "./Blog.css";
 
 export function BlogCards({ posts = blogPosts }: { posts?: BlogPost[] }) {
+  const t = useMarketingText();
   return (
     <div className="blog-grid">
       {posts.map((post) => (
         <article className="blog-card" key={post.slug}>
-          <span className="site-eyebrow">{post.category}</span>
+          <span className="site-eyebrow">{t(post.category)}</span>
           <h2>
-            <a href={blogPath(post)}>{post.title}</a>
+            <a href={blogPath(post)}>{t(post.title)}</a>
           </h2>
-          <p>{post.description}</p>
+          <p>{t(post.description)}</p>
           <span className="blog-meta">
-            更新于 <time dateTime={post.updated}>{post.updated}</time>
+            {t("更新于")} <time dateTime={post.updated}>{post.updated}</time>
           </span>
           <a className="site-text-link" href={blogPath(post)}>
-            阅读全文 <span aria-hidden="true">↗</span>
-            <span className="blog-sr-only">：{post.title}</span>
+            {t("阅读全文")} <span aria-hidden="true">↗</span>
+            <span className="blog-sr-only">：{t(post.title)}</span>
           </a>
         </article>
       ))}

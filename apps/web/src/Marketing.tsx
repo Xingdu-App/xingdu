@@ -1,3 +1,8 @@
+import { useEffect } from "react";
+import { useLocale } from "./i18n";
+import MarketingLanguage from "./MarketingLanguage";
+import { MarketingLocale, useMarketingText } from "./marketing-locale";
+import { publicPages } from "./public-pages";
 import Blog, { BlogCards } from "./Blog";
 import { blogPosts } from "./blog-posts";
 import type { ReactNode } from "react";
@@ -11,11 +16,13 @@ function Arrow() {
   return <span aria-hidden="true">↗</span>;
 }
 function Brand() {
+  const t = useMarketingText();
   return (
-    <a className="site-brand" href="/" aria-label="星渡首页">
+    <a className="site-brand" href="/" aria-label={t("星渡首页")}>
       <img src="/xingdu-logo.png" alt="" width="36" height="36" />
       <span>
-        星渡<small>XINGDU</small>
+        {t("星渡")}
+        <small>XINGDU</small>
       </span>
     </a>
   );
@@ -38,19 +45,20 @@ function SectionTitle({
   );
 }
 function ProductPreview() {
+  const t = useMarketingText();
   return (
-    <div className="product-stage" aria-label="控制台界面示意，非实时数据">
+    <div className="product-stage" aria-label={t("控制台界面示意，非实时数据")}>
       <div className="preview-orbit orbit-one" aria-hidden="true" />
       <div className="preview-orbit orbit-two" aria-hidden="true" />
       <div className="preview-float">
-        <span className="site-live-dot" /> 一个空间，管理你的 VPS
+        <span className="site-live-dot" /> {t(" 一个空间，管理你的 VPS")}
       </div>
       <div className="product-preview">
         <div className="preview-chrome">
           <span className="preview-window-dots" aria-hidden="true">
             ● ● ●
           </span>
-          <span>星渡 / 工作空间</span>
+          <span>{t("星渡 / 工作空间")}</span>
           <span className="preview-account">XD</span>
         </div>
         <div className="preview-inner">
@@ -65,86 +73,94 @@ function ProductPreview() {
             <div className="preview-heading">
               <div>
                 <small>YOUR WORKSPACE</small>
-                <h3>每一台，都在这里。</h3>
+                <h3>{t("每一台，都在这里。")}</h3>
               </div>
-              <span className="preview-pill">我的空间</span>
+              <span className="preview-pill">{t("我的空间")}</span>
             </div>
             <div className="preview-metrics">
               <div>
-                <span>已接入服务器</span>
+                <span>{t("已接入服务器")}</span>
                 <strong>
-                  03<small> 台</small>
+                  03<small> {t(" 台")}</small>
                 </strong>
               </div>
               <div>
-                <span>在线状态</span>
-                <strong className="preview-green">全部在线</strong>
+                <span>{t("在线状态")}</span>
+                <strong className="preview-green">{t("全部在线")}</strong>
               </div>
             </div>
             <div className="preview-machine">
               <span className="preview-machine-icon">U</span>
               <div>
                 <strong>Ubuntu</strong>
-                <small>Agent · 探针模式</small>
+                <small>{t("Agent · 探针模式")}</small>
               </div>
               <span className="preview-sparkline" aria-hidden="true">
                 ▂ ▄ ▃ ▆ ▃ ▅ ▃
               </span>
-              <span className="preview-status">在线</span>
+              <span className="preview-status">{t("在线")}</span>
             </div>
             <div className="preview-machine">
               <span className="preview-machine-icon">D</span>
               <div>
                 <strong>Debian</strong>
-                <small>SSH · 密码安装</small>
+                <small>{t("SSH · 密码安装")}</small>
               </div>
               <span className="preview-sparkline" aria-hidden="true">
                 ▃ ▂ ▄ ▃ ▅ ▄ ▂
               </span>
-              <span className="preview-status">在线</span>
+              <span className="preview-status">{t("在线")}</span>
             </div>
             <div className="preview-machine">
               <span className="preview-machine-icon">A</span>
               <div>
                 <strong>Amazon Linux</strong>
-                <small>SSH · 私钥安装</small>
+                <small>{t("SSH · 私钥安装")}</small>
               </div>
               <span className="preview-sparkline" aria-hidden="true">
                 ▂ ▄ ▂ ▃ ▅ ▃ ▄
               </span>
-              <span className="preview-status">在线</span>
+              <span className="preview-status">{t("在线")}</span>
             </div>
             <div className="preview-bottom">
-              <span className="site-live-dot" /> 机器状态 · 协议部署 ·
-              客户端配置
+              <span className="site-live-dot" />{" "}
+              {t(" 机器状态 · 协议部署 · 客户端配置")}
             </div>
           </div>
         </div>
       </div>
-      <p className="preview-caption">产品界面示意 · 非实时数据</p>
+      <p className="preview-caption">{t("产品界面示意 · 非实时数据")}</p>
     </div>
   );
 }
 function GettingStarted() {
+  const t = useMarketingText();
   return (
     <section className="site-section site-container">
-      <SectionTitle eyebrow="GET STARTED" title="三步，建立你的工作空间。">
-        准备一台你有权管理的 Linux 服务器；部署协议服务时，还需准备域名和有效的
-        TLS 证书。
+      <SectionTitle eyebrow="GET STARTED" title={t("三步，建立你的工作空间。")}>
+        {t(
+          "准备一台你有权管理的 Linux 服务器；部署协议服务时，还需准备域名和有效的 TLS 证书。",
+        )}
       </SectionTitle>
       <div className="site-feature-grid">
         {[
           [
-            "创建或加入组织",
-            "使用当前开放的方式登录，创建用于管理 VPS 的工作空间。个人使用也可以创建组织，无需邀请其他成员；需要协作时再邀请他人加入。",
+            t("创建或加入组织"),
+            t(
+              "使用当前开放的方式登录，创建用于管理 VPS 的工作空间。个人使用也可以创建组织，无需邀请其他成员；需要协作时再邀请他人加入。",
+            ),
           ],
           [
-            "添加服务器并接入",
-            "先登记服务器，再安装 Agent。只查看状态可使用探针模式；需要部署协议时，由管理员授权托管模式。",
+            t("添加服务器并接入"),
+            t(
+              "先登记服务器，再安装 Agent。只查看状态可使用探针模式；需要部署协议时，由管理员授权托管模式。",
+            ),
           ],
           [
-            "部署节点并生成配置",
-            "提交前检查证书与端口，部署后查看节点状态，再创建客户端订阅。导入对应 App 后，验证实际连接。",
+            t("部署节点并生成配置"),
+            t(
+              "提交前检查证书与端口，部署后查看节点状态，再创建客户端订阅。导入对应 App 后，验证实际连接。",
+            ),
           ],
         ].map(([title, body], index) => (
           <article className="site-feature" key={title}>
@@ -155,111 +171,121 @@ function GettingStarted() {
         ))}
       </div>
       <a className="site-text-link" href="/help">
-        阅读入门与常见问题 <Arrow />
+        {t("阅读入门与常见问题 ")}
+        <Arrow />
       </a>
     </section>
   );
 }
 function Plans({ compact = false }: { compact?: boolean }) {
+  const t = useMarketingText();
   return (
     <div className="site-plans">
       <article className="site-plan">
         <span className="plan-type">SELF-HOSTED</span>
-        <h3>自托管，掌握自己的数据。</h3>
-        <p>适合希望自主运行和管理数据的个人与团队。</p>
+        <h3>{t("自托管，掌握自己的数据。")}</h3>
+        <p>{t("适合希望自主运行和管理数据的个人与团队。")}</p>
         <div className="plan-price">
-          免费<span>MIT 开源版本</span>
+          {t("免费")}
+          <span>{t("MIT 开源版本")}</span>
         </div>
         <a className="site-button site-button-outline" href={docs}>
-          开始自托管 <Arrow />
+          {t("开始自托管 ")}
+          <Arrow />
         </a>
         <ul>
-          <li>服务器资料与 Agent 接入</li>
-          <li>运行状态、心跳与离线判断</li>
-          <li>组织、成员与访问权限</li>
-          <li>SSH 安装与可选凭据加密保存</li>
-          {!compact && <li>源代码可查看、修改和分发</li>}
+          <li>{t("服务器资料与 Agent 接入")}</li>
+          <li>{t("运行状态、心跳与离线判断")}</li>
+          <li>{t("组织、成员与访问权限")}</li>
+          <li>{t("SSH 安装与可选凭据加密保存")}</li>
+          {!compact && <li>{t("源代码可查看、修改和分发")}</li>}
         </ul>
         <p className="plan-footnote">
-          软件免费；服务器、域名、存储与运维成本由你承担。
+          {t("软件免费；服务器、域名、存储与运维成本由你承担。")}
         </p>
       </article>
       <article className="site-plan plan-hosted">
-        <span className="plan-ribbon">年付省 33%</span>
+        <span className="plan-ribbon">{t("年付省 33%")}</span>
         <span className="plan-type">XINGDU CLOUD</span>
-        <h3>更少维护，更多专注。</h3>
-        <p>按组织订阅，为个人和小团队管理服务器。</p>
+        <h3>{t("更少维护，更多专注。")}</h3>
+        <p>{t("按组织订阅，为个人和小团队管理服务器。")}</p>
         <div className="plan-price">
-          $5<span>/ 月，或 $40 / 年</span>
+          $5<span>{t("/ 月，或 $40 / 年")}</span>
         </div>
-        <p>年付约 $3.33/月，比连续月付节省 $20。</p>
+        <p>{t("年付约 $3.33/月，比连续月付节省 $20。")}</p>
         <a className="site-button site-button-dark" href="/app/billing">
-          查看套餐与账单 <Arrow />
+          {t("查看套餐与账单 ")}
+          <Arrow />
         </a>
         <ul>
-          <li>每个组织包含 5 台服务器</li>
-          <li>机器状态监控与协议部署</li>
-          <li>节点订阅与组织成员协作</li>
-          <li>Stripe 安全支付与账单管理</li>
-          {!compact && <li>月付或年付自动续费，可取消下次续费</li>}
+          <li>{t("每个组织包含 5 台服务器")}</li>
+          <li>{t("机器状态监控与协议部署")}</li>
+          <li>{t("节点订阅与组织成员协作")}</li>
+          <li>{t("Stripe 安全支付与账单管理")}</li>
+          {!compact && <li>{t("月付或年付自动续费，可取消下次续费")}</li>}
         </ul>
         <p className="plan-footnote">
-          用户自备
-          VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。
+          {t(
+            "用户自备 VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。",
+          )}
         </p>
       </article>
     </div>
   );
 }
 function Home() {
+  const t = useMarketingText();
   return (
     <>
       <section className="site-hero site-container">
         <div className="hero-copy">
           <span className="site-release">
-            <span className="site-live-dot" /> 产品预览 <span>·</span> 从一台
-            VPS 开始
+            <span className="site-live-dot" /> {t(" 产品预览 ")}
+            <span>·</span> {t(" 从一台 VPS 开始")}
           </span>
           <h1>
-            分散的服务器，
+            {t("分散的服务器，")}
             <br />
-            <em>在星渡相遇。</em>
+            <em>{t("在星渡相遇。")}</em>
           </h1>
           <p>
-            无论一台还是多台
-            VPS，都能在一个工作空间查看状态、部署协议服务、管理客户端配置。自己使用轻松有序，需要协作时也能邀请他人加入。
+            {t(
+              "无论一台还是多台 VPS，都能在一个工作空间查看状态、部署协议服务、管理客户端配置。自己使用轻松有序，需要协作时也能邀请他人加入。",
+            )}
           </p>
           <div className="hero-actions">
             <a className="site-button site-button-dark" href="/app">
-              进入控制台 <Arrow />
+              {t("进入控制台 ")}
+              <Arrow />
             </a>
             <a className="site-text-link" href={repository}>
-              探索开源项目 <Arrow />
+              {t("探索开源项目 ")}
+              <Arrow />
             </a>
           </div>
           <div className="hero-principles">
-            <span>MIT 开源</span>
-            <span>自由自托管</span>
-            <span>凭据由你选择保存</span>
+            <span>{t("MIT 开源")}</span>
+            <span>{t("自由自托管")}</span>
+            <span>{t("凭据由你选择保存")}</span>
           </div>
         </div>
         <ProductPreview />
       </section>
       <div className="site-compatibility site-container">
-        <p>从熟悉的系统开始</p>
+        <p>{t("从熟悉的系统开始")}</p>
         <div>
           <span>Ubuntu</span>
           <span>Debian</span>
           <span>Amazon Linux</span>
         </div>
-        <small>已验证 arm64 Docker 环境中的 Agent 接入</small>
+        <small>{t("已验证 arm64 Docker 环境中的 Agent 接入")}</small>
       </div>
       <section id="features" className="site-section site-container">
         <SectionTitle
           eyebrow="LESS FRICTION. MORE CLARITY."
-          title="接入、部署、使用。一处完成。"
+          title={t("接入、部署、使用。一处完成。")}
         >
-          把重复的管理步骤，整理成清晰的工作流。
+          {t("把重复的管理步骤，整理成清晰的工作流。")}
         </SectionTitle>
         <div className="site-feature-grid">
           <article className="site-feature">
@@ -267,15 +293,16 @@ function Home() {
             <div className="feature-glyph" aria-hidden="true">
               ⌁
             </div>
-            <h3>用适合你的方式接入</h3>
+            <h3>{t("用适合你的方式接入")}</h3>
             <p>
-              在机器上主动安装 Agent，或使用 SSH
-              密码、私钥完成安装。已有的服务器，进入同一个工作空间。
+              {t(
+                "在机器上主动安装 Agent，或使用 SSH 密码、私钥完成安装。已有的服务器，进入同一个工作空间。",
+              )}
             </p>
             <div className="feature-tags">
               <span>Agent</span>
-              <span>SSH 密码</span>
-              <span>PEM 私钥</span>
+              <span>{t("SSH 密码")}</span>
+              <span>{t("PEM 私钥")}</span>
             </div>
           </article>
           <article className="site-feature">
@@ -283,15 +310,16 @@ function Home() {
             <div className="feature-glyph" aria-hidden="true">
               ▥
             </div>
-            <h3>从机器，到协议服务</h3>
+            <h3>{t("从机器，到协议服务")}</h3>
             <p>
-              托管 Agent 可安装 Trojan、VLESS、VMess、Hysteria 2 与 TUIC。提供
-              TLS 证书，确认授权后查看任务进度。
+              {t(
+                "托管 Agent 可安装 Trojan、VLESS、VMess、Hysteria 2 与 TUIC。提供 TLS 证书，确认授权后查看任务进度。",
+              )}
             </p>
             <div className="feature-tags">
-              <span>TLS 加密</span>
+              <span>{t("TLS 加密")}</span>
               <span>TCP / QUIC</span>
-              <span>部署与卸载</span>
+              <span>{t("部署与卸载")}</span>
             </div>
           </article>
           <article className="site-feature">
@@ -299,15 +327,16 @@ function Home() {
             <div className="feature-glyph" aria-hidden="true">
               ▦
             </div>
-            <h3>个人使用，按需共享</h3>
+            <h3>{t("个人使用，按需共享")}</h3>
             <p>
-              为自己的 VPS
-              建立工作空间，集中管理服务器与节点。需要共同维护时，再邀请成员并分配权限，无需共享账号。
+              {t(
+                "为自己的 VPS 建立工作空间，集中管理服务器与节点。需要共同维护时，再邀请成员并分配权限，无需共享账号。",
+              )}
             </p>
             <div className="feature-tags">
-              <span>组织空间</span>
-              <span>成员邀请</span>
-              <span>角色权限</span>
+              <span>{t("组织空间")}</span>
+              <span>{t("成员邀请")}</span>
+              <span>{t("角色权限")}</span>
             </div>
           </article>
         </div>
@@ -318,38 +347,42 @@ function Home() {
           <div>
             <p className="site-eyebrow">TRUST, BY DESIGN</p>
             <h2>
-              连接可以简单。
+              {t("连接可以简单。")}
               <br />
-              权限，需要认真。
+              {t("权限，需要认真。")}
             </h2>
             <p>
-              从低权限探针开始。SSH
-              安装前校验主机身份，凭据默认临时加密使用，是否长期保存由你决定。
+              {t(
+                "从低权限探针开始。SSH 安装前校验主机身份，凭据默认临时加密使用，是否长期保存由你决定。",
+              )}
             </p>
             <a className="site-text-link" href="/security">
-              了解安全设计 <Arrow />
+              {t("了解安全设计 ")}
+              <Arrow />
             </a>
           </div>
           <div className="security-points">
             <article>
               <span>01</span>
               <div>
-                <h3>按组织隔离</h3>
-                <p>成员权限校验与数据库行级隔离共同约束访问。</p>
+                <h3>{t("按组织隔离")}</h3>
+                <p>{t("成员权限校验与数据库行级隔离共同约束访问。")}</p>
               </div>
             </article>
             <article>
               <span>02</span>
               <div>
-                <h3>凭据有边界</h3>
-                <p>SSH 凭据与 TLS 私钥不回显；连接凭据仅管理员主动查看。</p>
+                <h3>{t("凭据有边界")}</h3>
+                <p>
+                  {t("SSH 凭据与 TLS 私钥不回显；连接凭据仅管理员主动查看。")}
+                </p>
               </div>
             </article>
             <article>
               <span>03</span>
               <div>
-                <h3>访问可撤销</h3>
-                <p>每台机器使用独立身份，管理员可撤销后续接入。</p>
+                <h3>{t("访问可撤销")}</h3>
+                <p>{t("每台机器使用独立身份，管理员可撤销后续接入。")}</p>
               </div>
             </article>
           </div>
@@ -359,24 +392,25 @@ function Home() {
         <div className="section-with-link">
           <SectionTitle
             eyebrow="YOUR INFRASTRUCTURE. YOUR CHOICE."
-            title="选择你的运行方式。"
+            title={t("选择你的运行方式。")}
           >
-            自部署版免费，云端版 $5/月或 $40/年。
+            {t("自部署版免费，云端版 $5/月或 $40/年。")}
           </SectionTitle>
           <a className="site-text-link" href="/pricing">
-            查看价格说明 <Arrow />
+            {t("查看价格说明 ")}
+            <Arrow />
           </a>
         </div>
         <Plans compact />
       </section>
       <section className="site-roadmap site-container">
         <div>
-          <span className="site-roadmap-label">接下来</span>
-          <h2>从服务部署，到客户端配置。</h2>
+          <span className="site-roadmap-label">{t("接下来")}</span>
+          <h2>{t("从服务部署，到客户端配置。")}</h2>
           <p>
-            五种协议的安装与卸载、Stash、Mihomo、Surge、Loon 配置及 Hysteria 2
-            分享链接已提供。各格式支持的协议和证书要求不同，实际 App
-            导入与联网仍需验证；线路编排尚未开放。
+            {t(
+              "五种协议的安装与卸载、Stash、Mihomo、Surge、Loon 配置及 Hysteria 2 分享链接已提供。各格式支持的协议和证书要求不同，实际 App 导入与联网仍需验证；线路编排尚未开放。",
+            )}
           </p>
         </div>
         <div className="roadmap-clients">
@@ -384,27 +418,29 @@ function Home() {
           <span>Surge</span>
           <span>Loon</span>
           <span>Hysteria 2 URI</span>
-          <small>提供受限格式导出 · App 联网待验收</small>
+          <small>{t("提供受限格式导出 · App 联网待验收")}</small>
         </div>
       </section>
       <section className="site-section site-container">
         <SectionTitle
           eyebrow="FROM THE JOURNAL"
-          title="让每一次管理，都有方法可循。"
+          title={t("让每一次管理，都有方法可循。")}
         >
-          从个人 VPS 接入到多服务器管理，找到适合自己的使用方法。
+          {t("从个人 VPS 接入到多服务器管理，找到适合自己的使用方法。")}
         </SectionTitle>
         <BlogCards posts={blogPosts.slice(0, 2)} />
         <a className="site-text-link" href="/blog">
-          浏览全部文章 <Arrow />
+          {t("浏览全部文章 ")}
+          <Arrow />
         </a>
       </section>
       <section className="site-final-cta site-container">
         <p className="site-eyebrow">A SIMPLE BEGINNING</p>
-        <h2>下一段连接，从这里开始。</h2>
-        <p>从自己的第一台 VPS 开始。</p>
+        <h2>{t("下一段连接，从这里开始。")}</h2>
+        <p>{t("从自己的第一台 VPS 开始。")}</p>
         <a className="site-button site-button-dark" href="/app">
-          打开星渡控制台 <Arrow />
+          {t("打开星渡控制台 ")}
+          <Arrow />
         </a>
       </section>
     </>
@@ -859,33 +895,59 @@ function Security() {
   );
 }
 export default function Marketing({ page }: { page: PublicPage }) {
+  const selected = useLocale();
+  const locale = page === "home" ? selected : "zh-CN";
+  useEffect(() => {
+    document.documentElement.lang = locale;
+    if (page !== "home") return;
+    document.title =
+      locale === "en"
+        ? "Xingdu — Open-source VPS management"
+        : publicPages.home.title;
+    document
+      .querySelector('meta[name="description"]')
+      ?.setAttribute(
+        "content",
+        locale === "en"
+          ? "Manage VPS servers, deploy protocols and generate client configs in one workspace. Self-host for free or choose Xingdu Cloud."
+          : publicPages.home.description,
+      );
+  }, [locale, page]);
+  return (
+    <MarketingLocale value={locale}>
+      <MarketingContent page={page} />
+    </MarketingLocale>
+  );
+}
+function MarketingContent({ page }: { page: PublicPage }) {
+  const t = useMarketingText();
   return (
     <div className="marketing-site">
       <a className="site-skip" href="#site-content">
-        跳至主要内容
+        {t("跳至主要内容")}
       </a>
       <header className="site-header">
         <div className="site-container site-nav">
           <Brand />
-          <nav aria-label="官网导航">
-            <a href="/#features">产品</a>
+          <nav aria-label={t("官网导航")}>
+            <a href="/#features">{t("产品")}</a>
             <a
               href="/pricing"
               aria-current={page === "pricing" ? "page" : undefined}
             >
-              价格
+              {t("价格")}
             </a>
             <a
               href="/security"
               aria-current={page === "security" ? "page" : undefined}
             >
-              安全
+              {t("安全")}
             </a>
             <a
               href="/privacy"
               aria-current={page === "privacy" ? "page" : undefined}
             >
-              隐私
+              {t("隐私")}
             </a>
             <a
               href="/blog"
@@ -893,15 +955,19 @@ export default function Marketing({ page }: { page: PublicPage }) {
                 page === "blog" || page.startsWith("blog/") ? "page" : undefined
               }
             >
-              博客
+              {t("博客")}
             </a>
             <a href="/help" aria-current={page === "help" ? "page" : undefined}>
-              帮助
+              {t("帮助")}
             </a>
           </nav>
-          <a className="site-login" href="/app">
-            登录控制台 <Arrow />
-          </a>
+          <div className="site-header-actions">
+            {page === "home" && <MarketingLanguage />}
+            <a className="site-login" href="/app">
+              {t("登录控制台 ")}
+              <Arrow />
+            </a>
+          </div>
         </div>
       </header>
       <main id="site-content" className="site-main">
@@ -926,42 +992,44 @@ export default function Marketing({ page }: { page: PublicPage }) {
           <div className="site-footer-top">
             <div>
               <Brand />
-              <p>你的 VPS 与节点，一处管理。</p>
+              <p>{t("你的 VPS 与节点，一处管理。")}</p>
             </div>
             <div className="site-footer-links">
               <div>
-                <strong>星渡</strong>
-                <a href="/#features">产品能力</a>
-                <a href="/pricing">价格与部署</a>
-                <a href="/app">控制台</a>
+                <strong>{t("星渡")}</strong>
+                <a href="/#features">{t("产品能力")}</a>
+                <a href="/pricing">{t("价格与部署")}</a>
+                <a href="/app">{t("控制台")}</a>
               </div>
               <div>
-                <strong>了解更多</strong>
-                <a href="/blog">博客与指南</a>
-                <a href="/help">帮助中心</a>
-                <a href="mailto:info@xingdu.app">联系我们</a>
-                <a href="/service">服务范围</a>
-                <a href="/privacy">隐私说明</a>
-                <a href="/security">安全设计</a>
-                <a href={docs}>部署文档</a>
+                <strong>{t("了解更多")}</strong>
+                <a href="/blog">{t("博客与指南")}</a>
+                <a href="/help">{t("帮助中心")}</a>
+                <a href="mailto:info@xingdu.app">{t("联系我们")}</a>
+                <a href="/service">{t("服务范围")}</a>
+                <a href="/privacy">{t("隐私说明")}</a>
+                <a href="/security">{t("安全设计")}</a>
+                <a href={docs}>{t("部署文档")}</a>
               </div>
               <div>
-                <strong>开放生态</strong>
+                <strong>{t("开放生态")}</strong>
                 <a href={repository}>
                   GitHub <Arrow />
                 </a>
                 <a href={`${repository}/releases`}>
-                  版本动态 <Arrow />
+                  {t("版本动态 ")}
+                  <Arrow />
                 </a>
                 <a href={`${repository}/blob/main/LICENSE`}>
-                  MIT 许可证 <Arrow />
+                  {t("MIT 许可证 ")}
+                  <Arrow />
                 </a>
               </div>
             </div>
           </div>
           <div className="site-footer-bottom">
-            <span>© 2026 星渡 Xingdu</span>
-            <span>MIT 开源 · 产品预览</span>
+            <span>{t("© 2026 星渡 Xingdu")}</span>
+            <span>{t("MIT 开源 · 产品预览")}</span>
             <span>Built to connect.</span>
           </div>
         </div>
