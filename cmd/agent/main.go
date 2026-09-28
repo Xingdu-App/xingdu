@@ -30,7 +30,7 @@ func run() error {
 	install := flag.Bool("install", false, "install a Linux systemd service (root required)")
 	config := flag.String("config", "/var/lib/xingdu-agent/agent.json", "private configuration path")
 	server := flag.String("server", "", "HTTPS control-plane origin")
-	mode := flag.String("mode", "monitor", "monitor or manage")
+	mode := flag.String("mode", "manage", "manage or monitor")
 	flag.Parse()
 	if *version {
 		fmt.Println("xingdu-agent " + machine.Version)

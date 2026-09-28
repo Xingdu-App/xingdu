@@ -275,7 +275,7 @@ func (a *api) installer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
 	fmt.Fprintf(w, `#!/bin/sh
 set -eu
-mode=${1:-monitor}
+mode=${1:-manage}
 case "$mode" in monitor|manage) ;; *) echo 'Mode must be monitor or manage' >&2; exit 1;; esac
 [ "$(id -u)" = 0 ] || { echo 'Run with sudo' >&2; exit 1; }
 [ "$(uname -s)" = Linux ] || exit 1

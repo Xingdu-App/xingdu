@@ -13,15 +13,17 @@ Linux systemd 安装支持 amd64 / arm64，首批目标为 Debian / Ubuntu 系�
 
 ## 权限模式
 
-- **探针 monitor（默认）**：systemd 使用专用 `xingdu-agent` 系统用户，清空 capabilities，启用 NoNewPrivileges、只读系统目录和私有临时目录；仅能写自己的状态目录。只采集主机名、系统与架构、Agent 版本、运行时间、CPU 核数、内存和负载，不上传环境变量、进程列表、文件内容或 SSH 凭据。
-- **托管 manage**：用户明确确认后以 root 运行服务，执行明确授权的协议安装与卸载任务，并上报状态。**托管模式不等于任意远程控制**。控制端暂不提供任意命令输入框。
+- **探针 monitor**：systemd 使用专用 `xingdu-agent` 系统用户，清空 capabilities，启用 NoNewPrivileges、只读系统目录和私有临时目录；仅能写自己的状态目录。只采集主机名、系统与架构、Agent 版本、运行时间、CPU 核数、内存和负载，不上传环境变量、进程列表、文件内容或 SSH 凭据。
+- **托管 manage（默认）**：用户明确确认后以 root 运行服务，执行明确授权的协议安装与卸载任务，并上报状态。**托管模式不等于任意远程控制**。控制端暂不提供任意命令输入框。
 
 组织所有者、管理员可以安装、签发令牌、使用/删除凭据及撤销机器。普通成员可以新增资料并查看探针，但不能修改 SSH 连接目标、删除机器、安装或读取凭据；只读成员仅可查看。敏感操作写入组织隔离的 `machine_audit`，组织所有者与管理员可在设置页面查看最近的机器与订阅审计记录。
+
+控制台主动安装与 SSH 安装、安装脚本及命令行初始化均默认使用托管模式。已有 Agent 继续使用其保存的模式，不会自动切换；探针模式可显式指定 `--mode monitor`。
 
 ## 主动安装
 
 1. 新增服务器资料，打开「接入 / 状态」。
-2. 选择模式，生成一次性令牌，复制下载命令。
+2. 默认选择托管模式，确认 root 运行授权后生成一次性令牌，复制下载命令；只需采集状态时可改选探针模式。
 3. 在目标 VPS 查看脚本内容，执行脚本，在隐藏输入提示中粘贴令牌。
 4. 以控制台的实际心跳判断在线，不能仅以安装命令完成判断接入成功。
 
@@ -38,7 +40,7 @@ Linux systemd 安装支持 amd64 / arm64，首批目标为 Debian / Ubuntu 系�
 自定义服务管理器示例（先用可信方式取得二进制）：
 
 ```sh
-./xingdu-agent --init --config ./agent.json --server https://control.example.com --mode monitor
+./xingdu-agent --init --config ./agent.json --server https://control.example.com --mode manage
 ./xingdu-agent --config ./agent.json
 ```
 

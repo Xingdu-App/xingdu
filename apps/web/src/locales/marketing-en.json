@@ -77,7 +77,6 @@
   "角色权限": "Access roles",
   "连接可以简单。": "Simple connections.",
   "权限，需要认真。": "Careful permissions.",
-  "从低权限探针开始。SSH 安装前校验主机身份，凭据默认临时加密使用，是否长期保存由你决定。": "Start with a limited-permission probe. SSH setup verifies the host identity. Credentials are encrypted temporarily by default; long-term storage is your choice.",
   "了解安全设计 ": "Explore our security design ",
   "按组织隔离": "Organization isolation",
   "成员权限校验与数据库行级隔离共同约束访问。": "Membership checks and database row-level security work together to restrict access.",
@@ -131,5 +130,8 @@
   "多台 VPS 怎么管理？从服务器台账到节点部署的完整流程": "Managing multiple VPS servers: from inventory to node deployment",
   "从一台到多台 VPS，如何统一整理地址、接入状态和协议节点？用星渡的管理流程建立可追踪的服务器台账，并区分在线、部署成功与实际可用。": "Organize server addresses, enrollment status and protocol nodes in one place. Build a traceable inventory and distinguish online status from successful deployment and real connectivity.",
   "服务器管理面板选自托管还是云端？从成本、维护与数据边界判断": "Self-hosted or cloud? Compare cost, maintenance and data control",
-  "比较服务器管理面板自托管与云端模式的维护责任、基础设施成本和数据边界。了解星渡免费开源版本与云端套餐分别适合怎样的使用需求。": "Compare maintenance responsibilities, infrastructure costs and data boundaries to choose between free self-hosting and Xingdu Cloud."
+  "比较服务器管理面板自托管与云端模式的维护责任、基础设施成本和数据边界。了解星渡免费开源版本与云端套餐分别适合怎样的使用需求。": "Compare maintenance responsibilities, infrastructure costs and data boundaries to choose between free self-hosting and Xingdu Cloud.",
+  "默认使用托管模式，确认授权后可部署协议。SSH 安装前校验主机身份，凭据默认临时加密使用，是否长期保存由你决定。": "Managed mode is selected by default; protocol deployment requires your authorization. SSH setup verifies the host identity. Credentials are encrypted temporarily by default; long-term storage is your choice.",
+  "默认选择托管模式，需明确授权 root 权限，可执行固定的协议安装与卸载任务，不开放任意远程命令。只需采集状态时可选择使用专用低权限用户和 systemd 限制的探针模式。": "Managed mode is selected by default and requires explicit root authorization. It runs predefined protocol installation and removal tasks without arbitrary remote commands. For monitoring only, choose probe mode with a dedicated low-privilege user and systemd restrictions.",
+  "默认托管，按需探针": "Managed by default, monitoring when needed"
 }

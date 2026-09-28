@@ -90,7 +90,7 @@ export default function MachineDialog({
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
   const [path, setPath] = useState("manual"),
-    [mode, setMode] = useState("monitor"),
+    [mode, setMode] = useState("manage"),
     [confirmManage, setConfirmManage] = useState(false),
     [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [method, setMethod] = useState("pem"),
@@ -254,14 +254,14 @@ export default function MachineDialog({
               }}
               options={[
                 {
-                  value: "monitor",
-                  label: t("探针模式"),
-                  description: t("专用低权限用户 · 只采集状态"),
-                },
-                {
                   value: "manage",
                   label: t("托管模式"),
                   description: t("以 root 运行 · 支持授权的协议部署"),
+                },
+                {
+                  value: "monitor",
+                  label: t("探针模式"),
+                  description: t("专用低权限用户 · 只采集状态"),
                 },
               ]}
             />
