@@ -50,3 +50,10 @@ agent-lab-test:
 
 agent-lab-cleanup:
 	python3 scripts/agent-lab.py cleanup
+
+.PHONY: runtimes protocol-lab-test
+runtimes:
+	go run ./tools/fetch-runtime
+
+protocol-lab-test:
+	python3 scripts/protocol-lab.py

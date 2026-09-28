@@ -2,9 +2,9 @@ ARG BASE_IMAGE=ubuntu:24.04
 FROM ${BASE_IMAGE}
 ENV container=docker
 RUN if command -v apt-get >/dev/null; then \
-      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv openssh-server sudo curl ca-certificates passwd tar procps && rm -rf /var/lib/apt/lists/*; \
+      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends systemd systemd-sysv openssh-server sudo curl ca-certificates passwd tar procps iproute2 python3 && rm -rf /var/lib/apt/lists/*; \
     else \
-      dnf install -y systemd openssh-server sudo curl-minimal ca-certificates shadow-utils tar procps-ng && dnf clean all; \
+      dnf install -y systemd openssh-server sudo curl-minimal ca-certificates shadow-utils tar procps-ng iproute python3 && dnf clean all; \
     fi
 RUN useradd -m -s /bin/sh labadmin && \
     printf 'labadmin ALL=(root) NOPASSWD: ALL\n' > /etc/sudoers.d/xingdu-lab && chmod 440 /etc/sudoers.d/xingdu-lab && \

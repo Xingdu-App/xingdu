@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { errorMessage, loadHosts, loadSystem } from "./api";
 import HostDialog from "./HostDialog";
 import MachineDialog from "./MachineDialog";
+import ProtocolDialog from "./ProtocolDialog";
 import type { Host, System } from "./api";
 import "./App.css";
 
@@ -30,10 +31,6 @@ const pendingCopy: Record<string, { title: string; description: string }> = {
     description:
       "Stash、Surge、Loon、Shadowrocket 的订阅输出将在兼容性验证后开放。",
   },
-  deployments: {
-    title: "每一次变更，都有迹可循",
-    description: "部署任务、进度记录和配置回滚将在后续版本开放。",
-  },
 };
 
 function App({
@@ -52,6 +49,7 @@ function App({
   const canWrite = organization.role !== "viewer";
   const manageMachines =
     organization.role === "owner" || organization.role === "admin";
+  const [protocolHost, setProtocolHost] = useState<Host | null>(null);
   const [machineHost, setMachineHost] = useState<Host | null>(null);
   const [editing, setEditing] = useState<Host | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
@@ -155,7 +153,7 @@ function App({
             <br />
             <strong>一键抵达。</strong>
           </p>
-          <span className="version">{system?.version ?? "0.4.0-dev"}</span>
+          <span className="version">{system?.version ?? "0.5.0-dev"}</span>
         </div>
       </aside>
       <div className="body">
@@ -232,7 +230,7 @@ function App({
                 ? "控制端与数据库已连接"
                 : "控制端或数据库不可用"}
             <span className="status-divider">/</span>
-            <span>开发预览 · Agent 心跳与机器接入</span>
+            <span>开发预览 · 机器接入与协议部署</span>
           </div>
           {page === "settings" && <TeamPanel organization={organization} />}
           {(page === "overview" || page === "hosts") && (
@@ -256,7 +254,13 @@ function App({
                     }
                     note="90 秒无心跳视为离线"
                   />
-                  <Stat label="线路编排" value="待开放" note="直连 / 中转" />
+                  <Stat
+                    label="协议部署"
+                    value={
+                      system?.capabilities.deployment ? "已开放" : "待开放"
+                    }
+                    note="Trojan / VLESS / VMess / QUIC"
+                  />
                   <Stat
                     label="客户端订阅"
                     value="待开放"
@@ -351,6 +355,12 @@ function App({
                                   接入 / 状态
                                 </button>
                                 <button
+                                  className="secondary compact"
+                                  onClick={() => setProtocolHost(host)}
+                                >
+                                  协议部署
+                                </button>
+                                <button
                                   className="secondary"
                                   aria-label={`编辑 ${host.name}`}
                                   disabled={!manageMachines}
@@ -374,6 +384,12 @@ function App({
                               onClick={() => setMachineHost(host)}
                             >
                               接入 / 状态
+                            </button>
+                            <button
+                              className="secondary compact"
+                              onClick={() => setProtocolHost(host)}
+                            >
+                              协议部署
                             </button>
                             <button
                               className="secondary"
@@ -456,7 +472,7 @@ function App({
                     <p className="eyebrow">A SIMPLE JOURNEY</p>
                     <h2>把复杂留给星渡。</h2>
                     <div className="steps">
-                      {["接入服务器", "编排线路", "连接客户端"].map(
+                      {["接入服务器", "部署协议", "连接客户端"].map(
                         (step, index) => (
                           <div key={step}>
                             <span>0{index + 1}</span>
@@ -465,7 +481,10 @@ function App({
                         ),
                       )}
                     </div>
-                    <p>部署、验证与订阅，将成为一条完整的工作流。</p>
+                    <p>
+                      接入托管
+                      Agent，安装协议后获取连接信息；线路编排与订阅导出仍在计划中。
+                    </p>
                   </section>
                   <section className="panel clients">
                     <p className="eyebrow">BUILT TO CONNECT</p>
@@ -482,6 +501,39 @@ function App({
                 </div>
               )}
             </>
+          )}
+          {page === "deployments" && (
+            <section className="panel deployment-panel">
+              <div className="section-heading">
+                <div>
+                  <h2>按服务器管理协议</h2>
+                  <p>查看部署记录、安装协议服务或卸载已有服务。</p>
+                </div>
+                <span className="badge">托管 Agent</span>
+              </div>
+              <div className="deployment-hosts">
+                {hosts.map((host) => (
+                  <button
+                    key={host.id}
+                    className="deployment-host"
+                    onClick={() => setProtocolHost(host)}
+                  >
+                    <span>
+                      <strong>{host.name}</strong>
+                      <small>{host.address}</small>
+                    </span>
+                    <span>
+                      {host.status === "online" ? "在线" : "待连接"} →
+                    </span>
+                  </button>
+                ))}
+                {state === "ready" && !hosts.length && (
+                  <p className="form-hint">
+                    先在服务器页面添加机器并接入 Agent。
+                  </p>
+                )}
+              </div>
+            </section>
           )}
           {pending && (
             <section className="panel pending">
@@ -502,6 +554,18 @@ function App({
           </footer>
         </main>
       </div>
+      {protocolHost && (
+        <ProtocolDialog
+          key={`${organization.id}:${protocolHost.id}`}
+          host={hosts.find((h) => h.id === protocolHost.id) ?? protocolHost}
+          manage={manageMachines}
+          onClose={() => setProtocolHost(null)}
+          onAccess={() => {
+            setMachineHost(protocolHost);
+            setProtocolHost(null);
+          }}
+        />
+      )}
       {machineHost && (
         <MachineDialog
           host={machineHost}

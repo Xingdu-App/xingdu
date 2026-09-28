@@ -106,7 +106,8 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
           <p>确定删除“{host?.name}”的资料？</p>
           <p>
             此操作会删除资料并撤销 Agent
-            身份、安装令牌和保存的凭据，不会关机或卸载实际 VPS 上的服务。
+            身份、安装令牌和保存的凭据，不会关机或停止实际 VPS
+            上的协议服务。如需停止服务，请先在「协议部署」中卸载并确认完成，再删除资料。
           </p>
           {error && (
             <p role="alert" className="form-error">

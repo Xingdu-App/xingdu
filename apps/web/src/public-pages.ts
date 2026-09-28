@@ -7,7 +7,7 @@ export const publicPages: Record<
     path: "/",
     title: "星渡 Xingdu — 让服务器与团队，在一处相遇",
     description:
-      "星渡是开源的服务器管理工作空间，支持 Agent 接入、SSH 安装、运行状态监测与组织协作。自托管免费，托管服务筹备中。",
+      "星渡是开源的服务器管理工作空间，支持 Agent 接入、SSH 安装、TLS 协议部署、运行状态监测与组织协作。自托管免费，托管服务筹备中。",
   },
   pricing: {
     path: "/pricing",
@@ -19,7 +19,7 @@ export const publicPages: Record<
     path: "/privacy",
     title: "隐私与数据处理说明 · 星渡 Xingdu",
     description:
-      "了解星渡处理哪些数据、如何使用 SSH 凭据、必要 Cookie 的用途，以及自托管与未来托管服务的数据边界。",
+      "了解星渡处理哪些数据、如何使用 SSH 凭据和协议密钥、必要 Cookie 的用途，以及自托管与未来托管服务的数据边界。",
   },
   security: {
     path: "/security",

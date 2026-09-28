@@ -15,7 +15,7 @@ Xingdu is an open-source project building a multi-tenant SaaS control panel for 
 
 Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; protocol deployment and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
+> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; managed Agent protocol deployment is implemented; route orchestration and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
 
 ## What you can try today
 
@@ -24,11 +24,12 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **Tenant isolation:** PostgreSQL row-level security and a separate low-privilege runtime database account.
 - **User sign-in:** optional registration, revocable sessions, and protected management endpoints.
 - **Machine access:** manual Agent enrollment or SSH password/private-key installation, with pinned host keys and optional encrypted credential retention. See [machine access](docs/MACHINE-ACCESS.md) for setup and current validation limits.
+- **Protocol deployment:** install and uninstall Trojan, VLESS, VMess, Hysteria 2 and TUIC v5 with user-provided TLS certificates through a managed Agent. View task progress and explicitly reveal client credentials as an administrator. See [protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) for prerequisites and validation limits.
 - **Live service status:** API and database availability, with error messages and retry when the connection fails.
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
 
-The worker executes SSH Agent installation jobs. The agent reports machine status; protocol deployment and arbitrary remote commands are not implemented. The [Docker lab](docs/AGENT-LAB.md) verifies systemd installation on Ubuntu 24.04, Debian 13 and Amazon Linux 2023 (arm64); real VPS/EC2 acceptance testing is still required. The current console UI is in Simplified Chinese.
+The worker executes SSH Agent installation jobs. The agent reports machine status and executes fixed, authorized protocol deployment tasks; arbitrary remote commands are not exposed. The [Docker lab](docs/AGENT-LAB.md) verifies systemd installation on Ubuntu 24.04, Debian 13 and Amazon Linux 2023 (arm64); real VPS/EC2 acceptance testing is still required. All five protocols have also passed real forwarding, authentication rejection, private-destination blocking, restart recovery and uninstall checks on those three arm64 Docker systems using a sing-box client. This does not establish compatibility with specific client apps or real VPS/EC2 deployments. The current console UI is in Simplified Chinese.
 
 ## Where Xingdu is heading
 
@@ -39,7 +40,7 @@ Connect a VPS → Choose a protocol and route → Deploy and verify → Import i
 | Area | Planned capabilities |
 | --- | --- |
 | Server management | Onboard existing Linux VPS instances and track their health |
-| Protocol deployment | Generate and validate configurations through runtime adapters |
+| Protocol deployment | Extend transport options and certificate lifecycle management |
 | Route management | Direct connections and single-relay routes |
 | Reliable changes | Versioned deployments, progress tracking, retries, and rollback |
 | Client subscriptions | Dedicated export adapters for Stash, Surge, Loon, and Shadowrocket |
@@ -97,6 +98,7 @@ The [development guide](docs/DEVELOPMENT.md) covers hot reload, database setup, 
 
 | Resource | Contents |
 | --- | --- |
+| [Protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) | Supported protocols, TLS, Agent requirements and lifecycle |
 | [SaaS architecture](docs/SAAS.md) | Tenant boundaries, roles, invitations, and RLS |
 | [Development guide](docs/DEVELOPMENT.md) | Local setup, commands, and API endpoints |
 | [Development plan](docs/PLAN.md) | Scope and milestones |
@@ -110,4 +112,4 @@ Supporting documents are currently in Simplified Chinese. Do not include credent
 
 Xingdu is licensed under the [MIT License](LICENSE). Personal and commercial use, modification, and redistribution are permitted under its terms. Retain the copyright and license notices when distributing copies or substantial portions of the software.
 
-Third-party dependencies and protocol engines remain subject to their own licenses.
+Third-party dependencies and protocol engines remain subject to their own licenses. The current runtime is the separately executed sing-box 1.14.2, licensed by its upstream project under GPL-3.0-or-later; Xingdu’s MIT license does not relicense that runtime. See [third-party notices](THIRD_PARTY_NOTICES.md).

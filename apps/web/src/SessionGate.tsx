@@ -187,7 +187,8 @@ export default function SessionGate() {
           </p>
           <code>docker compose exec api admin --username admin</code>
           <p>
-            组织管理员可以分享邀请链接。公开注册由部署者控制。当前支持机器接入与探针，协议部署仍在开发中。
+            组织管理员可以分享邀请链接。公开注册由部署者控制。当前支持机器接入、探针与托管
+            Agent 协议部署；订阅导出仍在开发中。
           </p>
         </details>
         <div className="auth-footer">开源 · 自托管 · 自由连接</div>

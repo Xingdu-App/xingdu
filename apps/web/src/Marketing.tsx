@@ -219,7 +219,7 @@ function Home() {
       <section id="features" className="site-section site-container">
         <SectionTitle
           eyebrow="LESS FRICTION. MORE CLARITY."
-          title="接入、观测、协作。一处完成。"
+          title="接入、部署、协作。一处完成。"
         >
           把重复的管理步骤，整理成清晰的工作流。
         </SectionTitle>
@@ -241,19 +241,19 @@ function Home() {
             </div>
           </article>
           <article className="site-feature">
-            <span className="feature-number">02 / OBSERVE</span>
+            <span className="feature-number">02 / DEPLOY</span>
             <div className="feature-glyph" aria-hidden="true">
               ▥
             </div>
-            <h3>状态清楚，心里有数</h3>
+            <h3>从机器，到协议服务</h3>
             <p>
-              查看最近心跳、CPU
-              核数、内存与负载。机器失联时显示离线，网络恢复后自动继续上报。
+              托管 Agent 可安装 Trojan、VLESS、VMess、Hysteria 2 与 TUIC。提供
+              TLS 证书，确认授权后查看任务进度。
             </p>
             <div className="feature-tags">
-              <span>持续心跳</span>
-              <span>机器指标</span>
-              <span>离线判断</span>
+              <span>TLS 加密</span>
+              <span>TCP / QUIC</span>
+              <span>部署与卸载</span>
             </div>
           </article>
           <article className="site-feature">
@@ -302,7 +302,7 @@ function Home() {
               <span>02</span>
               <div>
                 <h3>凭据有边界</h3>
-                <p>密码与私钥不在页面回显，保存的凭据可以删除。</p>
+                <p>SSH 凭据与 TLS 私钥不回显；连接凭据仅管理员主动查看。</p>
               </div>
             </article>
             <article>
@@ -334,7 +334,7 @@ function Home() {
           <span className="site-roadmap-label">接下来</span>
           <h2>从机器接入，走向线路编排。</h2>
           <p>
-            协议部署、线路编排与多客户端订阅仍在开发计划中，尚未开放。我们会在实际验证后公布支持范围。
+            五种协议的安装与卸载已实现，线路编排与多客户端订阅仍在计划中。部署完成后，需自行验证实际客户端连通性。
           </p>
         </div>
         <div className="roadmap-clients">
@@ -413,7 +413,9 @@ function Pricing() {
         <details>
           <summary>支持一键部署协议和客户端订阅吗？</summary>
           <p>
-            目前已实现机器接入、探针和组织协作。协议部署、线路编排与客户端订阅仍在计划中，不能作为当前已交付的套餐权益。
+            已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC
+            v5，须提供 TLS
+            证书并明确授权。线路编排与客户端订阅尚未开放，也不代表托管套餐已上线。
           </p>
         </details>
       </section>
@@ -472,6 +474,26 @@ const privacySections = [
     ),
   },
   {
+    title: "协议证书与连接凭据",
+    body: (
+      <>
+        <p>
+          创建协议部署时，控制端处理你提供的 TLS
+          证书与私钥，并生成客户端认证凭据。敏感配置采用 AES-256-GCM
+          加密保存，绑定所属组织、机器与部署，交付给授权的托管 Agent
+          用于运行服务。
+        </p>
+        <p>
+          部署列表不返回凭据。只有组织所有者或管理员主动查看连接信息时，才返回客户端认证凭据及公开证书，并记录审计；TLS
+          私钥不回显。机器上的服务配置仍需包含运行所需的密钥，并以受限权限保存。
+        </p>
+        <p>
+          当前生成的协议运行时配置禁用流量日志。机器心跳、部署任务结果与审计事件仍会保存；这不代替对实际操作系统、代理或云平台日志配置的检查。
+        </p>
+      </>
+    ),
+  },
+  {
     title: "Cookie、访问日志与第三方",
     body: (
       <>
@@ -503,7 +525,7 @@ const privacySections = [
         </p>
         <p>
           删除保存的 SSH
-          凭据不取消已提交任务持有的临时副本；需要同时终止后续接入时，应撤销机器接入。撤销不会卸载机器上的软件，也无法撤回已发出的远程操作。
+          凭据不取消已提交任务持有的临时副本；需要同时终止后续接入时，应撤销机器接入。撤销不会停止已部署的协议服务，也不会卸载机器上的软件；需要终止服务时，应先卸载并确认完成，再撤销接入。已发出的操作无法撤回。
         </p>
         <p>
           在线数据删除不意味着备份中的历史副本立即消失，已记录的审计事件也可能继续保留。当前尚无账号和组织的一键删除功能。自托管实例的数据查阅、删除与备份请求，请联系该实例部署者。
@@ -574,11 +596,11 @@ function Security() {
           ],
           [
             "凭据按用途加密",
-            "密码与私钥采用 AES-256-GCM 加密存储，加密上下文绑定组织、机器与用途。API 不回显已保存的密码或私钥。",
+            "SSH 凭据、TLS 私钥及协议认证凭据采用 AES-256-GCM 加密存储，上下文绑定组织、机器与用途。TLS 私钥不回显；客户端连接凭据仅组织管理员主动查看。",
           ],
           [
             "从低权限探针开始",
-            "默认探针使用专用低权限用户和 systemd 限制。选择托管模式需明确授权 root 权限；当前托管模式仍只上报状态。",
+            "默认探针使用专用低权限用户和 systemd 限制。选择托管模式需明确授权 root 权限，可执行固定的协议安装与卸载任务，不开放任意远程命令。",
           ],
           [
             "控制连接范围",

@@ -197,8 +197,13 @@ export type Enrollment = {
   origin: string;
   command: string;
 };
-export const getMachine = (id: string) =>
-  request<MachineState>(`/api/v1/hosts/${id}/machine`);
+export const getMachine = (id: string, signal?: AbortSignal) =>
+  request<MachineState>(
+    `/api/v1/hosts/${id}/machine`,
+    "GET",
+    undefined,
+    signal,
+  );
 export const issueEnrollment = (
   id: string,
   mode: string,
@@ -236,4 +241,80 @@ export const installSSH = (
     `/api/v1/hosts/${id}/ssh/install`,
     "POST",
     input,
+  );
+
+export type Protocol = "trojan" | "vless" | "vmess" | "hysteria2" | "tuic";
+export type Deployment = {
+  id: string;
+  host_id: string;
+  name: string;
+  protocol: Protocol;
+  port: number;
+  server_name: string;
+  state:
+    | "queued"
+    | "running"
+    | "succeeded"
+    | "failed"
+    | "interrupted"
+    | "cancelled"
+    | "removed";
+  action: "deploy" | "remove";
+  result: string;
+  created_at: string;
+  finished_at: string | null;
+};
+export type DeploymentConnection = {
+  protocol: Protocol;
+  server: string;
+  port: number;
+  server_name: string;
+  credential: string;
+  password?: string;
+  certificate: string;
+};
+const deploymentPath = (host: string, id?: string) =>
+  `/api/v1/hosts/${host}/deployments${id ? `/${id}` : ""}`;
+export const listDeployments = (host: string, signal?: AbortSignal) =>
+  request<Deployment[]>(deploymentPath(host), "GET", undefined, signal);
+export const createDeployment = (
+  host: string,
+  input: {
+    name: string;
+    protocol: Protocol;
+    port: number;
+    server_name: string;
+    certificate: string;
+    private_key: string;
+    confirm_install: boolean;
+  },
+  signal?: AbortSignal,
+) =>
+  request<{ id: string; state: "queued" }>(
+    deploymentPath(host),
+    "POST",
+    input,
+    signal,
+  );
+export const removeDeployment = (
+  host: string,
+  id: string,
+  signal?: AbortSignal,
+) =>
+  request<{ id: string; state: "queued" }>(
+    deploymentPath(host, id),
+    "DELETE",
+    undefined,
+    signal,
+  );
+export const deploymentConnection = (
+  host: string,
+  id: string,
+  signal?: AbortSignal,
+) =>
+  request<DeploymentConnection>(
+    `${deploymentPath(host, id)}/connection`,
+    "POST",
+    undefined,
+    signal,
   );

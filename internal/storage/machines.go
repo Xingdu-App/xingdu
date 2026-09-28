@@ -170,6 +170,9 @@ func (s *Store) RevokeMachine(ctx context.Context, id string) error {
 	if _, err = tx.Exec(ctx, "UPDATE machine_jobs SET state='cancelled',encrypted=NULL,result='revoked',finished_at=now() WHERE host_id=$1 AND state IN ('queued','running')", id); err != nil {
 		return err
 	}
+	if _, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,result='revoked',finished_at=now() WHERE host_id=$1 AND state IN ('queued','running')`, id); err != nil {
+		return err
+	}
 	if _, err = tx.Exec(ctx, "UPDATE hosts SET status='offline' WHERE id=$1", id); err != nil {
 		return err
 	}

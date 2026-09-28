@@ -107,7 +107,7 @@ func request(ctx context.Context, c Config, path string, body any, auth bool) er
 	}
 	defer res.Body.Close()
 	io.Copy(io.Discard, io.LimitReader(res.Body, 4096))
-	if res.StatusCode == 401 || res.StatusCode == 403 || res.StatusCode == 404 {
+	if res.StatusCode == 401 || res.StatusCode == 403 || res.StatusCode == 404 && path != "/api/v1/agent/deployments/result" {
 		return ErrRevoked
 	}
 	if res.StatusCode != 200 {
@@ -152,18 +152,51 @@ func Run(ctx context.Context, path string) error {
 	if c.Mode == "manage" && os.Geteuid() != 0 {
 		return errors.New("managed agent must run as root")
 	}
+	workerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	workerErrors := make(chan error, 1)
+	var workerDone chan struct{}
+	defer func() {
+		cancel()
+		if workerDone != nil {
+			<-workerDone
+		}
+	}()
 	for {
 		e = Sync(ctx, path, &c)
 		if errors.Is(e, ErrRevoked) {
 			return e
 		}
+		if e == nil && c.Mode == "manage" && workerDone == nil {
+			// Enrollment is complete; give the sequential worker an immutable copy.
+			// Heartbeats remain independent even while an artifact is downloading.
+			workerDone = make(chan struct{})
+			config := c
+			go func() {
+				defer close(workerDone)
+				for {
+					if err := pollProtocols(workerCtx, config); errors.Is(err, ErrRevoked) {
+						workerErrors <- err
+						return
+					}
+					select {
+					case <-workerCtx.Done():
+						return
+					case <-time.After(5 * time.Second):
+					}
+				}
+			}()
+		}
 		select {
 		case <-ctx.Done():
 			return nil
+		case err := <-workerErrors:
+			return err
 		case <-time.After(30 * time.Second):
 		}
 	}
 }
+
 func Collect() machine.Metrics {
 	h, _ := os.Hostname()
 	m := machine.Metrics{Hostname: h, OS: runtime.GOOS, Arch: runtime.GOARCH, Version: machine.Version, CPUs: runtime.NumCPU()}

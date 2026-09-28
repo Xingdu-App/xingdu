@@ -18,6 +18,7 @@ import (
 type Store interface {
 	TenantStore
 	MachineStore
+	DeploymentStore
 	Ready(context.Context) error
 	Hosts(context.Context) ([]storage.Host, error)
 	Credentials(context.Context, string) (storage.User, error)
@@ -68,6 +69,7 @@ func New(store Store, opts Options) http.Handler {
 	a.connectionSlots = make(chan struct{}, 4)
 	mux := http.NewServeMux()
 	a.machineRoutes(mux)
+	a.deploymentRoutes(mux)
 	a.tenantRoutes(mux)
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { reply(w, 200, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /health/ready", func(w http.ResponseWriter, r *http.Request) {
@@ -83,7 +85,7 @@ func New(store Store, opts Options) http.Handler {
 		reply(w, 200, map[string]any{"data": map[string]string{"id": admin.ID, "username": admin.Username, "csrf_token": csrfToken(token)}})
 	}))
 	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
-		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.4.0-dev", "stage": "machine-access", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": false, "subscription_export": false}}})
+		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.5.0-dev", "stage": "protocol-deployment", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": true, "subscription_export": false}}})
 	}))
 	mux.HandleFunc("GET /api/v1/hosts", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		result, err := store.Hosts(r.Context())
@@ -141,7 +143,7 @@ func New(store Store, opts Options) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat"
+		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result"
 		if machineRequest {
 			if r.Header.Get("Origin") != "" || r.Header.Get("Cookie") != "" {
 				failure(w, 403, "agent_only", "机器接口不接受浏览器身份")

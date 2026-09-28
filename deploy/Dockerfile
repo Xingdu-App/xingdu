@@ -1,3 +1,10 @@
+FROM golang:1.26-alpine AS protocol-assets
+WORKDIR /src
+COPY go.mod ./
+COPY internal/protocol/runtime_manifest.go ./internal/protocol/
+COPY tools/fetch-runtime/main.go ./tools/fetch-runtime/
+RUN --mount=type=cache,target=/runtime-cache go run ./tools/fetch-runtime --output /runtime-cache && mkdir -p /runtimes && cp /runtime-cache/* /runtimes/
+
 FROM golang:1.26-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -12,6 +19,7 @@ FROM alpine:3.23
 RUN apk add --no-cache ca-certificates && adduser -D -u 10001 xingdu
 COPY --from=build /out/ /usr/local/bin/
 COPY --from=build /agents/ /opt/xingdu/agents/
+COPY --from=protocol-assets /runtimes/ /opt/xingdu/agents/
 COPY LICENSE /usr/share/licenses/xingdu/LICENSE
 USER xingdu
 CMD ["server"]

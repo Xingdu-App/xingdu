@@ -30,6 +30,7 @@ type MachineStore interface {
 }
 
 func (a *api) machineRoutes(mux *http.ServeMux) {
+	a.runtimeRoutes(mux)
 	mux.HandleFunc("POST /api/v1/agent/enroll", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Token      string `json:"token"`

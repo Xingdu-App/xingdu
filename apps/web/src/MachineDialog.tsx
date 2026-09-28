@@ -210,7 +210,7 @@ export default function MachineDialog({
                 {
                   value: "manage",
                   label: "托管模式",
-                  description: "以 root 运行 · 预留部署管理权限",
+                  description: "以 root 运行 · 支持授权的协议部署",
                 },
               ]}
             />
@@ -223,7 +223,7 @@ export default function MachineDialog({
                   disabled={busy}
                 />
                 我授权在此 VPS 上以 root 运行
-                Agent。当前版本只采集状态，协议部署与远程命令尚未开放。
+                Agent，用于状态采集及明确授权的协议安装与卸载；不提供任意远程命令。
               </label>
             )}
             {path === "manual" ? (
@@ -497,7 +497,7 @@ export default function MachineDialog({
                 <p>
                   {confirmAction === "forget"
                     ? "删除长期保存的凭据？已提交的任务仍会继续使用其临时副本。"
-                    : "撤销 Agent、所有未使用的安装令牌并取消安装任务？已在 VPS 上发出的操作无法自动回滚；此操作不会卸载机器上的服务。"}
+                    : "撤销 Agent、所有未使用的安装令牌并取消安装任务？已在 VPS 上发出的操作无法自动回滚；此操作不会停止或卸载已部署的协议服务。需要终止服务时，请先在「协议部署」中卸载并确认完成。"}
                 </p>
                 <button
                   className="danger"

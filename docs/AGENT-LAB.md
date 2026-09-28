@@ -13,7 +13,7 @@ make agent-lab-test
 
 首次构建需要下载系统包。日志、随机 SSH 密码、加密私钥、私钥口令、短期测试 CA 和验收报告均在 Git 忽略的 `.local/agent-lab/`，目录权限 0700，秘密文件 0600。不要把整个目录发给别人。测试脚本不输出密码、注册令牌或机器身份。
 
-验收结束后，控制台会保留三台在线机器，标签为 `agent-lab`。Ubuntu/Debian 使用探针模式，Amazon Linux 使用托管模式，用于验证明确授权的 root 服务运行方式；当前托管模式仍只采集状态。
+验收结束后，控制台会保留三台在线机器，标签为 `agent-lab`。Ubuntu/Debian 使用探针模式，Amazon Linux 使用托管模式，用于验证明确授权的 root 服务运行方式；托管模式还可执行明确授权的协议安装与卸载。后续运行协议验收会将三台实验机器均重新接入为托管模式。
 
 重复运行 `agent-lab-test` 会撤销、卸载并重新安装**这三台实验机器**。不要把这些容器用于其他工作。脚本只删除固定测试容器内的 Agent 文件，不处理任意主机地址。
 
@@ -64,3 +64,25 @@ make agent-lab-cleanup
 | Amazon Linux 2023 | 通过 | 加密 PEM / manage 通过 | 通过 | 通过 |
 
 三个系统均保留 `/tmp noexec`；检查了 systemd 运行用户、实际进程 UID、探针进程的有效 capabilities 为零、身份文件权限及连续心跳。通过的是本地 arm64 容器验收，不包含真实 VPS/EC2 或 amd64 运行验收。
+
+## 协议部署与转发验收
+
+前提：先按上文启动本地控制端并准备 `.local/initial-admin.json`，运行 `make agent-lab-up`，再至少运行一次 `make agent-lab-test`，创建三台已知实验机器的 `fixtures.json`。随后执行：
+
+```sh
+make protocol-lab-test
+```
+
+此命令仅操作上述可丢弃的实验容器，会撤销旧身份、重新安装 **0.5.0-dev 托管 Agent** 并测试五种协议。重跑时会先卸载实验机器上的已有协议部署。不要在这些容器保存其他工作；该流程不适用于真实 VPS。全部测试成功后会卸载本轮协议服务，三台托管 Agent 保持在线。协议监听和测试目标均位于 internal 网络，没有向宿主发布协议端口，也不向公网目标发送测试流量。
+
+2026-09-28，arm64 Docker / sing-box 1.14.2 实测：
+
+| 系统 | Trojan TCP/TLS | VLESS TCP/TLS | VMess TCP/TLS | Hysteria 2 QUIC | TUIC v5 QUIC |
+| --- | --- | --- | --- | --- | --- |
+| Ubuntu 24.04 | 通过 | 通过 | 通过 | 通过 | 通过 |
+| Debian 13 | 通过 | 通过 | 通过 | 通过 | 通过 |
+| Amazon Linux 2023 | 通过 | 通过 | 通过 | 通过 | 通过 |
+
+每个组合均完成真实 HTTP 转发，并验证错误认证被拒绝、私有 IP 与解析到私有地址的域名被阻止、运行时为非 root 用户。三个系统均验证容器重启后五种服务恢复转发、端口占用时拒绝安装且不替换原服务、卸载后服务停止、配置移除且 API 不再返回连接凭据。
+
+结构化结果为 `.local/agent-lab/protocol-report.json`，不包含连接秘密；私钥和其他实验文件仍需保密。验证使用实验室 TLS 信任和 sing-box 客户端，不代表 Stash、Surge、Loon、Shadowrocket 的具体版本兼容性，也不代表真实 VPS、EC2 或 amd64 的运行验收。完整范围与操作边界见 [协议部署](PROTOCOL-DEPLOYMENT.md)。
