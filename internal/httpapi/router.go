@@ -22,6 +22,7 @@ import (
 )
 
 type Store interface {
+	APIKeyStore
 	BillingStore
 	OAuthStore
 	EmailRegistrationStore
@@ -103,6 +104,7 @@ func New(store Store, opts Options) http.Handler {
 	a.subscriptionRoutes(mux)
 	a.avatarRoutes(mux)
 	a.tenantRoutes(mux)
+	a.apiKeyRoutes(mux)
 	a.oauthRoutes(mux)
 	a.accountRoutes(mux)
 	a.operationsRoutes(mux)
@@ -180,6 +182,14 @@ func New(store Store, opts Options) http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result" || r.URL.Path == "/api/v1/agent/deployments/status"
+		keyRequest := !machineRequest && r.Header.Get("Authorization") != ""
+		if keyRequest {
+			var ok bool
+			r, ok = a.apiKeyRequest(w, r)
+			if !ok {
+				return
+			}
+		}
 		if machineRequest {
 			if r.Header.Get("Origin") != "" || r.Header.Get("Cookie") != "" {
 				failure(w, 403, "agent_only", "机器接口不接受浏览器身份")
@@ -190,7 +200,7 @@ func New(store Store, opts Options) http.Handler {
 				return
 			}
 		}
-		if r.Method != "GET" && r.Method != "HEAD" && !machineRequest && r.URL.Path != stripeWebhookPath {
+		if r.Method != "GET" && r.Method != "HEAD" && !machineRequest && !keyRequest && r.URL.Path != stripeWebhookPath {
 			if a.origin == "" || r.Header.Get("Origin") != a.origin || r.Header.Get("X-Xingdu-Request") != "1" {
 				failure(w, 403, "origin_rejected", "请求来源不受信任")
 				return

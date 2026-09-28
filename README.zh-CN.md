@@ -100,6 +100,7 @@ make check
 
 | 文档 | 内容 |
 | --- | --- |
+| [管理 API](docs/API.md) | 组织 API 密钥、授权范围及服务器／节点自动化 |
 | [协议部署](docs/PROTOCOL-DEPLOYMENT.md) | 协议支持、TLS、Agent 要求与服务生命周期 |
 | [SaaS 架构](docs/SAAS.md) | 租户边界、成员角色、邀请与 RLS |
 | [开发指南](docs/DEVELOPMENT.md) | 本地环境、开发命令和 API 入口 |

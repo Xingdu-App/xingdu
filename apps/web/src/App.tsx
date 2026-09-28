@@ -1,3 +1,4 @@
+import APIKeysPanel from "./APIKeysPanel";
 import { t, useLocale, localeTag } from "./i18n";
 import type { ReactNode } from "react";
 import LanguageSwitch from "./LanguageSwitch";
@@ -252,10 +253,15 @@ function App({
               <p className="subtitle">
                 {page === "overview"
                   ? t("将分散的服务器，变成触手可及的网络。")
-                  : t("管理当前组织的服务器、节点与客户端配置。")}
+                  : page === "api-keys"
+                    ? t(
+                        "为自动化脚本签发组织专属密钥。权限独立授权，随时撤销。",
+                      )
+                    : t("管理当前组织的服务器、节点与客户端配置。")}
               </p>
             </div>
             <button
+              hidden={page === "api-keys"}
               className="secondary"
               disabled={state === "loading"}
               onClick={refresh}
@@ -278,6 +284,12 @@ function App({
               <span>{t(error)}</span>
               <button onClick={refresh}>{t("重试")}</button>
             </div>
+          )}
+          {page === "api-keys" && (
+            <APIKeysPanel
+              key={organization.id + organization.role}
+              organization={organization}
+            />
           )}
           {page === "members" && <TeamPanel organization={organization} />}
           {page === "billing" && (

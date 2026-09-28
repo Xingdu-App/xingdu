@@ -100,6 +100,7 @@ The [development guide](docs/DEVELOPMENT.md) covers hot reload, database setup, 
 
 | Resource | Contents |
 | --- | --- |
+| [Management API](docs/API.md) | Organization API keys, scopes and server/node automation |
 | [Protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) | Supported protocols, TLS, Agent requirements and lifecycle |
 | [SaaS architecture](docs/SAAS.md) | Tenant boundaries, roles, invitations, and RLS |
 | [Development guide](docs/DEVELOPMENT.md) | Local setup, commands, and API endpoints |

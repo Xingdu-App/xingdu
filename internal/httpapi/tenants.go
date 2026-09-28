@@ -22,7 +22,7 @@ type TenantStore interface {
 }
 
 func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User, string)) http.HandlerFunc {
-	return a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, token string) {
+	browser := a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, token string) {
 		org := r.Header.Get("X-Xingdu-Organization")
 		if !id.Valid("org", org) {
 			failure(w, 400, "organization_required", "请选择组织")
@@ -30,6 +30,13 @@ func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User,
 		}
 		next(w, r.WithContext(storage.WithTenant(r.Context(), u.ID, org)), u, token)
 	})
+	return func(w http.ResponseWriter, r *http.Request) {
+		if k, ok := r.Context().Value(apiPrincipal{}).(storage.APIKey); ok {
+			next(w, r, storage.User{ID: k.CreatedBy}, "")
+			return
+		}
+		browser(w, r)
+	}
 }
 func (a *api) tenantRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {

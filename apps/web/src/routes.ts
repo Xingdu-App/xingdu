@@ -50,6 +50,13 @@ export const pages = [
     icon: "◷",
   },
   {
+    id: "api-keys",
+    get label() {
+      return t("API 密钥");
+    },
+    icon: "⚿",
+  },
+  {
     id: "members",
     get label() {
       return t("人员管理");

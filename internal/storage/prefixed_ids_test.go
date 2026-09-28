@@ -81,8 +81,8 @@ func TestPrefixedIDMigrationPreservesDataPoliciesAndEncryptedAAD(t *testing.T) {
 	execute("INSERT INTO oauth_identities(provider,subject,user_id,email) VALUES('google','migration-subject',$1,'fixture@example.invalid')", usr)
 	execute("INSERT INTO oauth_states(state_hash,browser_hash,provider,mode,encrypted) VALUES($1,$1,'google','login',$2)", strings.Repeat("b", 64), []byte("transient"))
 	execute("INSERT INTO organization_billing(organization_id,attempt) VALUES($1,$2)", org, attempt)
-	var oldPolicies int
-	if err = s.Pool.QueryRow(ctx, "SELECT count(*) FROM pg_policy").Scan(&oldPolicies); err != nil {
+	var oldPolicies []string
+	if err = s.Pool.QueryRow(ctx, "SELECT array_agg(polrelid::regclass::text || '.' || polname ORDER BY polrelid::regclass::text,polname) FROM pg_policy").Scan(&oldPolicies); err != nil {
 		t.Fatal(err)
 	}
 	if err = s.Migrate(ctx); err == nil {
@@ -102,9 +102,9 @@ func TestPrefixedIDMigrationPreservesDataPoliciesAndEncryptedAAD(t *testing.T) {
 	if err = s.Pool.QueryRow(ctx, "SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND udt_name='uuid'").Scan(&remainingUUID); err != nil || remainingUUID != 0 {
 		t.Fatal("UUID columns remain", remainingUUID, err)
 	}
-	s.Pool.QueryRow(ctx, "SELECT count(*) FROM pg_policy").Scan(&policies)
+	s.Pool.QueryRow(ctx, "SELECT count(*) FROM pg_policy WHERE polrelid::regclass::text || '.' || polname = ANY($1)", oldPolicies).Scan(&policies)
 	s.Pool.QueryRow(ctx, "SELECT count(*) FROM oauth_states").Scan(&states)
-	if policies != oldPolicies || states != 0 {
+	if policies != len(oldPolicies) || states != 0 {
 		t.Fatal("policy lost or OAuth stale state retained", oldPolicies, policies, states)
 	}
 	userID, orgID, hostID, nodeID := resourceid.FromUUID("usr", usr), resourceid.FromUUID("org", org), resourceid.FromUUID("srv", host), resourceid.FromUUID("node", node)
