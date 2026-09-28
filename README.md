@@ -22,7 +22,7 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **Server inventory:** add, edit, and remove server records with addresses, SSH connection details, tags, and notes.
 - **Team workspaces:** create and switch organizations, invite members, and assign owner, admin, member or viewer roles.
 - **Tenant isolation:** PostgreSQL row-level security and a separate low-privilege runtime database account.
-- **User sign-in:** optional registration, revocable sessions, and protected management endpoints.
+- **User sign-in:** verified email registration, email/password login, optional Google / GitHub sign-in and explicit account linking, local account provisioning, and revocable sessions. See [provider setup and verification limits](docs/SOCIAL-LOGIN.md).
 - **Machine access:** manual Agent enrollment or SSH password/private-key installation, with pinned host keys and optional encrypted credential retention. See [machine access](docs/MACHINE-ACCESS.md) for setup and current validation limits.
 - **Node inventory:** browse successfully deployed nodes across your organization, search and filter by protocol, and open node details. Nodes remain listed until uninstall succeeds; operation results stay in deployment records.
 - **Protocol deployment:** install and uninstall Trojan, VLESS, VMess, Hysteria 2 and TUIC v5 with user-provided TLS certificates through a managed Agent. View task progress and explicitly reveal client credentials as an administrator. See [protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) for prerequisites and validation limits.

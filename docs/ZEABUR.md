@@ -24,6 +24,7 @@
 - `DATABASE_URL`：具有迁移与角色配置权限的专用管理连接；以 PostgreSQL 服务实际地址、数据库和 TLS 要求为准。
 - `XINGDU_APP_DATABASE_PASSWORD`：为 `xingdu_app` 生成的独立随机密码。
 - `XINGDU_WORKER_DATABASE_PASSWORD`：为 `xingdu_worker` 生成的另一独立随机密码。
+- 已有数据库执行前缀 ID 迁移时，临时提供现有的 `XINGDU_CREDENTIAL_KEY`，用于在同一事务内重新绑定加密凭据；不能生成新密钥替代。迁移完成后删除临时服务变量。详见 [资源 ID 迁移](ID-DESIGN.md)。
 
 迁移镜像从仓库根目录构建：
 
@@ -57,6 +58,7 @@ API：
 - `XINGDU_AGENT_ORIGIN=https://<公共域名>`：机器能够访问的受信任 HTTPS origin，Web 会转发 Agent API。
 - `XINGDU_CREDENTIAL_KEY`：64 位十六进制随机密钥，与 Worker 保持一致，另行安全备份。
 - `XINGDU_REGISTRATION_ENABLED=false`：默认关闭公开注册；完成账户与邮件流程验证后按运营要求开放。
+- Google / GitHub 可选登录：仅 API 配置各自的 `XINGDU_GOOGLE_CLIENT_ID`、`XINGDU_GOOGLE_CLIENT_SECRET`、`XINGDU_GITHUB_CLIENT_ID`、`XINGDU_GITHUB_CLIENT_SECRET`，回调配置见 [第三方登录](SOCIAL-LOGIN.md)。
 - `XINGDU_SSH_ALLOWED_CIDRS`：通常留空，保持私网/元数据地址拒绝策略；仅在明确需要的管理网段设置。
 
 Worker：

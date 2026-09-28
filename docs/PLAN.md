@@ -126,3 +126,9 @@ docs/
 ## 待确定
 
 已确定首版使用 sing-box，覆盖 Trojan、VLESS、VMess、Hysteria 2、TUIC。仍需确定公网测试 VPS、DNS/ACME 接入方式、通知与邮件提供商、实际客户端版本和公开发布环境。
+
+## 登录方式扩展
+
+保留邮箱验证注册与邮箱/密码登录，并接入 Google、GitHub OAuth 登录和显式账号绑定；配置与验收边界见 [第三方登录](SOCIAL-LOGIN.md)。第三方凭据缺失时保持禁用；提供方返回相同的已验证邮箱时关联已有账号，不同邮箱需登录后主动绑定。
+
+下一阶段增加 WebAuthn Passkey（包括 Face ID / Touch ID），不是 Sign in with Apple。先确定正式域名与 RP ID，再实现凭据注册、免密码登录、撤销和恢复方案；本轮尚未实现 Passkey。

@@ -27,7 +27,7 @@ bin/xingdu-backup create --file /secure-backups/xingdu-2026-09-28.xdb
 ## 恢复到新库
 
 1. 停止目标环境的应用写入；创建一个**新的空数据库**作为恢复目标。保留原数据库，避免直接覆盖。
-2. 在新 PostgreSQL 实例上先按已部署版本的迁移文件建立全部专用角色和原数据库对象所有者。当前包括 `xingdu_app`、`xingdu_worker`、`xingdu_policy`、`xingdu_ownership`、`xingdu_quota` 以及原 schema/迁移所有者；未来新增角色也必须同步。app/worker/ownership 为 `NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`；仅 policy 角色按照原迁移为 `NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE`，只用于受限 SECURITY DEFINER 函数，不可赋予应用登录身份。配置原角色成员关系。数据库级角色/密码不由 `pg_dump` 保存；恢复身份需具备恢复这些 owner 和 ACL 的权限。不得以忽略 owner/ACL 的选项绕过失败。
+2. 在新 PostgreSQL 实例上先按已部署版本的迁移文件建立全部专用角色和原数据库对象所有者。当前包括 `xingdu_app`、`xingdu_worker`、`xingdu_policy`、`xingdu_ownership`、`xingdu_quota`、`xingdu_identity` 以及原 schema/迁移所有者；未来新增角色也必须同步。app/worker/ownership/identity 为 `NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE`；仅 policy 角色按照原迁移为 `NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE`，只用于受限 SECURITY DEFINER 函数，不可赋予应用登录身份。配置原角色成员关系。数据库级角色/密码不由 `pg_dump` 保存；恢复身份需具备恢复这些 owner 和 ACL 的权限。不得以忽略 owner/ACL 的选项绕过失败。
 3. 用迁移所有者的连接环境明确设置 `PGDATABASE`，并注入备份密钥。执行：
 
 ```sh
