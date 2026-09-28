@@ -94,3 +94,7 @@ SSH 会话有连接和任务超时；检查受并发数和用户限流约束。�
 目前 Compose 仍仅在本机开放。远程安装必须先部署机器可达、证书可信的 HTTPS 控制端，并设置 `XINGDU_AGENT_ORIGIN`。本地协议测试不等于在各发行版上完成 systemd 实机验收；生产发布前还需在专用 VPS 验证安装、重启恢复、断网恢复、撤销、失败恢复和卸载。
 
 参考：[Go SSH API](https://pkg.go.dev/golang.org/x/crypto/ssh)、[systemd 执行权限](https://github.com/systemd/systemd/blob/main/man/systemd.exec.xml)、[AWS 元数据](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html)、[阿里云元数据](https://www.alibabacloud.com/help/en/ens/instance-metadata)、[Azure 平台地址](https://learn.microsoft.com/en-us/azure/virtual-network/what-is-ip-address-168-63-129-16)。
+
+## Docker 发行版实验室
+
+使用 `make agent-lab-up` / `make agent-lab-test` 在真实 Ubuntu、Debian、Amazon Linux 用户空间及 systemd/OpenSSH 环境中执行接入验收。隔离边界、清理和证据范围见 [AGENT-LAB.md](AGENT-LAB.md)。

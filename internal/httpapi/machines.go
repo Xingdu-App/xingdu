@@ -280,7 +280,8 @@ case "$mode" in monitor|manage) ;; *) echo 'Mode must be monitor or manage' >&2;
 [ "$(uname -s)" = Linux ] || exit 1
 case "$(uname -m)" in x86_64) arch=amd64; expected='%s';; aarch64|arm64) arch=arm64; expected='%s';; *) echo 'Unsupported architecture' >&2; exit 1;; esac
 umask 077
-d=$(mktemp -d /tmp/xingdu-download.XXXXXXXX)
+mkdir -p -m 0755 /usr/local/bin
+d=$(mktemp -d /usr/local/bin/.xingdu-download.XXXXXXXX)
 trap 'rm -rf "$d"' EXIT HUP INT TERM
 curl --fail --silent --show-error --max-time 120 '%s/api/v1/agent/download/'"$arch" -o "$d/agent"
 printf '%%s  %%s\n' "$expected" "$d/agent" | sha256sum -c - >/dev/null

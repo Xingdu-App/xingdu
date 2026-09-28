@@ -40,3 +40,13 @@ down:
 agents:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-amd64 ./cmd/agent
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-arm64 ./cmd/agent
+
+.PHONY: agent-lab-up agent-lab-test agent-lab-cleanup
+agent-lab-up:
+	python3 scripts/agent-lab.py up
+
+agent-lab-test:
+	python3 scripts/agent-lab.py test
+
+agent-lab-cleanup:
+	python3 scripts/agent-lab.py cleanup

@@ -239,7 +239,7 @@ func (c *Connector) InstallChecked(ctx context.Context, s machine.Secret, origin
 	}
 	defer clear(buf.Bytes())
 	// All paths and commands are fixed. Credentials and tokens travel in encrypted stdin, not argv.
-	command := `umask 077; d=$(mktemp -d /tmp/xingdu-install.XXXXXXXX) || exit 1; trap 'rm -rf "$d"' EXIT HUP INT TERM; cd "$d" || exit 1; tar -xf - || exit 1; sh ./install.sh`
+	command := `umask 077; mkdir -p -m 0755 /usr/local/bin || exit 1; d=$(mktemp -d /usr/local/bin/.xingdu-install.XXXXXXXX) || exit 1; trap 'rm -rf "$d"' EXIT HUP INT TERM; cd "$d" || exit 1; tar -xf - || exit 1; sh ./install.sh`
 	if s.Target.User != "root" {
 		command = "sudo -n sh -c " + shellQuote(command)
 	} else {

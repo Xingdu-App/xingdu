@@ -28,7 +28,7 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
 
-The worker executes SSH Agent installation jobs. The agent reports machine status; protocol deployment and arbitrary remote commands are not implemented. Linux systemd installation still requires target-distribution acceptance testing. The current console UI is in Simplified Chinese.
+The worker executes SSH Agent installation jobs. The agent reports machine status; protocol deployment and arbitrary remote commands are not implemented. The [Docker lab](docs/AGENT-LAB.md) verifies systemd installation on Ubuntu 24.04, Debian 13 and Amazon Linux 2023 (arm64); real VPS/EC2 acceptance testing is still required. The current console UI is in Simplified Chinese.
 
 ## Where Xingdu is heading
 

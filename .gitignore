@@ -27,6 +27,7 @@ build/
 bin/
 coverage/
 *.test
+__pycache__/
 
 # Browser verification output
 /playwright-report/

@@ -114,8 +114,7 @@ func Install(ctx context.Context, server, mode, token string) error {
 func ServiceUnit(user, mode string) string {
 	s := `[Unit]
 Description=Xingdu machine agent
-After=network-online.target
-Wants=network-online.target
+After=network.target
 [Service]
 Type=simple
 ExecStart=/usr/local/bin/xingdu-agent --config /var/lib/xingdu-agent/agent.json

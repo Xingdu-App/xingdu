@@ -25,7 +25,7 @@ make up
 | Migrate | 一次性应用嵌入式迁移，成功退出 |
 | Worker | 执行 SSH 安装队列；不执行协议部署任务 |
 
-Agent 提供注册、心跳和 Linux systemd 安装，不在 Compose 中自动连接真实 VPS。使用方式见 [机器接入](MACHINE-ACCESS.md)。
+Agent 提供注册、心跳和 Linux systemd 安装，不在 Compose 中自动连接真实 VPS。使用方式见 [机器接入](MACHINE-ACCESS.md)。跨发行版的真实 systemd/SSH 接入验收可运行 `make agent-lab-up`、`make agent-lab-test`，环境边界与清理见 [Docker 实验室](AGENT-LAB.md)。
 
 停止服务：`make down`。数据库命名卷保留；不要随意使用 `docker compose down -v`，该命令会删除数据库数据。
 

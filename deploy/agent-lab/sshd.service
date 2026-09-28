@@ -1,0 +1,9 @@
+[Unit]
+Description=Xingdu disposable lab SSH server
+After=network.target
+[Service]
+ExecStartPre=/bin/mkdir -p /run/sshd
+ExecStart=/usr/sbin/sshd -D -e
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target

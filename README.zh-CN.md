@@ -28,7 +28,7 @@
 - **本地 Docker 环境：** 一次启动控制台、API、PostgreSQL、数据库迁移和 Worker 进程。
 - **开发基础：** Go 与 TypeScript 代码、自动化检查，以及独立的 Worker 和 Agent 程序入口。
 
-Worker 已执行 SSH Agent 安装任务，Agent 可以注册并上报机器状态；协议部署与任意远程命令尚未实现，Linux systemd 安装仍需目标发行版实机验收。控制台目前提供简体中文界面。
+Worker 已执行 SSH Agent 安装任务，Agent 可以注册并上报机器状态；协议部署与任意远程命令尚未实现，已在 [Docker 实验室](docs/AGENT-LAB.md) 验证 Ubuntu 24.04、Debian 13、Amazon Linux 2023（arm64）的 systemd 安装；真实 VPS/EC2 验收仍待完成。控制台目前提供简体中文界面。
 
 ## 我们希望实现的体验
 
