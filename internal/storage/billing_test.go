@@ -101,7 +101,13 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 		}
 	}
 	_, err = s.CreateHost(ca, host)
-	expectCode(err, "P0005")
+	if err != nil {
+		t.Fatal("free server rejected", err)
+	}
+	extra := host
+	extra.Address = "second.example.invalid"
+	_, err = s.CreateHost(ca, extra)
+	expectCode(err, "P0004")
 	calls := 0
 	event := "evt_" + NewID("obj")
 	apply := func(r *billing.Record) error {
@@ -131,11 +137,15 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 		t.Fatal("other organization granted", err)
 	}
 	_, err = s.CreateHost(cb, host)
-	expectCode(err, "P0005")
-	// Concurrent inserts share the same organization lock and cannot exceed five.
+	if err != nil {
+		t.Fatal("free server rejected", err)
+	}
+	_, err = s.CreateHost(cb, extra)
+	expectCode(err, "P0004")
+	// Concurrent inserts share the same organization lock and cannot exceed ten (including the free server).
 	var wg sync.WaitGroup
-	results := make(chan error, 7)
-	for range 7 {
+	results := make(chan error, 12)
+	for range 12 {
 		wg.Go(func() {
 			input := host
 			input.Name = "Quota " + NewID("obj")
@@ -154,16 +164,24 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 			expectCode(e, "P0004")
 		}
 	}
-	if success != 5 {
+	if success != 9 {
 		t.Fatalf("host quota admitted %d", success)
+	}
+	ops, err := s.OrganizationOperations(ca)
+	if err != nil || ops.Usage["hosts"] != (ResourceUsage{10, 10}) {
+		t.Fatalf("paid usage: %v %v", ops.Usage, err)
 	}
 	if err = s.MutateBilling(ctx, cusA, "evt_"+NewID("obj"), func(r *billing.Record) error { r.Status = "past_due"; return nil }); err != nil {
 		t.Fatal(err)
 	}
 	_, err = s.CreateHost(ca, host)
-	expectCode(err, "P0005")
+	expectCode(err, "P0004")
+	ops, err = s.OrganizationOperations(ca)
+	if err != nil || ops.Usage["hosts"] != (ResourceUsage{10, 1}) {
+		t.Fatalf("expired usage: %v %v", ops.Usage, err)
+	}
 	existing, err := s.Hosts(ca)
-	if err != nil || len(existing) != 5 {
+	if err != nil || len(existing) != 10 {
 		t.Fatal("existing hosts should remain readable", err)
 	}
 	if err = s.DeleteHost(ca, existing[0].ID); err != nil {
@@ -171,7 +189,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 	}
 	// Self-hosting stays free even with no Stripe subscription.
 	s.CloudBilling = false
-	if _, err = s.CreateHost(cb, host); err != nil {
+	if _, err = s.CreateHost(cb, extra); err != nil {
 		t.Fatal("self-hosting paywalled", err)
 	}
 	// Failed provider work must not acknowledge the event or alter entitlement.

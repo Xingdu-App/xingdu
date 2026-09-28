@@ -51,7 +51,7 @@ func TestOrganizationQuotaAndIsolation(t *testing.T) {
 	for _, tc := range []struct {
 		cloud bool
 		limit int
-	}{{false, 25}, {true, 5}} {
+	}{{false, 25}, {true, 1}} {
 		s.CloudBilling = tc.cloud
 		ops, err := s.OrganizationOperations(scoped)
 		if err != nil || ops.Usage["hosts"] != (ResourceUsage{0, tc.limit}) {

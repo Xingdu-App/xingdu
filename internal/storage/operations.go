@@ -50,9 +50,13 @@ func (s *Store) OrganizationOperations(ctx context.Context) (Operations, error) 
 		return out, err
 	}
 	if s.CloudBilling {
+		limit := 1
+		if err := tx.QueryRow(ctx, `SELECT CASE WHEN EXISTS(SELECT 1 FROM organization_billing WHERE organization_id=request_org_id() AND status='active' AND period_end>extract(epoch FROM now())) THEN 10 ELSE 1 END`).Scan(&limit); err != nil {
+			return out, err
+		}
 		hosts := out.Usage["hosts"]
-		if hosts.Limit > 5 {
-			hosts.Limit = 5
+		if hosts.Limit > limit {
+			hosts.Limit = limit
 		}
 		out.Usage["hosts"] = hosts
 	}

@@ -40,7 +40,7 @@ func (a *api) billingRoutes(mux *http.ServeMux) {
 		if a.billingCloud {
 			mode = "cloud"
 		}
-		reply(w, 200, map[string]any{"data": map[string]any{"mode": mode, "test_mode": a.billingCloud && a.billingTest, "configured": a.billingCloud && a.billing != nil, "subscription": record, "active": record.Entitled(time.Now()), "has_customer": record.CustomerID != "", "server_limit": 5}})
+		reply(w, 200, map[string]any{"data": map[string]any{"mode": mode, "test_mode": a.billingCloud && a.billingTest, "configured": a.billingCloud && a.billing != nil, "subscription": record, "active": record.Entitled(time.Now()), "has_customer": record.CustomerID != "", "server_limit": record.ServerLimit(time.Now())}})
 	}))
 	for _, action := range []string{"checkout", "portal", "sync"} {
 		mux.HandleFunc("POST /api/v1/billing/"+action, a.tenant(func(w http.ResponseWriter, r *http.Request, user storage.User, _ string) {

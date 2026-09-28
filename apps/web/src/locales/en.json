@@ -728,7 +728,7 @@
   "刷新账单状态": "Refresh billing status",
   "管理账单": "Manage billing",
   "一个套餐，管理你的服务器。": "One plan for your servers.",
-  "包含 5 台服务器，按组织计费。VPS 和网络流量由你自行提供。": "Includes 5 servers per organization. Bring your own VPS and bandwidth.",
+  "包含 10 台服务器，按组织计费。VPS 和网络流量由你自行提供。": "Includes 10 servers per organization. Bring your own VPS and bandwidth.",
   "机器接入与状态监控": "Server onboarding and monitoring",
   "协议部署与节点订阅": "Protocol deployments and node subscriptions",
   "组织邀请与成员协作": "Organization invitations and collaboration",
@@ -801,5 +801,7 @@
   "无法生成密钥": "Unable to generate a key.",
   "无效的密钥 ID": "Invalid API key ID.",
   "有效期": "Expires in",
-  "{0} 天": "{0} days"
+  "{0} 天": "{0} days",
+  "免费版可管理 1 台服务器，付费套餐可管理 10 台。": "Manage 1 server for free, or 10 with a paid plan.",
+  "当前服务器额度：{0} 台": "Current server allowance: {0}"
 }

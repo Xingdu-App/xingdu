@@ -163,6 +163,8 @@ export default function BillingPage({
                 </p>
               ) : (
                 <>
+                  <p>{t("免费版可管理 1 台服务器，付费套餐可管理 10 台。")}</p>
+                  <p>{t("当前服务器额度：{0} 台", { 0: data.server_limit })}</p>
                   {data.subscription.period_end > 0 && (
                     <p>
                       {t(
@@ -219,7 +221,7 @@ export default function BillingPage({
               <span className="eyebrow">XINGDU CLOUD</span>
               <h2>{t("一个套餐，管理你的服务器。")}</h2>
               <p>
-                {t("包含 5 台服务器，按组织计费。VPS 和网络流量由你自行提供。")}
+                {t("包含 10 台服务器，按组织计费。VPS 和网络流量由你自行提供。")}
               </p>
               <ul>
                 <li>{t("机器接入与状态监控")}</li>

@@ -4,8 +4,9 @@ The Cloud plan belongs to an **organization**, not an individual member:
 
 | Interval | USD price | Included servers |
 | --- | --- | --- |
-| Monthly | $5 each month | 5 |
-| Yearly | $40 each year | 5 |
+| Free | $0 | 1 |
+| Monthly | $5 each month | 10 |
+| Yearly | $40 each year | 10 |
 
 Yearly billing saves $20 versus twelve monthly payments (about 33%). Customers
 provide their own VPS and bandwidth. Self-hosted deployments remain free under
@@ -24,7 +25,8 @@ A local Stripe Sandbox check on 2026-09-29 verified the USD 40 yearly hosted
 Checkout with a test card, a paid invoice, signed webhook delivery through the
 Stripe CLI, and automatic activation in Xingdu. Customer Portal displayed the
 invoice and canceled renewal at period end; the webhook preserved current paid
-access. The running API rejected a duplicate subscription and a sixth server;
+access. The running API rejected a duplicate subscription and a sixth server under
+the previous five-server plan;
 disposable host records were removed without connecting to any VPS. Both price
 objects were validated against Stripe, but a monthly card payment and a public
 production webhook were not part of this check. This is not live-payment or
@@ -87,7 +89,7 @@ Git, URLs, command arguments or chat messages.
    API. The CLI signing secret differs from the public endpoint's secret.
 6. Open **Account menu → Plan & billing** as the organization owner. Complete a
    test Checkout, verify invoice payment and the persisted organization status,
-   and confirm a sixth server is rejected. Test both intervals, repeat clicks,
+   and confirm an eleventh server is rejected. Test both intervals, repeat clicks,
    cancel-at-period-end, payment failure, renewal and webhook retries. An admin
    or member must not be able to open Checkout or the billing portal.
 
@@ -122,8 +124,11 @@ by this implementation. Do not reuse test-mode objects for real payments.
   period. Unexpected prices or item layouts do not grant access. Billing APIs
   fail closed when a customer has multiple nonterminal subscriptions or more than
   100 historical subscriptions; resolve these exceptional cases with the operator.
-- In Cloud mode, database triggers reject creation of hosts, protocol deployments
-  and node subscriptions without paid access. The sixth server is rejected even
+- In Cloud mode, each organization can manage one server for free, including
+  protocol deployments and client subscriptions. An active paid plan allows ten
+  servers. Above the current allowance, new hosts, deployments and client
+  subscriptions are blocked; existing resources remain available. The eleventh
+  server is rejected even
   for concurrent requests. Lower operator quotas still apply. Self-hosting does
   not use this payment gate. The API injects deployment mode into each scoped
   tenant transaction; tenants have no API for changing that mode or billing state.
@@ -147,7 +152,7 @@ customer association. Treat the ownership-transfer permission accordingly.
 `make check` includes provider transport, signature, status, authorization and
 frontend checks. Set `XINGDU_TEST_DATABASE_URL` to a dedicated PostgreSQL test
 database to additionally exercise owner/member isolation, webhook idempotency,
-retry rollback, paid/unpaid transitions and concurrent five-server enforcement.
+retry rollback, paid/unpaid transitions and concurrent ten-server enforcement.
 The test suite uses an HTTP provider simulator; it does not charge a card.
 
 Stripe references: [Checkout](https://docs.stripe.com/api/checkout/sessions/create),

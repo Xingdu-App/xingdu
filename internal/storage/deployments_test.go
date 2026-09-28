@@ -36,6 +36,8 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
+	// Exercise the full lifecycle on the free one-server cloud tier.
+	s.CloudBilling = true
 	users := []string{}
 	defer func() {
 		for _, id := range users {

@@ -55,6 +55,13 @@ type Record struct {
 
 func (r Record) Entitled(now time.Time) bool { return r.Status == "active" && r.PeriodEnd > now.Unix() }
 
+func (r Record) ServerLimit(now time.Time) int {
+	if r.Entitled(now) {
+		return 10
+	}
+	return 1
+}
+
 type Gateway interface {
 	Customer(context.Context, string) (string, error)
 	Checkout(context.Context, *Record, string, string) (string, error)

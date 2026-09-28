@@ -63,7 +63,7 @@ export const publicPages: Record<
     path: "/pricing",
     title: "价格与部署方式 · 星渡 Xingdu",
     description:
-      "选择适合你的星渡：MIT 开源版本免费自托管；云端套餐 $5/月或 $40/年，每个组织包含 5 台服务器，VPS 与流量另行准备。",
+      "选择适合你的星渡：MIT 开源版本免费自托管；云端套餐 $5/月或 $40/年，每个组织包含 10 台服务器，VPS 与流量另行准备。",
   },
   privacy: {
     path: "/privacy",
