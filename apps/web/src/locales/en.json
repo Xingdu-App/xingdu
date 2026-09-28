@@ -736,5 +736,8 @@
   "取消续费后可使用至当前账期结束。到期后限制新增资源，已有机器和配置不会自动删除。更换月付或年付周期需等当前订阅结束。": "After canceling renewal, access continues until the period ends. Expired plans cannot add resources; existing servers and settings are retained. Change billing intervals after the current subscription ends.",
   "支付服务暂时不可用，请稍后重试": "Payments are temporarily unavailable. Please try again later.",
   "当前为 Stripe 测试模式，不会产生真实扣款。": "Stripe test mode is enabled. No real payment will be charged.",
-  "你尚未加入此实例的组织，请联系管理员获取邀请。": "You have not joined this instance’s organization. Ask an administrator for an invitation."
+  "你尚未加入此实例的组织，请联系管理员获取邀请。": "You have not joined this instance’s organization. Ask an administrator for an invitation.",
+  "此组织不存在或你没有访问权限，请选择其他组织。": "This organization does not exist or you do not have access. Please choose another organization.",
+  "该服务器或节点不存在，或不属于当前组织。": "This server or node does not exist, or does not belong to the current organization.",
+  "关闭详情": "Close details"
 }

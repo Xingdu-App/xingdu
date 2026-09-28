@@ -34,7 +34,7 @@ func TestOrganizationQuotaAndIsolation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	id, err := s.Register(ctx, "quota_"+NewID()[:8], "unused", "Quota test")
+	id, err := s.Register(ctx, "quota_"+NewID("obj")[4:12], "unused", "Quota test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestOrganizationQuotaAndIsolation(t *testing.T) {
 	if ops.Usage["hosts"] != (ResourceUsage{1, 1}) {
 		t.Fatal(ops.Usage)
 	}
-	if _, err = s.OrganizationOperations(WithTenant(ctx, id, NewID())); !errors.Is(err, ErrForbidden) {
+	if _, err = s.OrganizationOperations(WithTenant(ctx, id, NewID("obj"))); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("tenant escape: %v", err)
 	}
 	_, err = s.Pool.Exec(scoped, "UPDATE organization_limits SET hosts=999")

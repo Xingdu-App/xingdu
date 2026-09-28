@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
-	"xingdu.app/xingdu/internal/hosts"
+	resourceid "xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/subscription"
 )
 
@@ -33,7 +33,7 @@ func (s Subscription) Validate() error {
 	}
 	seen := map[string]bool{}
 	for _, id := range s.NodeIDs {
-		if !hosts.IDPattern.MatchString(id) || seen[id] {
+		if !resourceid.Valid("node", id) || seen[id] {
 			return ErrInvalid
 		}
 		seen[id] = true

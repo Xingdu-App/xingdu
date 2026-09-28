@@ -92,7 +92,7 @@ func (s *Store) VerifyEmailRegistration(ctx context.Context, tokenHash, codeHash
 		}
 		return "", ErrVerification
 	}
-	id, org := NewID(), NewID()
+	id, org := NewID("usr"), NewID("org")
 	if err = setScope(ctx, tx, id, org); err != nil {
 		return "", err
 	}

@@ -46,7 +46,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		}
 	}()
 	user := func() (string, string) {
-		id, e := s.Register(ctx, "deploy_"+NewID()[:8], "unused", "Protocol test")
+		id, e := s.Register(ctx, "deploy_"+NewID("obj")[4:12], "unused", "Protocol test")
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -69,14 +69,14 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		if e := s.EnrollAgent(ctx, machine.Hash(token), identity, mode); e != nil {
 			t.Fatal(e)
 		}
-		if e := s.Heartbeat(ctx, identity, machine.Metrics{Version: "0.5.0-dev", CPUs: 1}); e != nil {
+		if e := s.Heartbeat(ctx, identity, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
 			t.Fatal(e)
 		}
 		return identity
 	}
 	hash := enroll("monitor")
 	next := func(port int) Deployment {
-		return Deployment{ID: NewID(), OperationID: NewID(), HostID: h.ID, Name: "test", Protocol: "trojan", Port: port, ServerName: "protocol.example.invalid", Encrypted: []byte("encrypted-only")}
+		return Deployment{ID: NewID("node"), OperationID: NewID("op"), HostID: h.ID, Name: "test", Protocol: "trojan", Port: port, ServerName: "protocol.example.invalid", Encrypted: []byte("encrypted-only")}
 	}
 	d := next(443)
 	if e := s.QueueDeployment(ca, d); !errors.Is(e, ErrConflict) {
@@ -94,7 +94,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.QueueDeployment(ca, d); !errors.Is(e, ErrConflict) {
 		t.Fatal("old agent accepted", e)
 	}
-	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.5.0-dev", CPUs: 1})
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
 	if e := s.QueueDeployment(ca, d); e != nil {
 		t.Fatal(e)
 	}
@@ -127,6 +127,15 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		return nodes
 	}
 	assertNodes(ca, 0, "") // Queued installation is not yet a node.
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := s.ClaimDeployment(ctx, hash); !errors.Is(e, ErrConflict) {
+		t.Fatal("old agent claimed prefixed-ID work", e)
+	}
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
+		t.Fatal(e)
+	}
 	claimed, e := s.ClaimDeployment(ctx, hash)
 	if e != nil || claimed == nil {
 		t.Fatal("claim", e)
@@ -138,7 +147,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.FinishDeployment(ctx, machine.Hash(machine.Token()), d.OperationID, claimed.Lease, true, "deployed"); !errors.Is(e, ErrNotFound) {
 		t.Fatal("foreign identity", e)
 	}
-	if e := s.FinishDeployment(ctx, hash, d.OperationID, NewID(), true, "deployed"); !errors.Is(e, ErrConflict) {
+	if e := s.FinishDeployment(ctx, hash, d.OperationID, NewID("lease"), true, "deployed"); !errors.Is(e, ErrConflict) {
 		t.Fatal("foreign lease", e)
 	}
 	if e := s.FinishDeployment(ctx, hash, d.OperationID, claimed.Lease, true, "removed"); !errors.Is(e, ErrInvalid) {
@@ -149,10 +158,13 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	}
 	nodes := assertNodes(ca, 1, "succeeded")
 	installedAt := nodes[0].InstalledAt
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
+		t.Fatal(e)
+	}
 	if e := s.RestartDeployment(ca, h.ID, d.ID); !errors.Is(e, ErrConflict) {
 		t.Fatal("old agent restart", e)
 	}
-	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
 	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active"}}); e != nil {
@@ -165,7 +177,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "arbitrary output"}}); !errors.Is(e, ErrInvalid) {
 		t.Fatal("unbounded report", e)
 	}
-	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: NewID(), Status: "active"}}); !errors.Is(e, ErrNotFound) {
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: NewID("node"), Status: "active"}}); !errors.Is(e, ErrNotFound) {
 		t.Fatal("foreign node report", e)
 	}
 	if e := s.RestartDeployment(cb, h.ID, d.ID); e == nil {
@@ -196,7 +208,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if nodes := assertNodes(ca, 1, "succeeded"); nodes[0].HostStatus != "offline" {
 		t.Fatal("stale agent shown online")
 	}
-	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.5.0-dev", CPUs: 1})
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
 	list, e := s.Deployments(ca, h.ID)
 	if e != nil || len(list) != 1 || list[0].State != "succeeded" {
 		t.Fatal("state", list, e)

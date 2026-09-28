@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"xingdu.app/xingdu/internal/hosts"
+	resourceid "xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/machine"
 	"xingdu.app/xingdu/internal/protocol"
 	"xingdu.app/xingdu/internal/storage"
@@ -49,7 +49,7 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			token := ""
 			hash := ""
 			if create {
-				in.ID = storage.NewID()
+				in.ID = storage.NewID("sub")
 				token = machine.Token()
 				hash = machine.Hash(token)
 			}
@@ -98,7 +98,7 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 		}
 		token := r.URL.Query().Get("token")
 		id := r.PathValue("id")
-		if !hosts.IDPattern.MatchString(id) || !machine.ValidToken(token) {
+		if !resourceid.Valid("sub", id) || !machine.ValidToken(token) {
 			failure(w, 404, "not_found", "订阅不存在或链接已失效")
 			return
 		}

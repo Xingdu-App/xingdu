@@ -30,7 +30,7 @@ func TestAuthenticatedInventory(t *testing.T) {
 	if err := s.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	username := "test_" + strings.ReplaceAll(storage.NewID(), "-", "")[:12]
+	username := "test_" + strings.ReplaceAll(storage.NewID("obj"), "-", "")[:12]
 	password := "test-only-password-2026"
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err := s.CreateAdmin(ctx, username, string(hash)); err != nil {

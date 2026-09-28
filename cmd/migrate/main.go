@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 	defer store.Close()
-	if err := store.Migrate(ctx); err != nil {
+	if err := store.Migrate(ctx, os.Getenv("XINGDU_CREDENTIAL_KEY")); err != nil {
 		slog.Error("migration failed; check database availability and migration schema")
 		os.Exit(1)
 	}

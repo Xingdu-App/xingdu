@@ -71,7 +71,7 @@ func TestOrganizationsAndInvitations(t *testing.T) {
 	signup := func() (*client, string) {
 		t.Helper()
 		c := &client{}
-		name := "api_" + storage.NewID()[:8] + "@example.invalid"
+		name := "api_" + storage.NewID("obj")[4:20] + "@example.invalid"
 		body := map[string]string{"email": name, "password": "integration-test-password", "organization": "API test"}
 		pending := request(c, "POST", "/api/v1/auth/register", body, 202)
 		var challenge struct {

@@ -42,7 +42,7 @@ func TestAvatarAccountIsolation(t *testing.T) {
 		}
 	}()
 	for range 2 {
-		id, e := s.Register(ctx, "avatar_"+NewID()[:8], "unused", "Avatar test")
+		id, e := s.Register(ctx, "avatar_"+NewID("obj")[4:12], "unused", "Avatar test")
 		if e != nil {
 			t.Fatal(e)
 		}

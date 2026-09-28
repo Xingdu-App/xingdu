@@ -44,7 +44,7 @@ func TestAccountOwnershipTransfer(t *testing.T) {
 		}
 	}()
 	add := func() (string, string) {
-		id, e := s.Register(ctx, "owner_"+NewID()[:8], "hash", "Owner test")
+		id, e := s.Register(ctx, "owner_"+NewID("obj")[4:12], "hash", "Owner test")
 		if e != nil {
 			t.Fatal(e)
 		}

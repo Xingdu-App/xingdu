@@ -92,7 +92,7 @@ def main():
     report = {'runtime': 'sing-box 1.14.2', 'scope': 'isolated Docker arm64 lab; not a public VPS or client-app compatibility claim', 'systems': {}}
     def run_system(system):
         api = lab.API()
-        host = fixtures[system]
+        host = lab.resolve_fixtures({system: fixtures[system]}, api.call('GET', '/api/v1/hosts'))[system]
         current = api.host(host)
         if current['address'] != 'lab-' + system or 'agent-lab' not in current['tags']:
             raise RuntimeError('Fixture does not match the disposable lab target')
@@ -106,7 +106,7 @@ def main():
         lab.reset_install(system)
         enrollment = api.action(host, 'enrollment', {'mode': 'manage', 'confirm_manage': True})
         lab.execute(system, 'sh', '-c', 'curl -fsS ' + lab.CONTROL + '/api/v1/agent/install.sh -o /tmp/xingdu-install.sh && sh /tmp/xingdu-install.sh manage', data=(enrollment['token'] + '\n').encode())
-        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.6.0-dev')
+        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.7.0-dev')
         lab.verify_service(system, 'manage')
         prepare_target(system)
         deployments = []

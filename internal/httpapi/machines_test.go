@@ -43,7 +43,7 @@ func TestMachineLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s.Close()
-	uid, e := s.Register(ctx, "machine_"+storage.NewID()[:8], "test-hash", "machine test")
+	uid, e := s.Register(ctx, "machine_"+storage.NewID("obj")[4:20], "test-hash", "machine test")
 	if e != nil {
 		t.Fatal(e)
 	}

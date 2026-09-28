@@ -52,10 +52,10 @@ func newOAuthFixture(t *testing.T) *oauthFixture {
 	})
 	return f
 }
-func oauthHash() string { return strings.ReplaceAll(NewID()+NewID(), "-", "") }
+func oauthHash() string { return NewID("obj")[4:] + NewID("obj")[4:] }
 func (f *oauthFixture) local(t *testing.T) (User, string) {
 	t.Helper()
-	email := "oauth_" + NewID()[:8] + "@example.invalid"
+	email := "oauth_" + NewID("obj")[4:12] + "@example.invalid"
 	id, err := f.store.Register(f.ctx, email, "fixture-hash", "OAuth test")
 	if err != nil {
 		t.Fatal(err)
@@ -118,12 +118,12 @@ func TestOAuthStateBrowserProviderExpirySingleUse(t *testing.T) {
 func TestOAuthUnverifiedUsernameDoesNotAutoLinkAndStableIdentity(t *testing.T) {
 	f := newOAuthFixture(t)
 	local, _ := f.local(t)
-	subject := NewID()
+	subject := NewID("obj")
 	state := OAuthState{Provider: "google", Mode: "login"}
 	if _, err := f.store.CompleteOAuth(f.ctx, state, subject, local.Username, oauthHash(), time.Now().Add(time.Hour), true); !errors.Is(err, ErrOAuthEmailExists) {
 		t.Fatal("auto-linked existing email", err)
 	}
-	email := "social_" + NewID()[:8] + "@example.invalid"
+	email := "social_" + NewID("obj")[4:12] + "@example.invalid"
 	if _, err := f.store.CompleteOAuth(f.ctx, state, subject, email, oauthHash(), time.Now().Add(time.Hour), false); !errors.Is(err, ErrOAuthRegistrationDisabled) {
 		t.Fatal("registration bypass", err)
 	}
@@ -174,13 +174,13 @@ func TestOAuthLinkSessionAndConcurrentUnlink(t *testing.T) {
 	f := newOAuthFixture(t)
 	state := OAuthState{Provider: "google", Mode: "login"}
 	hash := oauthHash()
-	u, err := f.store.CompleteOAuth(f.ctx, state, NewID(), "social_"+NewID()[:8]+"@example.invalid", hash, time.Now().Add(time.Hour), true)
+	u, err := f.store.CompleteOAuth(f.ctx, state, NewID("obj"), "social_"+NewID("obj")[4:12]+"@example.invalid", hash, time.Now().Add(time.Hour), true)
 	if err != nil {
 		t.Fatal(err)
 	}
 	f.users = append(f.users, u.ID)
 	link := OAuthState{Provider: "github", Mode: "link", UserID: u.ID, SessionHash: oauthHash()}
-	subject := NewID()
+	subject := NewID("obj")
 	if _, err = f.store.CompleteOAuth(f.ctx, link, subject, "github@example.invalid", "", time.Time{}, false); !errors.Is(err, ErrOAuthLinkSession) {
 		t.Fatal("dead link session accepted", err)
 	}
@@ -229,7 +229,7 @@ func TestOAuthVerifiedEmailAutoLink(t *testing.T) {
 		t.Fatal(err)
 	}
 	state := OAuthState{Provider: "google", Mode: "login"}
-	subject := NewID()
+	subject := NewID("obj")
 	hash := oauthHash()
 	user, err := f.store.CompleteOAuth(f.ctx, state, subject, "  "+strings.ToUpper(local.Username)+"  ", hash, time.Now().Add(time.Hour), false)
 	if err != nil || user.ID != local.ID {
@@ -247,7 +247,7 @@ func TestOAuthVerifiedEmailAutoLink(t *testing.T) {
 	if err = f.admin.Pool.QueryRow(f.ctx, `SELECT count(*) FROM organizations WHERE created_by=$1`, local.ID).Scan(&organizations); err != nil || organizations != 1 {
 		t.Fatal("existing organization changed", organizations, err)
 	}
-	if _, err = f.store.CompleteOAuth(f.ctx, state, NewID(), local.Username, oauthHash(), time.Now().Add(time.Hour), false); !errors.Is(err, ErrOAuthIdentityInUse) {
+	if _, err = f.store.CompleteOAuth(f.ctx, state, NewID("obj"), local.Username, oauthHash(), time.Now().Add(time.Hour), false); !errors.Is(err, ErrOAuthIdentityInUse) {
 		t.Fatal("replaced existing provider identity", err)
 	}
 	other, _ := f.local(t)
@@ -262,7 +262,7 @@ func TestOAuthVerifiedEmailAutoLink(t *testing.T) {
 
 func TestOAuthConcurrentProvidersShareOneAccount(t *testing.T) {
 	f := newOAuthFixture(t)
-	email := "concurrent_" + NewID()[:8] + "@example.invalid"
+	email := "concurrent_" + NewID("obj")[4:12] + "@example.invalid"
 	type result struct {
 		user User
 		err  error
@@ -270,7 +270,7 @@ func TestOAuthConcurrentProvidersShareOneAccount(t *testing.T) {
 	results := make(chan result, 2)
 	for _, provider := range []string{"google", "github"} {
 		go func(provider string) {
-			u, e := f.store.CompleteOAuth(f.ctx, OAuthState{Provider: provider, Mode: "login"}, NewID(), email, oauthHash(), time.Now().Add(time.Hour), true)
+			u, e := f.store.CompleteOAuth(f.ctx, OAuthState{Provider: provider, Mode: "login"}, NewID("obj"), email, oauthHash(), time.Now().Add(time.Hour), true)
 			results <- result{u, e}
 		}(provider)
 	}

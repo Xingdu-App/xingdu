@@ -11,13 +11,19 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	resourceid "xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/protocol"
 )
 
 func (x *protocolExecutor) owned(id string) bool {
-	if !protocol.ValidID(id) {
+	if !resourceid.Valid("node", id) {
 		return false
 	}
+	return x.ownedRuntime(x.localDeploymentID(id))
+}
+
+// Runtime names may be legacy UUIDs, but never come directly from remote input.
+func (x *protocolExecutor) ownedRuntime(id string) bool {
 	dir := filepath.Join(x.stateDir, id)
 	st, err := os.Lstat(dir)
 	if err != nil || !st.IsDir() || st.Mode().Perm()&0077 != 0 {
@@ -39,7 +45,7 @@ func (x *protocolExecutor) serviceStatus(ctx context.Context, id string) string 
 	if !x.owned(id) {
 		return "missing"
 	}
-	err := x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(id))
+	err := x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(x.localDeploymentID(id)))
 	if err == nil {
 		return "active"
 	}
@@ -81,7 +87,7 @@ func (x *protocolExecutor) reportServices(ctx context.Context, c Config) error {
 	}
 	reports := []protocol.ServiceStatus{}
 	for _, id := range body.Data {
-		if !protocol.ValidID(id) {
+		if !resourceid.Valid("node", id) {
 			return errors.New("invalid service identity")
 		}
 		reports = append(reports, protocol.ServiceStatus{ID: id, Status: x.serviceStatus(ctx, id)})

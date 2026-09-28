@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/protocol"
 )
 
@@ -16,7 +17,7 @@ func (s *Store) RestartDeployment(ctx context.Context, host, id string) error {
 		return err
 	}
 	var supported bool
-	if err = tx.QueryRow(ctx, `SELECT metrics->>'version'='0.6.0-dev' FROM machine_agents WHERE token_hash=$1`, hash).Scan(&supported); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT metrics->>'version'='0.7.0-dev' FROM machine_agents WHERE token_hash=$1`, hash).Scan(&supported); err != nil {
 		return err
 	}
 	if !supported {
@@ -25,7 +26,7 @@ func (s *Store) RestartDeployment(ctx context.Context, host, id string) error {
 	if err = cleanupDeployments(ctx, tx, host); err != nil {
 		return err
 	}
-	tag, err := tx.Exec(ctx, `UPDATE protocol_deployments SET action='restart',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='',service_status='unknown',service_checked_at=NULL WHERE id=$1 AND host_id=$2 AND installed_at IS NOT NULL AND state IN ('succeeded','failed','interrupted') AND action<>'remove' AND encrypted IS NOT NULL`, id, host, NewID(), hash)
+	tag, err := tx.Exec(ctx, `UPDATE protocol_deployments SET action='restart',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='',service_status='unknown',service_checked_at=NULL WHERE id=$1 AND host_id=$2 AND installed_at IS NOT NULL AND state IN ('succeeded','failed','interrupted') AND action<>'remove' AND encrypted IS NOT NULL`, id, host, NewID("op"), hash)
 	if err != nil {
 		return mapError(err)
 	}
@@ -46,7 +47,7 @@ func (s *Store) ReportServices(ctx context.Context, hash string, reports []proto
 	}
 	seen := map[string]bool{}
 	for _, r := range reports {
-		if !protocol.ValidID(r.ID) || seen[r.ID] || (r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
+		if !id.Valid("node", r.ID) || seen[r.ID] || (r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
 			return ErrInvalid
 		}
 		seen[r.ID] = true

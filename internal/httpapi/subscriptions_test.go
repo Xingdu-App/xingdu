@@ -29,7 +29,7 @@ func TestSubscriptionPublicCapabilityHeaders(t *testing.T) {
 	token := machine.Token()
 	store := &subscriptionFake{expected: machine.Hash(token)}
 	h := New(store, Options{})
-	base := "/api/v1/subscriptions/" + storage.NewID() + "/content?format=mihomo&token="
+	base := "/api/v1/subscriptions/" + storage.NewID("sub") + "/content?format=mihomo&token="
 	for _, test := range []struct {
 		token string
 		want  int
@@ -60,7 +60,7 @@ func TestSubscriptionPublicCapabilityHeaders(t *testing.T) {
 func TestSubscriptionPublicRateLimit(t *testing.T) {
 	store := &subscriptionFake{}
 	h := New(store, Options{})
-	path := "/api/v1/subscriptions/" + storage.NewID() + "/content?token=bad"
+	path := "/api/v1/subscriptions/" + storage.NewID("sub") + "/content?token=bad"
 	for i := 0; i < 121; i++ {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
@@ -70,7 +70,7 @@ func TestSubscriptionPublicRateLimit(t *testing.T) {
 	}
 }
 func TestSubscriptionMetadataNeverSerializesCapability(t *testing.T) {
-	b, err := json.Marshal(storage.Subscription{ID: storage.NewID(), Name: "Example"})
+	b, err := json.Marshal(storage.Subscription{ID: storage.NewID("sub"), Name: "Example"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestClientFormatBoundary(t *testing.T) {
 		{"surge", 409}, {"hysteria2_uri", 409}, {"loon", 422}, {"shadowrocket", 422}, {"unknown", 422},
 	} {
 		w := httptest.NewRecorder()
-		h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/subscriptions/"+storage.NewID()+"/content?token="+token+"&format="+tc.format, nil))
+		h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/subscriptions/"+storage.NewID("sub")+"/content?token="+token+"&format="+tc.format, nil))
 		if w.Code != tc.status {
 			t.Fatalf("%s got %d want %d", tc.format, w.Code, tc.status)
 		}

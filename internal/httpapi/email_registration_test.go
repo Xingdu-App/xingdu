@@ -50,7 +50,7 @@ func TestEmailRegistrationRequiresDeliveryAndVerification(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	email := "verify_" + storage.NewID()[:8] + "@example.invalid"
+	email := "verify_" + storage.NewID("obj")[4:20] + "@example.invalid"
 	defer func() {
 		db.Pool.Exec(ctx, "DELETE FROM organizations WHERE created_by IN (SELECT id FROM users WHERE username=$1)", email)
 		db.Pool.Exec(ctx, "DELETE FROM users WHERE username=$1", email)

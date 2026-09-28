@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -43,7 +44,7 @@ func fixture(t *testing.T, kind string, index int) Node {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return Node{ID: fmt.Sprintf("00000000-0000-4000-8000-%012d", index), Name: "星渡: # &x [node], REJECT", Server: "2001:db8::1", Spec: spec}
+	return Node{ID: fmt.Sprintf("node_%032x", index), Name: "星渡: # &x [node], REJECT", Server: "2001:db8::1", Spec: spec}
 }
 
 func TestMihomoExport(t *testing.T) {
@@ -212,5 +213,19 @@ func TestStashExport(t *testing.T) {
 	}
 	if _, err = Render("surge", "Unsupported", nodes, nil, "proxy"); err == nil {
 		t.Fatal("unsupported client accepted")
+	}
+}
+
+func TestResourceIDNamespaceSeparateFromProtocolCredential(t *testing.T) {
+	n := fixture(t, "vless", 12)
+	if !regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).MatchString(n.Spec.Credential) {
+		t.Fatal("VLESS credential must retain protocol UUID format")
+	}
+	for _, resourceID := range []string{"00000000-0000-4000-8000-000000000001", "srv_00000000000000000000000000000001", "node_ABCDEF00000000000000000000000001", "node_0001"} {
+		copy := n
+		copy.ID = resourceID
+		if _, err := RenderClash("Demo", []Node{copy}, nil, "proxy"); err == nil {
+			t.Fatal("invalid resource ID namespace accepted")
+		}
 	}
 }

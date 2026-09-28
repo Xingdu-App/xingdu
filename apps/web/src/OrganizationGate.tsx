@@ -13,6 +13,7 @@ import {
 } from "./api";
 import type { Organization, Session } from "./api";
 import App from "./App";
+import { organizationURL, writeURL } from "./navigation";
 export default function OrganizationGate({
   session,
   onLogout,
@@ -41,13 +42,36 @@ export default function OrganizationGate({
     window.addEventListener("hashchange", syncInvite);
     return () => window.removeEventListener("hashchange", syncInvite);
   }, []);
+  function selectOrganization(
+    id: string,
+    replace = false,
+    preserveDetail = false,
+  ) {
+    writeURL(
+      organizationURL(new URL(window.location.href), id, !preserveDetail),
+      replace,
+    );
+    setOrganization(id);
+    setSelected(id);
+    setError("");
+  }
+  function resolveOrganization(values: Organization[], preferred?: string) {
+    const requested =
+      preferred ??
+      new URL(window.location.href).searchParams.get("organization");
+    if (requested && !values.some((o) => o.id === requested)) {
+      setOrganization("");
+      setSelected("");
+      setError(t("此组织不存在或你没有访问权限，请选择其他组织。"));
+      return;
+    }
+    const next = requested || values[0]?.id || "";
+    selectOrganization(next, !preferred, !preferred);
+  }
   async function refresh(preferred?: string) {
     const values = await listOrganizations();
     setOrgs(values);
-    const next =
-      values.find((o) => o.id === preferred)?.id ?? values[0]?.id ?? "";
-    setOrganization(next);
-    setSelected(next);
+    resolveOrganization(values, preferred);
   }
   useEffect(() => {
     let active = true;
@@ -56,10 +80,7 @@ export default function OrganizationGate({
         if (!active) return;
         setCloud(config.mode === "cloud");
         setOrgs(values);
-        const requested = new URL(window.location.href).searchParams.get("organization");
-        const id = values.find((value) => value.id === requested)?.id ?? values[0]?.id ?? "";
-        setOrganization(id);
-        setSelected(id);
+        resolveOrganization(values);
       })
       .catch((e) => {
         if (active) setError(errorMessage(e));
@@ -72,6 +93,12 @@ export default function OrganizationGate({
       setOrganization("");
     };
   }, []);
+  useEffect(() => {
+    if (loading) return;
+    const sync = () => resolveOrganization(orgs);
+    window.addEventListener("popstate", sync);
+    return () => window.removeEventListener("popstate", sync);
+  }, [orgs, loading]);
   async function create(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -104,9 +131,7 @@ export default function OrganizationGate({
           description: roleNames[o.role],
         }))}
         onChange={(value) => {
-          setOrganization(value);
-          setSelected(value);
-          setError("");
+          selectOrganization(value);
         }}
       /> : <strong>{org?.name}</strong>}
     </div>
@@ -170,7 +195,7 @@ export default function OrganizationGate({
       <OrganizationDialog busy={busy} onClose={() => setCreating(false)}>
         {createForm}
       </OrganizationDialog>
-    ) : cloud && !org && !loading ? (
+    ) : cloud && !org && !loading && !orgs.length && !error ? (
       <div className="org-create">{createForm}</div>
     ) : null;
   const banner = (
@@ -181,7 +206,7 @@ export default function OrganizationGate({
           <button
             className="secondary"
             onClick={() =>
-              refresh(selected)
+              refresh()
                 .then(() => setError(""))
                 .catch((e) => setError(errorMessage(e)))
             }
@@ -208,7 +233,9 @@ export default function OrganizationGate({
               setError("");
               try {
                 const result = await acceptInvitation(invite);
-                window.history.replaceState(null, "", window.location.pathname);
+                const url = new URL(window.location.href);
+                url.hash = "";
+                writeURL(url, true);
                 setInvite("");
                 await refresh(result.organization_id);
               } catch (e) {
@@ -225,7 +252,9 @@ export default function OrganizationGate({
             disabled={busy}
             onClick={() => {
               setInvite("");
-              window.history.replaceState(null, "", window.location.pathname);
+              const url = new URL(window.location.href);
+              url.hash = "";
+              writeURL(url, true);
             }}
           >
             {t("忽略")}
@@ -245,6 +274,18 @@ export default function OrganizationGate({
     return (
       <div className="auth-page">
         <section className="auth-card">
+          {orgs.length > 0 && controls}
+          {error && <p role="alert">{error}</p>}
+          {error && (
+            <button
+              className="secondary"
+              onClick={() =>
+                void refresh().catch((e) => setError(errorMessage(e)))
+              }
+            >
+              {t("重试")}
+            </button>
+          )}
           {banner}
           {!cloud && !orgs.length && <p>{t("你尚未加入此实例的组织，请联系管理员获取邀请。")}</p>}
           <button className="secondary" onClick={() => void onLogout()}>

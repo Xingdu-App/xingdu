@@ -48,7 +48,7 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s.Close()
-	uid, e := s.Register(ctx, "httpdeploy_"+storage.NewID()[:8], "unused", "Deploy HTTP")
+	uid, e := s.Register(ctx, "httpdeploy_"+storage.NewID("obj")[4:20], "unused", "Deploy HTTP")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -68,7 +68,7 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	if e = s.EnrollAgent(ctx, machine.Hash(enrollment), machine.Hash(identity), "manage"); e != nil {
 		t.Fatal(e)
 	}
-	if e = s.Heartbeat(ctx, machine.Hash(identity), machine.Metrics{Version: "0.5.0-dev", CPUs: 1}); e != nil {
+	if e = s.Heartbeat(ctx, machine.Hash(identity), machine.Metrics{Version: machine.Version, CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
 	session := machine.Token()
@@ -127,7 +127,7 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	if bytes.Contains(ciphertext, []byte("PRIVATE KEY")) {
 		t.Fatal("plaintext stored")
 	}
-	if _, e = v.Open(ciphertext, deploymentAAD(storage.NewID(), host.ID, queued.Data.ID)); e == nil {
+	if _, e = v.Open(ciphertext, deploymentAAD(storage.NewID("obj"), host.ID, queued.Data.ID)); e == nil {
 		t.Fatal("cross tenant AAD accepted")
 	}
 	request("/api/v1/agent/deployments/claim", map[string]any{}, false, 403)
@@ -140,7 +140,7 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	request("/api/v1/agent/deployments/result", protocol.Result{ID: claim.Data.ID, Lease: claim.Data.Lease, Success: false, Code: keyPEM}, true, 422)
 	request("/api/v1/agent/deployments/result", protocol.Result{ID: claim.Data.ID, Lease: claim.Data.Lease, Success: true, Code: "deployed"}, true, 200)
 	request("/api/v1/agent/deployments/result", protocol.Result{ID: claim.Data.ID, Lease: claim.Data.Lease, Success: true, Code: "deployed"}, true, 200)
-	request("/api/v1/agent/deployments/result", protocol.Result{ID: claim.Data.ID, Lease: storage.NewID(), Success: true, Code: "deployed"}, true, 409)
+	request("/api/v1/agent/deployments/result", protocol.Result{ID: claim.Data.ID, Lease: storage.NewID("lease"), Success: true, Code: "deployed"}, true, 409)
 	w = request(path+"/"+queued.Data.ID+"/connection", map[string]any{}, false, 200)
 	if strings.Contains(w.Body.String(), "private_key") || strings.Contains(w.Body.String(), "PRIVATE KEY") || !strings.Contains(w.Body.String(), claim.Data.Spec.Credential) {
 		t.Fatal("unsafe or missing connection fields")
@@ -148,7 +148,13 @@ func TestDeploymentHTTPSecretsAndMachineBoundary(t *testing.T) {
 	request("/api/v1/agent/deployments/status", map[string]any{"reports": []protocol.ServiceStatus{{ID: queued.Data.ID, Status: "active"}}}, true, 200)
 	request("/api/v1/agent/deployments/status", map[string]any{"reports": []protocol.ServiceStatus{{ID: queued.Data.ID, Status: "active"}}}, false, 403)
 	request(path+"/"+queued.Data.ID+"/restart", map[string]bool{"confirm": false}, false, 422)
+	if err := s.Heartbeat(ctx, machine.Hash(identity), machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); err != nil {
+		t.Fatal(err)
+	}
 	request(path+"/"+queued.Data.ID+"/restart", map[string]bool{"confirm": true}, false, 409)
+	if err := s.Heartbeat(ctx, machine.Hash(identity), machine.Metrics{Version: machine.Version, CPUs: 1}); err != nil {
+		t.Fatal(err)
+	}
 	list, e := s.Deployments(sc, host.ID)
 	encoded, _ := json.Marshal(list)
 	if e != nil || bytes.Contains(encoded, []byte(claim.Data.Spec.Credential)) || bytes.Contains(encoded, []byte("PRIVATE KEY")) {

@@ -39,7 +39,7 @@ func TestAccountHTTPPasswordBoundary(t *testing.T) {
 	defer s.Close()
 	password := "original-password-fixture"
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	username := "security_" + storage.NewID()[:8]
+	username := "security_" + storage.NewID("obj")[4:20]
 	id, err := s.Register(ctx, username, string(hash), "Security test")
 	if err != nil {
 		t.Fatal(err)

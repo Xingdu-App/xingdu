@@ -40,7 +40,7 @@ func TestDeploymentOrganizationLimit(t *testing.T) {
 				t.Fatal(err)
 			}
 			for i := 0; i < 2; i++ {
-				user, org := NewID(), NewID()
+				user, org := NewID("usr"), NewID("org")
 				if err = setScope(ctx, tx, user, org); err != nil {
 					t.Fatal(err)
 				}

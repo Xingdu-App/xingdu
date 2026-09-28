@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"go.yaml.in/yaml/v3"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/protocol"
 )
 
@@ -117,7 +118,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 	names := make([]string, 0, len(nodes))
 	seen := map[string]bool{}
 	for _, node := range nodes {
-		if !protocol.ValidID(node.ID) || seen[node.ID] {
+		if !id.Valid("node", node.ID) || seen[node.ID] {
 			return nil, errors.New("invalid or duplicate node ID")
 		}
 		seen[node.ID] = true

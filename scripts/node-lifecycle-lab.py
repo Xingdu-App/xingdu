@@ -5,6 +5,7 @@ Ubuntu agent binary; stops/restarts a demo service briefly, restoring it on exit
 """
 import importlib.util
 import json
+import re
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('protocol_lab', Path(__file__).with_name('protocol-lab.py'))
@@ -15,8 +16,8 @@ lab = protocol_lab.lab
 
 def main():
     fixtures = json.loads((lab.LOCAL / 'fixtures.json').read_text())
-    host = fixtures['ubuntu']
     api = lab.API()
+    host = lab.resolve_fixtures({'ubuntu': fixtures['ubuntu']}, api.call('GET', '/api/v1/hosts'))['ubuntu']
     current = api.host(host)
     assert current['address'] == 'lab-ubuntu' and 'agent-lab' in current['tags'], 'Not a disposable lab host'
     assert api.machine(host)['agent']['mode'] == 'manage'
@@ -30,13 +31,22 @@ def main():
     lab.execute('ubuntu', 'chmod', '755', '/usr/local/bin/xingdu-agent.new')
     lab.execute('ubuntu', 'mv', '/usr/local/bin/xingdu-agent.new', '/usr/local/bin/xingdu-agent')
     lab.execute('ubuntu', 'systemctl', 'restart', 'xingdu-agent')
-    lab.eventually(lambda: api.machine(host)['agent']['metrics']['version'] == '0.6.0-dev')
+    lab.eventually(lambda: api.machine(host)['agent']['metrics']['version'] == '0.7.0-dev')
     def node(id):
         return next(n for n in api.call('GET', '/api/v1/nodes') if n['id'] == id)
     for n in nodes:
         lab.eventually(lambda: node(n['id'])['service_status'] == 'active')
     target = nodes[0]
-    unit = 'xingdu-protocol-' + target['id'] + '.service'
+    node_id = target['id']
+    assert re.fullmatch(r'node_[0-9a-f]{32}', node_id), 'Invalid node identity'
+    unit = 'xingdu-protocol-' + node_id + '.service'
+    if lab.execute('ubuntu', 'systemctl', 'show', '--property=LoadState', '--value', unit).stdout.strip() == b'not-found':
+        raw = node_id[5:]
+        legacy = raw[:8] + '-' + raw[8:12] + '-' + raw[12:16] + '-' + raw[16:20] + '-' + raw[20:]
+        unit = 'xingdu-protocol-' + legacy + '.service'
+        marker = lab.execute('ubuntu', 'head', '-n', '1', '/etc/systemd/system/' + unit).stdout.decode().strip()
+        assert marker == '# Xingdu managed deployment ' + legacy, 'Unowned legacy lab service'
+
     try:
         lab.execute('ubuntu', 'systemctl', 'stop', unit)
         lab.eventually(lambda: node(target['id'])['service_status'] == 'inactive')
@@ -48,7 +58,7 @@ def main():
         assert node(target['id'])['installed_at'] == target['installed_at'], 'Node identity changed'
     finally:
         lab.execute('ubuntu', 'systemctl', 'start', unit)
-    report = {'agent': '0.6.0-dev', 'system': 'Ubuntu 24.04', 'arch': arch, 'scope': 'local isolated Docker; not public health validation', 'checks': ['existing identity and nodes preserved', 'systemd active and stopped status reported', 'API-controlled restart completed', 'real authenticated forwarding after restart', 'installed_at unchanged'], 'node_count': len(nodes)}
+    report = {'agent': '0.7.0-dev', 'system': 'Ubuntu 24.04', 'arch': arch, 'scope': 'local isolated Docker; not public health validation', 'checks': ['existing identity and nodes preserved', 'systemd active and stopped status reported', 'API-controlled restart completed', 'real authenticated forwarding after restart', 'installed_at unchanged'], 'node_count': len(nodes)}
     lab.save(lab.LOCAL / 'node-lifecycle-report.json', report)
     lab.progress('Ubuntu managed status + controlled restart + authenticated forwarding PASS')
 

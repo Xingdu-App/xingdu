@@ -23,6 +23,7 @@ services:
     environment:
       DATABASE_URL: postgres://xingdu:${POSTGRES_PASSWORD}@db:5432/xingdu?sslmode=disable
       XINGDU_APP_DATABASE_PASSWORD: ${XINGDU_APP_DATABASE_PASSWORD:?Set a separate runtime database password in .env}
+      XINGDU_CREDENTIAL_KEY: ${XINGDU_CREDENTIAL_KEY:-}
       XINGDU_WORKER_DATABASE_PASSWORD: ${XINGDU_WORKER_DATABASE_PASSWORD:?Set a worker database password in .env}
     depends_on:
       db:

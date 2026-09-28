@@ -31,7 +31,7 @@ func TestOAuthUnlinkDoesNotDeleteReplacedSubject(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	application := "oauth-race-" + NewID()
+	application := "oauth-race-" + NewID("obj")
 	q := uri.Query()
 	q.Set("options", "-crole=xingdu_app")
 	q.Set("application_name", application)
@@ -41,7 +41,7 @@ func TestOAuthUnlinkDoesNotDeleteReplacedSubject(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer app.Close()
-	userID, err := app.Register(ctx, "race_"+NewID()[:8], "unused-test-hash", "OAuth race")
+	userID, err := app.Register(ctx, "race_"+NewID("obj")[4:12], "unused-test-hash", "OAuth race")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,11 +49,11 @@ func TestOAuthUnlinkDoesNotDeleteReplacedSubject(t *testing.T) {
 		admin.Pool.Exec(context.Background(), "DELETE FROM organizations WHERE created_by=$1", userID)
 		admin.Pool.Exec(context.Background(), "DELETE FROM users WHERE id=$1", userID)
 	}()
-	session := "oauth-race-session-" + NewID()
+	session := "oauth-race-session-" + NewID("obj")
 	if err = app.NewSession(ctx, session, userID, time.Now().Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}
-	oldSubject, newSubject := "old-"+NewID(), "new-"+NewID()
+	oldSubject, newSubject := "old-"+NewID("obj"), "new-"+NewID("obj")
 	if _, err = app.CompleteOAuth(ctx, OAuthState{Provider: "github", Mode: "link", UserID: userID, SessionHash: session}, oldSubject, "race@example.invalid", "", time.Now().Add(time.Hour), false); err != nil {
 		t.Fatal(err)
 	}

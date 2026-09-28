@@ -42,7 +42,7 @@ func Supports(format, protocol string) bool {
 }
 
 // INI labels exclude delimiters instead of assuming undocumented quote escaping.
-// UUID suffixes retain stable identity even when display names sanitize equally.
+// Prefixed node ID suffixes retain stable identity even when display names sanitize equally.
 func iniLabel(n Node) string {
 	name := strings.Map(func(r rune) rune {
 		if unicode.IsLetter(r) || unicode.IsNumber(r) || r == ' ' || r == '-' || r == '_' || r == '.' {

@@ -10,13 +10,13 @@ PostgreSQL enforces per-organization limits for new resources: 25 hosts, 100 act
 
 ```sql
 INSERT INTO organization_limits(organization_id, hosts, deployments, subscriptions, members)
-VALUES ('00000000-0000-0000-0000-000000000000', 25, 100, 100, 20)
+VALUES ('org_00000000000000000000000000000000', 25, 100, 100, 20)
 ON CONFLICT (organization_id) DO UPDATE
 SET hosts=excluded.hosts, deployments=excluded.deployments,
     subscriptions=excluded.subscriptions, members=excluded.members;
 ```
 
-Replace the placeholder UUID with the intended organization's ID. An advisory transaction lock serializes resource creation and the quota check across API processes. API exhaustion returns HTTP 409 `quota_exceeded`. Limits do not cap total organization/account creation, storage or bandwidth. Registration should remain closed until operator-level limits and abuse controls are configured.
+Replace the placeholder with the intended organization's complete `org_` ID (see [ID design](ID-DESIGN.md)). An advisory transaction lock serializes resource creation and the quota check across API processes. API exhaustion returns HTTP 409 `quota_exceeded`. Limits do not cap total organization/account creation, storage or bandwidth. Registration should remain closed until operator-level limits and abuse controls are configured.
 
 ## Audit and monitoring
 

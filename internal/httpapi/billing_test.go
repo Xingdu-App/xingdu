@@ -72,7 +72,7 @@ func TestBillingRoutesAuthAndWebhookBoundary(t *testing.T) {
 			r.AddCookie(&http.Cookie{Name: cookieName, Value: token})
 			r.Header.Set("Origin", "http://localhost")
 			r.Header.Set("X-Xingdu-Request", "1")
-			r.Header.Set("X-Xingdu-Organization", "11111111-1111-4111-8111-111111111111")
+			r.Header.Set("X-Xingdu-Organization", "org_11111111111141118111111111111111")
 		}
 		if csrf {
 			r.Header.Set("X-CSRF-Token", csrfToken(token))

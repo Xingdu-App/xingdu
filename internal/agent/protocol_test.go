@@ -40,7 +40,7 @@ func taskFixture(t *testing.T) protocol.Task {
 	if e != nil {
 		t.Fatal(e)
 	}
-	return protocol.Task{ID: "00000000-0000-4000-8000-000000000001", DeploymentID: "00000000-0000-4000-8000-000000000002", Lease: "lease", Action: "deploy", Spec: s}
+	return protocol.Task{ID: "op_00000000000040008000000000000001", DeploymentID: "node_00000000000040008000000000000002", Lease: "lease_00000000000040008000000000000005", Action: "deploy", Spec: s}
 }
 func executorFixture(t *testing.T) (*protocolExecutor, Config, *[]string) {
 	t.Helper()
@@ -75,9 +75,9 @@ func TestProtocolApplyIdempotentAndRemove(t *testing.T) {
 		t.Fatalf("deploy: %s", r.Code)
 	}
 	n := len(*calls)
-	task.Lease = "renewed"
+	task.Lease = "lease_00000000000040008000000000000006"
 	r = x.apply(context.Background(), c, task)
-	if !r.Success || r.Lease != "renewed" || len(*calls) != n {
+	if !r.Success || r.Lease != "lease_00000000000040008000000000000006" || len(*calls) != n {
 		t.Fatal("replayed task executed again")
 	}
 	path := filepath.Join(x.stateDir, task.DeploymentID, "config.json")
@@ -86,7 +86,7 @@ func TestProtocolApplyIdempotentAndRemove(t *testing.T) {
 		t.Fatal("config not private")
 	}
 	task.Action = "remove"
-	task.ID = "00000000-0000-4000-8000-000000000003"
+	task.ID = "op_00000000000040008000000000000003"
 	r = x.apply(context.Background(), c, task)
 	if !r.Success || r.Code != "removed" {
 		t.Fatalf("remove: %s", r.Code)
@@ -290,7 +290,7 @@ func TestRuntimeDirectoryTraversableWithRestrictiveUmask(t *testing.T) {
 			t.Fatalf("runtime path is not traversable/executable: %s", p)
 		}
 	}
-	unit := protocolUnit("00000000-0000-4000-8000-000000000002", path, "/root/config.json")
+	unit := protocolUnit("node_00000000000040008000000000000002", path, "/root/config.json")
 	if strings.Contains(unit, "network-online.target") {
 		t.Fatal("listener blocks on external network readiness")
 	}
@@ -375,7 +375,7 @@ func TestControlledRestartAndServiceStatus(t *testing.T) {
 	if got := x.serviceStatus(context.Background(), task.DeploymentID); got != "active" {
 		t.Fatal(got)
 	}
-	task.ID = "00000000-0000-4000-8000-000000000003"
+	task.ID = "op_00000000000040008000000000000003"
 	task.Action = "restart"
 	task.Spec = protocol.Spec{}
 	if got := x.apply(context.Background(), c, task); !got.Success || got.Code != "restarted" {
@@ -386,7 +386,7 @@ func TestControlledRestartAndServiceStatus(t *testing.T) {
 		t.Fatal("restart replay executed")
 	}
 	os.WriteFile(filepath.Join(x.unitDir, serviceName(task.DeploymentID)), []byte("unowned service"), 0644)
-	task.ID = "00000000-0000-4000-8000-000000000004"
+	task.ID = "op_00000000000040008000000000000004"
 	if got := x.apply(context.Background(), c, task); got.Success || got.Code != "ownership_mismatch" {
 		t.Fatal(got)
 	}

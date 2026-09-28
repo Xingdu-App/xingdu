@@ -46,7 +46,7 @@ func TestTenantIsolation(t *testing.T) {
 		}
 	}()
 	user := func() string {
-		id, err := s.Register(ctx, "test_"+NewID()[:8], "unused-test-hash", "Test org")
+		id, err := s.Register(ctx, "test_"+NewID("obj")[4:12], "unused-test-hash", "Test org")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -85,7 +85,7 @@ func TestTenantIsolation(t *testing.T) {
 	if err = tx.QueryRow(ctx, "SELECT count(*) FROM hosts").Scan(&n); err != nil || n != 1 {
 		t.Fatal("RLS read failed", n, err)
 	}
-	if _, err = tx.Exec(ctx, "INSERT INTO hosts(id,name,organization_id) VALUES($1,'escape',$2)", NewID(), ob[0].ID); err == nil {
+	if _, err = tx.Exec(ctx, "INSERT INTO hosts(id,name,organization_id) VALUES($1,'escape',$2)", NewID("srv"), ob[0].ID); err == nil {
 		t.Fatal("RLS write allowed foreign tenant")
 	}
 	tx.Rollback(ctx)
@@ -102,7 +102,7 @@ func TestTenantIsolation(t *testing.T) {
 		t.Fatal("direct membership escalation succeeded")
 	}
 	tx.Rollback(ctx)
-	invite, err := s.CreateInvitation(ca, "viewer", "test-"+NewID())
+	invite, err := s.CreateInvitation(ca, "viewer", "test-"+NewID("obj"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,10 +145,10 @@ func TestTenantIsolation(t *testing.T) {
 	if err = s.ChangeMember(ca, b, "admin", false); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = s.CreateInvitation(viewer, "admin", "blocked-"+NewID()); !errors.Is(err, ErrForbidden) {
+	if _, err = s.CreateInvitation(viewer, "admin", "blocked-"+NewID("obj")); !errors.Is(err, ErrForbidden) {
 		t.Fatal("admin invited admin", err)
 	}
-	existingHash := "existing-" + NewID()
+	existingHash := "existing-" + NewID("obj")
 	existing, err := s.CreateInvitation(ca, "viewer", existingHash)
 	if err != nil {
 		t.Fatal(err)
@@ -165,7 +165,7 @@ func TestTenantIsolation(t *testing.T) {
 	if _, err = s.Hosts(viewer); !errors.Is(err, ErrForbidden) {
 		t.Fatal("removed member still reads", err)
 	}
-	revokedHash := "test-" + NewID()
+	revokedHash := "test-" + NewID("obj")
 	revoked, err := s.CreateInvitation(ca, "member", revokedHash)
 	if err != nil {
 		t.Fatal(err)
@@ -176,7 +176,7 @@ func TestTenantIsolation(t *testing.T) {
 	if _, err = s.AcceptInvitation(ctx, b, revokedHash); !errors.Is(err, ErrNotFound) {
 		t.Fatal("revoked invitation accepted", err)
 	}
-	expiredHash := "test-" + NewID()
+	expiredHash := "test-" + NewID("obj")
 	expired, _ := s.CreateInvitation(ca, "member", expiredHash)
 	owner.Pool.Exec(ctx, "UPDATE invitations SET expires_at=now()-interval '1 second' WHERE id=$1", expired.ID)
 	if _, err = s.AcceptInvitation(ctx, b, expiredHash); !errors.Is(err, ErrNotFound) {
@@ -184,7 +184,7 @@ func TestTenantIsolation(t *testing.T) {
 	}
 	// Two different users racing to consume one token: exactly one membership commits.
 	c := user()
-	raceHash := "race-" + NewID()
+	raceHash := "race-" + NewID("obj")
 	if _, err = s.CreateInvitation(ca, "member", raceHash); err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestLegacyTenantMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer admin.Close()
-	name := "xingdu_migration_" + strings.ReplaceAll(NewID(), "-", "")
+	name := "xingdu_migration_" + strings.ReplaceAll(NewID("obj"), "-", "")
 	if _, err = admin.Pool.Exec(ctx, "CREATE DATABASE "+name); err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +243,7 @@ func TestLegacyTenantMigration(t *testing.T) {
 		}
 		s.Pool.Exec(ctx, "INSERT INTO schema_migrations(version) VALUES($1)", file)
 	}
-	user, host := NewID(), NewID()
+	user, host := legacyTestUUID(), legacyTestUUID()
 	if _, err = s.Pool.Exec(ctx, "INSERT INTO admins(id,username,password_hash) VALUES($1,'legacy','preserved-hash')", user); err != nil {
 		t.Fatal(err)
 	}
@@ -256,6 +256,8 @@ func TestLegacyTenantMigration(t *testing.T) {
 	if err = s.Migrate(ctx); err != nil {
 		t.Fatal(err)
 	}
+	user = "usr_" + strings.ReplaceAll(user, "-", "")
+	host = "srv_" + strings.ReplaceAll(host, "-", "")
 	account, err := s.Credentials(ctx, "legacy")
 	if err != nil || account.ID != user || account.PasswordHash != "preserved-hash" {
 		t.Fatal("account changed", err)
@@ -272,4 +274,9 @@ func TestLegacyTenantMigration(t *testing.T) {
 	if err != nil || len(records) != 1 || records[0].ID != host {
 		t.Fatal("legacy host lost", err)
 	}
+}
+
+func legacyTestUUID() string {
+	raw := NewID("obj")[4:]
+	return raw[:8] + "-" + raw[8:12] + "-" + raw[12:16] + "-" + raw[16:20] + "-" + raw[20:]
 }

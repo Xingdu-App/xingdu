@@ -96,7 +96,7 @@ docker compose exec api admin --username admin
 - `GET /api/v1/auth/config`：查询公开注册是否开放。
 - `POST /api/v1/auth/register`：显式开启注册后使用用户名、密码和 `organization` 名称创建账号。
 
-服务器、成员和邀请管理请求必须携带 `X-Xingdu-Organization` UUID，服务端在每次操作时验证成员关系；无成员资格返回 403。接受邀请和组织列表不依赖当前选择。公开注册默认关闭，设置 `XINGDU_REGISTRATION_ENABLED=true` 可启用。
+服务器、成员和邀请管理请求必须携带 `X-Xingdu-Organization` 组织 ID（`org_` 加 32 位小写十六进制），服务端在每次操作时验证成员关系；无成员资格返回 403。接受邀请和组织列表不依赖当前选择。公开注册默认关闭，设置 `XINGDU_REGISTRATION_ENABLED=true` 可启用。
 
 ## 当前 API
 
@@ -134,3 +134,5 @@ git config --local user.email noreply@xingdu.app
 ## 机器接入配置
 
 新增 `XINGDU_WORKER_DATABASE_PASSWORD`（独立低权限 Worker 账号），可选 `XINGDU_CREDENTIAL_KEY`（64 位随机 hex，用于 SSH 凭据加密）和 `XINGDU_AGENT_ORIGIN`（VPS 可达的 HTTPS 来源）。私有网络 SSH 需部署者显式配置 `XINGDU_SSH_ALLOWED_CIDRS`。没有加密密钥时，SSH 安装关闭，主动 Agent 注册仍可用。详细端点与安全语义见 [机器接入](MACHINE-ACCESS.md)。
+
+资源 ID 的类型前缀、128 位随机部分与迁移边界见 [ID 设计](ID-DESIGN.md)。浏览器 URL 和 JSON 中应完整保留 ID，不移除前缀，不按 UUID 解析。

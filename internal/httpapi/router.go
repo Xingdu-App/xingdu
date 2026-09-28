@@ -15,6 +15,7 @@ import (
 	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/hosts"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/socialauth"
 	"xingdu.app/xingdu/internal/storage"
 	"xingdu.app/xingdu/internal/vault"
@@ -120,7 +121,7 @@ func New(store Store, opts Options) http.Handler {
 		reply(w, 200, map[string]any{"data": map[string]string{"id": admin.ID, "username": admin.Username, "csrf_token": csrfToken(token)}})
 	}))
 	mux.HandleFunc("GET /api/v1/system", a.require(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
-		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.5.0-dev", "stage": "protocol-deployment", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": true, "subscription_export": true}}})
+		reply(w, 200, map[string]any{"data": map[string]any{"name": "Xingdu", "version": "0.7.0-dev", "stage": "protocol-deployment", "database_ready": store.Ready(r.Context()) == nil, "capabilities": map[string]bool{"host_inventory": true, "host_enrollment": true, "deployment": true, "subscription_export": true}}})
 	}))
 	mux.HandleFunc("GET /api/v1/hosts", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		result, err := store.Hosts(r.Context())
@@ -217,7 +218,17 @@ func New(store Store, opts Options) http.Handler {
 	})
 }
 func validID(w http.ResponseWriter, r *http.Request) bool {
-	if !hosts.IDPattern.MatchString(r.PathValue("id")) {
+	prefix := "srv"
+	if strings.HasPrefix(r.URL.Path, "/api/v1/subscriptions/") {
+		prefix = "sub"
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/v1/members/") {
+		prefix = "usr"
+	}
+	if strings.HasPrefix(r.URL.Path, "/api/v1/invitations/") {
+		prefix = "inv"
+	}
+	if !id.Valid(prefix, r.PathValue("id")) {
 		failure(w, 400, "invalid_id", "记录 ID 无效")
 		return false
 	}

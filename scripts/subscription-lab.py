@@ -54,7 +54,10 @@ def main():
         mihomo = fetch(path + '&format=mihomo')
         assert b'server-cert-fingerprint:' not in mihomo and b'fingerprint:' in mihomo
         assert fetch(path + '&format=clash') == mihomo
-        fetch(path + '&format=surge', 422)
+        # Surge rejects VLESS; supported protocol sets now have a real adapter.
+        surge = fetch(path + '&format=surge', 422 if any(n['protocol'] == 'vless' for n in nodes) else 200)
+        if not any(n['protocol'] == 'vless' for n in nodes):
+            assert b'[Proxy]' in surge and b'server-cert-fingerprint-sha256=' in surge
         metadata = json.dumps(api.call('GET', '/api/v1/subscriptions'))
         assert tokens[0] not in metadata and 'credential' not in metadata
         config.write_bytes(mihomo)

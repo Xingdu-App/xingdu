@@ -18,6 +18,13 @@ import "./App.css";
 
 import { pages, pagePath, pageFromURL } from "./routes";
 import type { Page } from "./routes";
+import {
+  clearDetail,
+  detailFromURL,
+  detailURL,
+  organizationURL,
+  writeURL,
+} from "./navigation";
 const currentPage = () => pageFromURL(new URL(window.location.href));
 const accountPages = new Set<string>([
   "billing",
@@ -59,31 +66,45 @@ function App({
   const canWrite = organization.role !== "viewer";
   const manageMachines =
     organization.role === "owner" || organization.role === "admin";
-  const [protocolHost, setProtocolHost] = useState<Host | null>(null);
-  const [nodeID, setNodeID] = useState<string | undefined>();
+  const [routeURL, setRouteURL] = useState(() => new URL(window.location.href));
   const [nodes, setNodes] = useState<ManagedNode[]>([]);
-  const [machineHost, setMachineHost] = useState<Host | null>(null);
   const [editing, setEditing] = useState<Host | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
   const [page, updatePage] = useState<Page>(currentPage);
   const body = useRef<HTMLDivElement>(null);
+  const syncRoute = () => {
+    updatePage(currentPage());
+    setRouteURL(new URL(window.location.href));
+  };
+  const navigateDetail = (detail?: {
+    host?: string;
+    node?: string;
+    protocols?: boolean;
+  }) => {
+    writeURL(detailURL(new URL(window.location.href), detail));
+    syncRoute();
+  };
+  const setProtocolHost = (host: Host) =>
+    navigateDetail({ host: host.id, protocols: true });
+  const setMachineHost = (host: Host) => navigateDetail({ host: host.id });
+  const scopedPagePath = (next: Page) =>
+    `${pagePath(next)}?organization=${encodeURIComponent(organization.id)}`;
   const setPage = (next: Page) => {
-    const url = new URL(window.location.href);
-    if (url.pathname !== pagePath(next) || url.searchParams.has("page")) {
-      url.pathname = pagePath(next);
-      url.searchParams.delete("page");
-      window.history.pushState(null, "", url);
-    }
-    updatePage(next);
+    const url = clearDetail(
+      organizationURL(new URL(window.location.href), organization.id, false),
+    );
+    url.pathname = pagePath(next);
+    url.searchParams.delete("page");
+    writeURL(url);
+    syncRoute();
   };
   useEffect(() => {
     const url = new URL(window.location.href);
     url.pathname = pagePath(currentPage());
     url.searchParams.delete("page");
-    window.history.replaceState(null, "", url);
-    const sync = () => updatePage(currentPage());
-    window.addEventListener("popstate", sync);
-    return () => window.removeEventListener("popstate", sync);
+    writeURL(url, true);
+    window.addEventListener("popstate", syncRoute);
+    return () => window.removeEventListener("popstate", syncRoute);
   }, []);
   useEffect(() => {
     body.current?.scrollTo({ top: 0 });
@@ -92,6 +113,14 @@ function App({
     });
   }, [page, locale]);
   const [hosts, setHosts] = useState<Host[]>([]);
+  const detail = detailFromURL(routeURL);
+  const nodeID = detail.node || undefined;
+  const detailHostID = detail.node
+    ? nodes.find((node) => node.id === detail.node)?.host_id
+    : detail.host;
+  const detailHost = hosts.find((host) => host.id === detailHostID) ?? null;
+  const protocolHost = detail.protocols ? detailHost : null;
+  const machineHost = detail.protocols ? null : detailHost;
   const [state, setState] = useState<LoadState>("loading");
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -148,7 +177,7 @@ function App({
       <aside className="sidebar">
         <a
           className="brand"
-          href={pagePath("overview")}
+          href={scopedPagePath("overview")}
           onClick={(event) => {
             if (
               event.metaKey ||
@@ -175,7 +204,7 @@ function App({
             .filter((item) => !accountPages.has(item.id))
             .map((item) => (
               <a
-                href={pagePath(item.id)}
+                href={scopedPagePath(item.id)}
                 key={item.id}
                 className={page === item.id ? "nav-item active" : "nav-item"}
                 aria-current={page === item.id ? "page" : undefined}
@@ -250,8 +279,10 @@ function App({
               <button onClick={refresh}>{t("重试")}</button>
             </div>
           )}
-          {page === "billing" && <BillingPage key={organization.id} organization={organization} />}
           {page === "members" && <TeamPanel organization={organization} />}
+          {page === "billing" && (
+            <BillingPage key={organization.id} organization={organization} />
+          )}
           {(page === "profile" ||
             page === "security" ||
             page === "settings") && (
@@ -552,8 +583,7 @@ function App({
               onOpen={(node) => {
                 const host = hosts.find((h) => h.id === node.host_id);
                 if (host) {
-                  setNodeID(node.id);
-                  setProtocolHost(host);
+                  navigateDetail({ node: node.id });
                 }
               }}
             />
@@ -606,6 +636,14 @@ function App({
           )}
         </main>
       </div>
+      {state === "ready" && (detail.node || detail.host) && !detailHost && (
+        <div className="team-banner" role="alert">
+          {t("该服务器或节点不存在，或不属于当前组织。")}
+          <button className="secondary" onClick={() => navigateDetail()}>
+            {t("关闭详情")}
+          </button>
+        </div>
+      )}
       {protocolHost && (
         <ProtocolDialog
           key={`${organization.id}:${protocolHost.id}:${nodeID ?? "all"}`}
@@ -613,14 +651,11 @@ function App({
           host={hosts.find((h) => h.id === protocolHost.id) ?? protocolHost}
           manage={manageMachines}
           onClose={() => {
-            setProtocolHost(null);
-            setNodeID(undefined);
+            navigateDetail();
             refresh();
           }}
           onAccess={() => {
             setMachineHost(protocolHost);
-            setNodeID(undefined);
-            setProtocolHost(null);
           }}
         />
       )}
@@ -628,7 +663,7 @@ function App({
         <MachineDialog
           host={machineHost}
           manage={manageMachines}
-          onClose={() => setMachineHost(null)}
+          onClose={() => navigateDetail()}
           onChanged={refresh}
         />
       )}

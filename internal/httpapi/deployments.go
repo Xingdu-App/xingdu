@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"xingdu.app/xingdu/internal/hosts"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/machine"
 	"xingdu.app/xingdu/internal/protocol"
 	"xingdu.app/xingdu/internal/storage"
@@ -103,7 +103,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			failure(w, 422, "invalid_deployment", "协议、端口、TLS 域名或证书与私钥无效")
 			return
 		}
-		d := storage.Deployment{ID: storage.NewID(), OperationID: storage.NewID(), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
+		d := storage.Deployment{ID: storage.NewID("node"), OperationID: storage.NewID("op"), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
 		plain, _ := json.Marshal(spec)
 		d.Encrypted = a.vault.Seal(plain, deploymentAAD(storage.TenantOrg(r.Context()), d.HostID, d.ID))
 		clear(plain)
@@ -224,7 +224,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		if !decode(w, r, &in) {
 			return
 		}
-		if !hosts.IDPattern.MatchString(in.ID) || !hosts.IDPattern.MatchString(in.Lease) || !protocol.ValidResultCode(in.Code) {
+		if !id.Valid("op", in.ID) || !id.Valid("lease", in.Lease) || !protocol.ValidResultCode(in.Code) {
 			failure(w, 422, "invalid_result", "任务结果无效")
 			return
 		}
@@ -256,7 +256,7 @@ func validDeploymentID(w http.ResponseWriter, r *http.Request) bool {
 	if !validID(w, r) {
 		return false
 	}
-	if !hosts.IDPattern.MatchString(r.PathValue("deployment")) {
+	if !id.Valid("node", r.PathValue("deployment")) {
 		failure(w, 400, "invalid_id", "部署 ID 无效")
 		return false
 	}

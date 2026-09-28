@@ -3,6 +3,7 @@
 import argparse
 import http.cookiejar
 import json
+import importlib.util
 import os
 from pathlib import Path
 import secrets
@@ -10,6 +11,11 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+
+_ids_spec = importlib.util.spec_from_file_location('xingdu_lab_ids', Path(__file__).with_name('lab_ids.py'))
+_ids = importlib.util.module_from_spec(_ids_spec)
+_ids_spec.loader.exec_module(_ids)
+resolve_fixtures = _ids.resolve_fixtures
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL = ROOT / '.local/agent-lab'
@@ -166,13 +172,15 @@ def verify_service(system, mode):
 def test():
     api = API()
     fixtures_path = LOCAL/'fixtures.json'
-    fixtures = json.loads(fixtures_path.read_text()) if fixtures_path.exists() else {}
+    persisted_fixtures = json.loads(fixtures_path.read_text()) if fixtures_path.exists() else {}
+    fixtures = resolve_fixtures(persisted_fixtures, api.call('GET', '/api/v1/hosts'))
     report = {'platform': command(['docker', 'info', '--format', '{{.Architecture}}']).stdout.decode().strip(), 'systems': {}}
     save(LOCAL/'report.json', report)
     for system, label in SYSTEMS.items():
         if system not in fixtures:
             fixtures[system] = api.call('POST', '/api/v1/hosts', {'name': label + ' · Docker Lab', 'address': 'lab-' + system, 'ssh_port': 22, 'ssh_user': 'labadmin', 'tags': ['agent-lab', system], 'notes': 'Disposable local Docker systemd test; not a real VPS/EC2 instance.'})
-            save(fixtures_path, fixtures)
+            persisted_fixtures[system] = fixtures[system]
+            save(fixtures_path, persisted_fixtures)
         f = fixtures[system]
         api.action(f, 'agent', method='DELETE')
         reset_install(system)
@@ -269,7 +277,8 @@ def cleanup():
     fixtures = LOCAL/'fixtures.json'
     if fixtures.exists():
         api = API()
-        for f in json.loads(fixtures.read_text()).values():
+        known = resolve_fixtures(json.loads(fixtures.read_text()), api.call('GET', '/api/v1/hosts'))
+        for f in known.values():
             api.action(f, 'agent', method='DELETE')
             api.call('DELETE', '/api/v1/hosts/' + f['id'])
         fixtures.unlink()

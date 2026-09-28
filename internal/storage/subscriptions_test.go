@@ -46,7 +46,7 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 		}
 	}()
 	register := func() (string, string) {
-		id, e := s.Register(ctx, "sub_"+NewID()[:8], "unused", "Subscription test")
+		id, e := s.Register(ctx, "sub_"+NewID("obj")[4:12], "unused", "Subscription test")
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -68,11 +68,11 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	node := NewID()
-	if _, err = admin.Pool.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,state,action,operation_id,encrypted,agent_hash,installed_at) VALUES($1,$2,$3,$4,'node','trojan',443,'node.example.invalid','succeeded','deploy',$5,$6,'test',now())`, node, org, h.ID, a, NewID(), []byte("encrypted-secret")); err != nil {
+	node := NewID("node")
+	if _, err = admin.Pool.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,state,action,operation_id,encrypted,agent_hash,installed_at) VALUES($1,$2,$3,$4,'node','trojan',443,'node.example.invalid','succeeded','deploy',$5,$6,'test',now())`, node, org, h.ID, a, NewID("op"), []byte("encrypted-secret")); err != nil {
 		t.Fatal(err)
 	}
-	in := Subscription{ID: NewID(), Name: "Personal", NodeIDs: []string{node}, Rules: []subscription.Rule{{Type: "domain_suffix", Value: "example.com", Target: "direct"}}, FinalAction: "proxy", Enabled: true}
+	in := Subscription{ID: NewID("sub"), Name: "Personal", NodeIDs: []string{node}, Rules: []subscription.Rule{{Type: "domain_suffix", Value: "example.com", Target: "direct"}}, FinalAction: "proxy", Enabled: true}
 	hash := machine.Hash(machine.Token())
 	out, err := s.SaveSubscription(ca, in, hash, true)
 	if err != nil {
@@ -127,8 +127,8 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 	}
 	in.Format = ""
 	// Direct SQL with token scope can only read selected deployments; invalid tokens read nothing.
-	unselected := NewID()
-	if _, err = admin.Pool.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,state,action,operation_id,encrypted,agent_hash,installed_at) VALUES($1,$2,$3,$4,'unselected','trojan',444,'node.example.invalid','succeeded','deploy',$5,$6,'test',now())`, unselected, org, h.ID, a, NewID(), []byte("other-secret")); err != nil {
+	unselected := NewID("node")
+	if _, err = admin.Pool.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,state,action,operation_id,encrypted,agent_hash,installed_at) VALUES($1,$2,$3,$4,'unselected','trojan',444,'node.example.invalid','succeeded','deploy',$5,$6,'test',now())`, unselected, org, h.ID, a, NewID("op"), []byte("other-secret")); err != nil {
 		t.Fatal(err)
 	}
 	for _, check := range []struct {
@@ -171,7 +171,7 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 		t.Fatal("cross tenant rotate", err)
 	}
 	foreign := in
-	foreign.ID = NewID()
+	foreign.ID = NewID("sub")
 	if _, err = s.SaveSubscription(cb, foreign, hash+"x", true); !errors.Is(err, ErrInvalid) {
 		t.Fatal("cross tenant node", err)
 	}

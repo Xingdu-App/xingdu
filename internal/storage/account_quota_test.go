@@ -44,7 +44,7 @@ func TestAccountInvitationMemberQuota(t *testing.T) {
 		}
 	}()
 	add := func() (string, string) {
-		id, e := s.Register(ctx, "quota_"+NewID()[:8], "hash", "Member quota test")
+		id, e := s.Register(ctx, "quota_"+NewID("obj")[4:12], "hash", "Member quota test")
 		if e != nil {
 			t.Fatal(e)
 		}

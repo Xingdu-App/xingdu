@@ -41,7 +41,7 @@ func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 }
 func managingAgent(ctx context.Context, tx pgx.Tx, host string) (string, error) {
 	var hash string
-	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' IN ('0.5.0-dev','0.6.0-dev') FOR UPDATE OF a`, host).Scan(&hash)
+	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' ='0.7.0-dev' FOR UPDATE OF a`, host).Scan(&hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrConflict
 	}
@@ -133,7 +133,7 @@ func (s *Store) RemoveDeployment(ctx context.Context, host, id string) error {
 	if err = cleanupDeployments(ctx, tx, host); err != nil {
 		return err
 	}
-	tag, err := tx.Exec(ctx, `UPDATE protocol_deployments SET action='remove',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='' WHERE id=$1 AND host_id=$2 AND state IN ('succeeded','failed','interrupted') AND encrypted IS NOT NULL`, id, host, NewID(), hash)
+	tag, err := tx.Exec(ctx, `UPDATE protocol_deployments SET action='remove',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='' WHERE id=$1 AND host_id=$2 AND state IN ('succeeded','failed','interrupted') AND encrypted IS NOT NULL`, id, host, NewID("op"), hash)
 	if err != nil {
 		return mapError(err)
 	}
@@ -176,6 +176,13 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
+	var compatible bool
+	if err = tx.QueryRow(ctx, `SELECT metrics->>'version'='0.7.0-dev' FROM machine_agents WHERE token_hash=$1`, hash).Scan(&compatible); err != nil {
+		return nil, err
+	}
+	if !compatible {
+		return nil, ErrConflict
+	}
 	if err = cleanupDeployments(ctx, tx, host); err != nil {
 		return nil, err
 	}
@@ -204,7 +211,7 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 		}
 		return nil, tx.Commit(ctx)
 	}
-	err = tx.QueryRow(ctx, `UPDATE protocol_deployments SET state='running',lease=COALESCE(lease,gen_random_uuid()),lease_until=COALESCE(lease_until,now()+interval '5 minutes') WHERE id=$1 RETURNING lease::text`, d.ID).Scan(&d.Lease)
+	err = tx.QueryRow(ctx, `UPDATE protocol_deployments SET state='running',lease=COALESCE(lease,new_resource_id('lease')),lease_until=COALESCE(lease_until,now()+interval '5 minutes') WHERE id=$1 RETURNING lease::text`, d.ID).Scan(&d.Lease)
 	if err != nil {
 		return nil, err
 	}

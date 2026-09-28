@@ -26,7 +26,6 @@ type Host struct {
 
 var label = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)
 var user = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
-var IDPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func (in *Input) Validate() error {
 	in.Name = strings.TrimSpace(in.Name)

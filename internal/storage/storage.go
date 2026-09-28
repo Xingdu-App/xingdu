@@ -56,7 +56,11 @@ func (s *Store) Ready(ctx context.Context) error {
 }
 
 // Migrate applies embedded migrations transactionally under a database-wide lock.
-func (s *Store) Migrate(ctx context.Context) error {
+func (s *Store) Migrate(ctx context.Context, credentialKeys ...string) error {
+	key := ""
+	if len(credentialKeys) > 0 {
+		key = credentialKeys[0]
+	}
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -84,6 +88,11 @@ func (s *Store) Migrate(ctx context.Context) error {
 		body, err := migrations.ReadFile("migrations/" + entry.Name())
 		if err != nil {
 			return err
+		}
+		if entry.Name() == "021_prefixed_ids.sql" {
+			if err = preparePrefixedIDEncryption(ctx, tx, key); err != nil {
+				return err
+			}
 		}
 		if _, err = tx.Exec(ctx, string(body)); err != nil {
 			return err

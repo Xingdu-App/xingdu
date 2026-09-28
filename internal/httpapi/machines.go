@@ -251,7 +251,7 @@ func (a *api) queueInstall(w http.ResponseWriter, r *http.Request, u storage.Use
 		clear(plain)
 	}
 	secret.EnrollmentToken = machine.Token()
-	j := machine.Job{ID: storage.NewID(), HostID: id, Mode: in.Mode}
+	j := machine.Job{ID: storage.NewID("job"), HostID: id, Mode: in.Mode}
 	plain, _ := json.Marshal(secret)
 	j.Encrypted = a.vault.Seal(plain, machine.AAD(org, id, j.ID))
 	clear(plain)

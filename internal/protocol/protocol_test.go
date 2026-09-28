@@ -85,7 +85,7 @@ func TestTaskIdentifiers(t *testing.T) {
 			t.Fatal("bad id")
 		}
 	}
-	if !ValidID(randomUUID()) {
+	if !ValidID("node_0123456789abcdef0123456789abcdef") {
 		t.Fatal("generated invalid id")
 	}
 }

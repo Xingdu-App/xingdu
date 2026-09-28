@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	resourceid "xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/protocol"
 )
 
@@ -215,7 +216,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if !x.root || c.Mode != "manage" {
 		return "manage_required"
 	}
-	if !protocol.ValidID(t.ID) || !protocol.ValidID(t.DeploymentID) {
+	if !resourceid.Valid("op", t.ID) || !resourceid.Valid("node", t.DeploymentID) || !resourceid.Valid("lease", t.Lease) {
 		return "invalid_task"
 	}
 	if t.Action != "deploy" && t.Action != "remove" && t.Action != "restart" {
@@ -224,14 +225,15 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if err := secureDir(x.stateDir); err != nil {
 		return "unsafe_state"
 	}
-	dir := filepath.Join(x.stateDir, t.DeploymentID)
-	unitPath := filepath.Join(x.unitDir, serviceName(t.DeploymentID))
+	localID := x.localDeploymentID(t.DeploymentID)
+	dir := filepath.Join(x.stateDir, localID)
+	unitPath := filepath.Join(x.unitDir, serviceName(localID))
 	marker := filepath.Join(dir, "owner")
 	if t.Action == "restart" {
-		if !x.owned(t.DeploymentID) {
+		if !x.ownedRuntime(localID) {
 			return "ownership_mismatch"
 		}
-		if x.run(ctx, "systemctl", "restart", serviceName(t.DeploymentID)) != nil {
+		if x.run(ctx, "systemctl", "restart", serviceName(localID)) != nil {
 			return "start_failed"
 		}
 		select {
@@ -239,7 +241,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 			return "start_failed"
 		case <-time.After(2 * time.Second):
 		}
-		if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(t.DeploymentID)) != nil {
+		if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) != nil {
 			return "start_failed"
 		}
 		return "restarted"
@@ -256,15 +258,15 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 			return "ownership_mismatch"
 		}
 		owner, e := os.ReadFile(marker)
-		if e != nil || string(owner) != t.DeploymentID {
+		if e != nil || string(owner) != localID {
 			return "ownership_mismatch"
 		}
 		unit, e := os.ReadFile(unitPath)
-		if e != nil && !os.IsNotExist(e) || e == nil && !strings.HasPrefix(string(unit), "# Xingdu managed deployment "+t.DeploymentID+"\n") {
+		if e != nil && !os.IsNotExist(e) || e == nil && !strings.HasPrefix(string(unit), "# Xingdu managed deployment "+localID+"\n") {
 			return "ownership_mismatch"
 		}
 		if e == nil {
-			if x.run(ctx, "systemctl", "disable", "--now", serviceName(t.DeploymentID)) != nil {
+			if x.run(ctx, "systemctl", "disable", "--now", serviceName(localID)) != nil {
 				return "stop_failed"
 			}
 			if os.Remove(unitPath) != nil {
@@ -273,10 +275,10 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		} else {
 			// A previous removal may have stopped and unlinked the unit but
 			// failed daemon-reload. Retained ownership allows safe recovery.
-			if x.run(ctx, "systemctl", "stop", serviceName(t.DeploymentID)) != nil {
+			if x.run(ctx, "systemctl", "stop", serviceName(localID)) != nil {
 				// An unloaded/missing unit is already stopped. Require the
 				// state query to confirm it is not running before cleanup.
-				stateErr := x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(t.DeploymentID))
+				stateErr := x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID))
 				var exitErr *exec.ExitError
 				if !errors.As(stateErr, &exitErr) || (exitErr.ExitCode() != 3 && exitErr.ExitCode() != 4) {
 					return "stop_failed"
@@ -309,7 +311,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 			os.RemoveAll(dir)
 		}
 	}()
-	if err := atomicProtocolFile(marker, []byte(t.DeploymentID), 0600); err != nil {
+	if err := atomicProtocolFile(marker, []byte(localID), 0600); err != nil {
 		return "write_failed"
 	}
 	binary, err := x.binary(ctx, c)
@@ -333,7 +335,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if err != nil {
 		return "instance_exists"
 	}
-	_, err = unit.WriteString(protocolUnit(t.DeploymentID, binary, configPath))
+	_, err = unit.WriteString(protocolUnit(localID, binary, configPath))
 	ce := unit.Close()
 	if err != nil || ce != nil {
 		if os.Remove(unitPath) != nil {
@@ -346,7 +348,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		if !completed {
 			cleanup, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
-			if x.run(cleanup, "systemctl", "disable", "--now", serviceName(t.DeploymentID)) != nil {
+			if x.run(cleanup, "systemctl", "disable", "--now", serviceName(localID)) != nil {
 				// Preserve the owned unit/config so a new remove operation can
 				// recover; do not report successful rollback of a live service.
 				completed = true
@@ -362,7 +364,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if x.run(ctx, "systemctl", "daemon-reload") != nil {
 		return "reload_failed"
 	}
-	if x.run(ctx, "systemctl", "enable", "--now", serviceName(t.DeploymentID)) != nil {
+	if x.run(ctx, "systemctl", "enable", "--now", serviceName(localID)) != nil {
 		return "start_failed"
 	}
 	select {
@@ -370,7 +372,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		return "start_failed"
 	case <-time.After(2 * time.Second):
 	}
-	if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(t.DeploymentID)) != nil {
+	if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) != nil {
 		return "start_failed"
 	}
 	completed = true
@@ -395,7 +397,7 @@ func (x *protocolExecutor) apply(ctx context.Context, c Config, t protocol.Task)
 		result.Code = "manage_required"
 		return result
 	}
-	if !protocol.ValidID(t.ID) || !protocol.ValidID(t.DeploymentID) {
+	if !resourceid.Valid("op", t.ID) || !resourceid.Valid("node", t.DeploymentID) || !resourceid.Valid("lease", t.Lease) {
 		return result
 	}
 	journalDir := filepath.Join(x.stateDir, "outcomes")
@@ -405,14 +407,15 @@ func (x *protocolExecutor) apply(ctx context.Context, c Config, t protocol.Task)
 	}
 	path := filepath.Join(journalDir, t.ID+".json")
 	fingerprint := taskFingerprint(t)
-	if b, e := os.ReadFile(path); e == nil {
+	if b, expected, e := x.readJournal(t, path, fingerprint); e == nil {
 		var old protocolJournal
-		if json.Unmarshal(b, &old) != nil || old.Fingerprint != fingerprint {
+		if json.Unmarshal(b, &old) != nil || old.Fingerprint != expected {
 			result.Code = "journal_conflict"
 			return result
 		}
 		if old.Result != nil {
 			result = *old.Result
+			result.ID = t.ID
 			result.Lease = t.Lease
 			return result
 		}

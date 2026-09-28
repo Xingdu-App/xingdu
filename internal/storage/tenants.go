@@ -88,7 +88,7 @@ func (s *Store) Register(ctx context.Context, username, hash, name string) (stri
 		return "", err
 	}
 	defer tx.Rollback(ctx)
-	id, org := NewID(), NewID()
+	id, org := NewID("usr"), NewID("org")
 	if err = setScope(ctx, tx, id, org); err != nil {
 		return "", err
 	}
@@ -129,7 +129,7 @@ func (s *Store) Organizations(ctx context.Context, user string) ([]Organization,
 }
 func (s *Store) CreateOrganization(ctx context.Context, user, name string) (Organization, error) {
 	name = strings.TrimSpace(name)
-	o := Organization{ID: NewID(), Name: name, Role: "owner"}
+	o := Organization{ID: NewID("org"), Name: name, Role: "owner"}
 	if !validOrg(name) {
 		return o, ErrInvalid
 	}
@@ -211,7 +211,7 @@ func (s *Store) CreateInvitation(ctx context.Context, role, hash string) (Invita
 	if actor == "admin" && role == "admin" {
 		return i, ErrForbidden
 	}
-	i.ID = NewID()
+	i.ID = NewID("inv")
 	i.Role = role
 	err = tx.QueryRow(ctx, "INSERT INTO invitations(id,organization_id,token_hash,role,created_by,expires_at) VALUES($1,request_org_id(),$2,$3,request_user_id(),now()+interval '7 days') RETURNING expires_at", i.ID, hash, role).Scan(&i.ExpiresAt)
 	if err != nil {

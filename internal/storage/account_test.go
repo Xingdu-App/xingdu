@@ -43,7 +43,7 @@ func TestAccountPasswordAndSessionIsolation(t *testing.T) {
 		}
 	}()
 	add := func() string {
-		id, e := s.Register(ctx, "account_"+NewID()[:8], "old-hash", "Account test")
+		id, e := s.Register(ctx, "account_"+NewID("obj")[4:12], "old-hash", "Account test")
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -68,7 +68,7 @@ func TestAccountPasswordAndSessionIsolation(t *testing.T) {
 		} else {
 			otherID = v.ID
 		}
-		if len(v.ID) != 36 {
+		if len(v.ID) != 36 || !strings.HasPrefix(v.ID, "ses_") {
 			t.Fatal("exposed credential instead of opaque ID")
 		}
 	}

@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
-	"xingdu.app/xingdu/internal/hosts"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/storage"
 )
 
@@ -24,7 +24,7 @@ type TenantStore interface {
 func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User, string)) http.HandlerFunc {
 	return a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, token string) {
 		org := r.Header.Get("X-Xingdu-Organization")
-		if !hosts.IDPattern.MatchString(org) {
+		if !id.Valid("org", org) {
 			failure(w, 400, "organization_required", "请选择组织")
 			return
 		}

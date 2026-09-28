@@ -47,7 +47,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 		}
 	}()
 	register := func() (string, string) {
-		id, e := s.Register(ctx, "bill_"+NewID()[4:12], "unused", "Billing test")
+		id, e := s.Register(ctx, "bill_"+NewID("obj")[4:12], "unused", "Billing test")
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -75,7 +75,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	cusA, cusB := "cus_"+NewID(), "cus_"+NewID()
+	cusA, cusB := "cus_"+NewID("obj"), "cus_"+NewID("obj")
 	if err = s.MutateBilling(ca, "", "", func(r *billing.Record) error { r.CustomerID = cusA; return nil }); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 	_, err = s.CreateHost(ca, host)
 	expectCode(err, "P0005")
 	calls := 0
-	event := "evt_" + NewID()
+	event := "evt_" + NewID("obj")
 	apply := func(r *billing.Record) error {
 		calls++
 		if r.OrganizationID != orgA {
@@ -138,8 +138,8 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 	for range 7 {
 		wg.Go(func() {
 			input := host
-			input.Name = "Quota " + NewID()
-			input.Address = NewID() + ".example.invalid"
+			input.Name = "Quota " + NewID("obj")
+			input.Address = NewID("obj") + ".example.invalid"
 			_, e := s.CreateHost(ca, input)
 			results <- e
 		})
@@ -157,7 +157,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 	if success != 5 {
 		t.Fatalf("host quota admitted %d", success)
 	}
-	if err = s.MutateBilling(ctx, cusA, "evt_"+NewID(), func(r *billing.Record) error { r.Status = "past_due"; return nil }); err != nil {
+	if err = s.MutateBilling(ctx, cusA, "evt_"+NewID("obj"), func(r *billing.Record) error { r.Status = "past_due"; return nil }); err != nil {
 		t.Fatal(err)
 	}
 	_, err = s.CreateHost(ca, host)
@@ -175,7 +175,7 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 		t.Fatal("self-hosting paywalled", err)
 	}
 	// Failed provider work must not acknowledge the event or alter entitlement.
-	failureEvent := "evt_" + NewID()
+	failureEvent := "evt_" + NewID("obj")
 	if err = s.MutateBilling(ctx, cusA, failureEvent, func(r *billing.Record) error { r.Status = "active"; return billing.ErrUnavailable }); !errors.Is(err, billing.ErrUnavailable) {
 		t.Fatal(err)
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"strings"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/storage"
 )
 
@@ -25,7 +25,7 @@ func (a *api) transferOwnership(w http.ResponseWriter, r *http.Request, u storag
 	if !decode(w, r, &in) {
 		return
 	}
-	if len(in.Target) != 36 || strings.Trim(in.Target, "0123456789abcdef-") != "" || len(in.Password) > 72 || in.Confirm != "TRANSFER" {
+	if !id.Valid("usr", in.Target) || len(in.Password) > 72 || in.Confirm != "TRANSFER" {
 		failure(w, 422, "invalid_transfer", "请选择已有成员并确认所有权转移")
 		return
 	}

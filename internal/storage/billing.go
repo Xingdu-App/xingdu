@@ -37,7 +37,7 @@ func (s *Store) EnsureBilling(ctx context.Context) error {
 	if role != "owner" {
 		return ErrForbidden
 	}
-	_, err = tx.Exec(ctx, "INSERT INTO organization_billing(organization_id,attempt) VALUES(request_org_id(),$1) ON CONFLICT(organization_id) DO NOTHING", NewID())
+	_, err = tx.Exec(ctx, "INSERT INTO organization_billing(organization_id,attempt) VALUES(request_org_id(),$1) ON CONFLICT(organization_id) DO NOTHING", NewID("bat"))
 	if err != nil {
 		return mapError(err)
 	}

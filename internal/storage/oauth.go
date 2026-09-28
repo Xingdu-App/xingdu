@@ -38,7 +38,7 @@ func (s *Store) SaveOAuthState(ctx context.Context, v OAuthState) error {
 	if _, err = tx.Exec(ctx, `DELETE FROM oauth_states WHERE expires_at<=now()`); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO oauth_states(state_hash,browser_hash,provider,mode,user_id,session_hash,encrypted) VALUES($1,$2,$3,$4,nullif($5,'')::uuid,nullif($6,''),$7)`, v.Hash, v.BrowserHash, v.Provider, v.Mode, v.UserID, v.SessionHash, v.Encrypted)
+	_, err = tx.Exec(ctx, `INSERT INTO oauth_states(state_hash,browser_hash,provider,mode,user_id,session_hash,encrypted) VALUES($1,$2,$3,$4,nullif($5,''),nullif($6,''),$7)`, v.Hash, v.BrowserHash, v.Provider, v.Mode, v.UserID, v.SessionHash, v.Encrypted)
 	if err != nil {
 		return err
 	}
@@ -111,8 +111,8 @@ func (s *Store) CompleteOAuth(ctx context.Context, state OAuthState, subject, em
 			if collision {
 				return User{}, ErrOAuthEmailExists
 			}
-			id = NewID()
-			org := NewID()
+			id = NewID("usr")
+			org := NewID("org")
 			if err = setScope(ctx, tx, id, org); err != nil {
 				return User{}, err
 			}

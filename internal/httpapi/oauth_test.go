@@ -55,7 +55,7 @@ func TestOAuthHTTPBrowserBindingLinkAndUnlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	email := "httpoauth_" + storage.NewID()[:16] + "@example.invalid"
+	email := "httpoauth_" + storage.NewID("obj")[4:20] + "@example.invalid"
 	var ids, states []string
 	defer func() {
 		for _, hash := range states {
@@ -68,8 +68,8 @@ func TestOAuthHTTPBrowserBindingLinkAndUnlink(t *testing.T) {
 			db.Pool.Exec(ctx, "DELETE FROM users WHERE id=$1", id)
 		}
 	}()
-	google := &mockOAuthProvider{subject: storage.NewID(), email: email}
-	github := &mockOAuthProvider{subject: storage.NewID(), email: "github@example.invalid"}
+	google := &mockOAuthProvider{subject: storage.NewID("obj"), email: email}
+	github := &mockOAuthProvider{subject: storage.NewID("obj"), email: "github@example.invalid"}
 	v, _ := vault.New(strings.Repeat("ad", 32))
 	h := New(s, Options{PublicOrigin: "https://xingdu.example.invalid", SecureCookies: true, RegistrationEnabled: true, CredentialVault: v, OAuthProviders: map[string]socialauth.Provider{"google": google, "github": github}})
 	request := func(method, path, body string, cookies []*http.Cookie, csrf string, want int) *httptest.ResponseRecorder {
@@ -167,13 +167,13 @@ func TestOAuthHTTPBrowserBindingLinkAndUnlink(t *testing.T) {
 		t.Fatal("revoked link session accepted", w.Header())
 	}
 	// Login with a verified email collision must not auto-link the local account.
-	localEmail := "local_" + storage.NewID()[:16] + "@example.invalid"
+	localEmail := "local_" + storage.NewID("obj")[4:20] + "@example.invalid"
 	localID, err := s.Register(ctx, localEmail, "fixture-hash", "Existing")
 	if err != nil {
 		t.Fatal(err)
 	}
 	ids = append(ids, localID)
-	google.subject = storage.NewID()
+	google.subject = storage.NewID("obj")
 	google.email = localEmail
 	state, browser = start("google", "login", nil, "")
 	w = request("GET", "/api/v1/auth/oauth/google/callback?state="+state+"&code=fixture-code", "", []*http.Cookie{browser}, "", 303)

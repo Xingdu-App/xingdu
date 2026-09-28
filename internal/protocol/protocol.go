@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 	"unicode"
+	"xingdu.app/xingdu/internal/id"
 )
 
 type Input struct {
@@ -47,7 +48,7 @@ type Result struct {
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 var dnsPattern = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$`)
 
-func ValidID(s string) bool { return uuidPattern.MatchString(s) }
+func ValidID(s string) bool { return id.ValidID(s) }
 func IsQUIC(p string) bool  { return p == "hysteria2" || p == "tuic" }
 func ValidateInput(in Input) error {
 	if strings.TrimSpace(in.Name) != in.Name || len([]rune(in.Name)) == 0 || len([]rune(in.Name)) > 80 || strings.ContainsFunc(in.Name, unicode.IsControl) {
@@ -136,7 +137,7 @@ func ValidateSpec(s Spec) error {
 		return err
 	}
 	if s.Protocol == "vless" || s.Protocol == "vmess" || s.Protocol == "tuic" {
-		if !ValidID(s.Credential) {
+		if !uuidPattern.MatchString(s.Credential) {
 			return errors.New("invalid UUID credential")
 		}
 	} else if !validPassword(s.Credential) {

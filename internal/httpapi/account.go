@@ -8,6 +8,7 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/storage"
 )
 
@@ -56,6 +57,10 @@ func (a *api) accountRoutes(mux *http.ServeMux) {
 		reply(w, 200, map[string]any{"data": sessions})
 	}))
 	mux.HandleFunc("DELETE /api/v1/account/sessions/{id}", a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
+		if !id.Valid("ses", r.PathValue("id")) {
+			failure(w, 400, "invalid_id", "记录 ID 无效")
+			return
+		}
 		if err := a.store.RevokeAccountSession(r.Context(), u.ID, r.PathValue("id")); err != nil {
 			storeError(w, err)
 			return

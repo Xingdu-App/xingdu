@@ -2,12 +2,11 @@ package storage
 
 import (
 	"context"
-	"crypto/rand"
 	"errors"
-	"fmt"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"time"
+	resourceid "xingdu.app/xingdu/internal/id"
 )
 
 var ErrNotFound = errors.New("not found")
@@ -20,13 +19,7 @@ type User struct {
 	PasswordLoginEnabled bool   `json:"-"`
 }
 
-func NewID() string {
-	b := make([]byte, 16)
-	_, _ = rand.Read(b)
-	b[6] = (b[6] & 0x0f) | 0x40
-	b[8] = (b[8] & 0x3f) | 0x80
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:])
-}
+func NewID(prefix string) string { return resourceid.New(prefix) }
 func mapError(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound

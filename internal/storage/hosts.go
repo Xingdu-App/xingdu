@@ -43,7 +43,7 @@ func (s *Store) CreateHost(ctx context.Context, in hosts.Input) (Host, error) {
 	}
 	defer tx.Rollback(ctx)
 
-	h, err := scanHost(tx.QueryRow(ctx, "INSERT INTO hosts(id,name,address,ssh_port,ssh_user,tags,notes) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING "+hostColumns, NewID(), in.Name, in.Address, in.SSHPort, in.SSHUser, in.Tags, in.Notes))
+	h, err := scanHost(tx.QueryRow(ctx, "INSERT INTO hosts(id,name,address,ssh_port,ssh_user,tags,notes) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING "+hostColumns, NewID("srv"), in.Name, in.Address, in.SSHPort, in.SSHUser, in.Tags, in.Notes))
 	if err != nil {
 		return h, err
 	}
