@@ -587,7 +587,7 @@ export default function ProtocolDialog({
                   </div>
                   <p>
                     {t(
-                      "包含访问凭据，请仅分享给可信使用者。客户端需支持此协议；可在订阅页面生成 Mihomo 配置。",
+                      "包含访问凭据，请仅分享给可信使用者。请在客户端订阅页面选择对应格式，并确认协议与证书要求。",
                     )}
                   </p>
                   <label>{t("服务器 / 端口 / TLS SNI")}</label>

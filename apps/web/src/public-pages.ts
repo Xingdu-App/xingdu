@@ -1,19 +1,69 @@
-export type PublicPage = "home" | "pricing" | "privacy" | "security";
+import { blogPosts, blogPath } from "./blog-posts";
+
+export type PublicPage =
+  | "home"
+  | "pricing"
+  | "privacy"
+  | "security"
+  | "help"
+  | "service"
+  | "blog"
+  | `blog/${string}`;
 export const publicPages: Record<
   PublicPage,
-  { path: string; title: string; description: string }
+  {
+    path: string;
+    title: string;
+    description: string;
+    articleSlug?: string;
+    updated?: string;
+  }
 > = {
+  blog: {
+    path: "/blog",
+    title: "服务器管理博客：VPS、Agent 与客户端订阅指南 · 星渡 Xingdu",
+    description:
+      "星渡博客分享个人 VPS 与多服务器管理、Agent 与 SSH 接入、客户端订阅及自托管选择的实用指南，也提供按需协作的权限管理建议。",
+    updated: blogPosts
+      .map((post) => post.updated)
+      .sort()
+      .at(-1),
+  },
+  ...Object.fromEntries(
+    blogPosts.map((post) => [
+      `blog/${post.slug}`,
+      {
+        path: blogPath(post),
+        title: `${post.title} · 星渡博客`,
+        description: post.description,
+        articleSlug: post.slug,
+        updated: post.updated,
+      },
+    ]),
+  ),
   home: {
     path: "/",
-    title: "星渡 Xingdu — 让服务器与团队，在一处相遇",
+    title: "星渡 Xingdu — 开源 VPS 服务器管理与协议部署面板",
     description:
-      "星渡是开源的服务器管理工作空间，支持 Agent 接入、SSH 安装、TLS 协议部署、运行状态监测与组织协作。自托管免费，托管服务筹备中。",
+      "星渡是适合个人与团队的开源 VPS 管理面板，支持 Agent 接入、SSH 安装、TLS 协议部署、运行状态监测和客户端配置。自托管免费，托管服务筹备中。",
+  },
+  help: {
+    path: "/help",
+    title: "帮助中心 · 星渡 Xingdu",
+    description:
+      "从登录和组织邀请，到服务器接入、协议部署与客户端订阅，了解星渡的使用步骤和常见问题。",
+  },
+  service: {
+    path: "/service",
+    title: "服务范围 · 星渡 Xingdu",
+    description:
+      "了解星渡产品预览的功能范围、资源要求、费用说明与停止使用时的数据处理边界。",
   },
   pricing: {
     path: "/pricing",
     title: "价格与部署方式 · 星渡 Xingdu",
     description:
-      "选择适合你的星渡：MIT 开源版本免费自托管，托管服务的价格与套餐将在开放前公布。",
+      "选择适合你的星渡：MIT 开源版本免费自托管；托管服务的价格与套餐将在开放前公布。",
   },
   privacy: {
     path: "/privacy",

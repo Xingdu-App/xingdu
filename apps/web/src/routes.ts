@@ -31,7 +31,7 @@ export const pages = [
   {
     id: "subscriptions",
     get label() {
-      return t("订阅");
+      return t("客户端订阅");
     },
     icon: "▧",
   },

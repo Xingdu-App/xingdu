@@ -1,3 +1,10 @@
+import {
+  siteOrigin,
+  escapeXML as escape,
+  seoHead,
+  sitemap,
+  rss,
+} from "./seo.mjs";
 import { build } from "vite";
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -7,23 +14,12 @@ await build({
   build: { ssr: "src/public-entry.tsx", outDir: generated, emptyOutDir: true },
   publicDir: false,
 });
-const { render, publicPages } = await import(
+const { render, publicPages, blogPosts } = await import(
   pathToFileURL(resolve(generated, "public-entry.js"))
 );
 const template = await readFile("dist/index.html", "utf8");
-const siteURL = new URL(process.env.XINGDU_SITE_URL || "https://xingdu.app");
-if (!["http:", "https:"].includes(siteURL.protocol)) {
-  throw new Error("XINGDU_SITE_URL must use HTTP or HTTPS");
-}
-const origin = siteURL.origin;
-const escape = (s) =>
-  s
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
+const origin = siteOrigin(process.env.XINGDU_SITE_URL);
 for (const [page, meta] of Object.entries(publicPages)) {
-  const canonical = origin + meta.path;
   let html = template
     .replace(/<title>.*?<\/title>/s, `<title>${escape(meta.title)}</title>`)
     .replace(
@@ -36,7 +32,11 @@ for (const [page, meta] of Object.entries(publicPages)) {
     )
     .replace(
       "</head>",
-      `<link rel="canonical" href="${escape(canonical)}" />\n<meta property="og:type" content="website" />\n<meta property="og:title" content="${escape(meta.title)}" />\n<meta property="og:description" content="${escape(meta.description)}" />\n<meta property="og:url" content="${escape(canonical)}" />\n<meta property="og:image" content="${escape(origin)}/xingdu-logo.png" />\n</head>`,
+      seoHead(
+        meta,
+        origin,
+        blogPosts.find((post) => post.slug === meta.articleSlug),
+      ) + "\n</head>",
     );
   const directory = meta.path === "/" ? "dist" : "dist" + meta.path;
   await mkdir(directory, { recursive: true });
@@ -69,15 +69,9 @@ await writeFile(
   "dist/robots.txt",
   `User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /login\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`,
 );
-await writeFile(
-  "dist/sitemap.xml",
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${Object.values(
-    publicPages,
-  )
-    .map((p) => `<url><loc>${escape(origin + p.path)}</loc></url>`)
-    .join("")}</urlset>\n`,
-);
+await writeFile("dist/sitemap.xml", sitemap(publicPages, origin));
+await writeFile("dist/blog/feed.xml", rss(blogPosts, origin));
 await rm(generated, { recursive: true, force: true });
 console.log(
-  "Prerendered 4 public pages, console shells, sitemap and robots.txt.",
+  `Prerendered ${Object.keys(publicPages).length} public pages, console shells, sitemap and robots.txt.`,
 );

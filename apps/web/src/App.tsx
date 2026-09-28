@@ -28,10 +28,12 @@ type LoadState = "loading" | "ready" | "error";
 const pendingCopy: Record<string, { title: string; description: string }> = {
   routes: {
     get title() {
-      return t("从一个入口，连接更多可能");
+      return t("线路编排尚未开放");
     },
     get description() {
-      return t("线路编排将在后续版本开放，支持直连与单层中转。");
+      return t(
+        "当前可在客户端订阅中设置分流规则。多节点线路编排尚未开放，请先完成节点部署与客户端连接验证。",
+      );
     },
   },
 };
@@ -111,7 +113,7 @@ function App({
         setNodes([]);
         setError(
           controller.signal.aborted
-            ? t("连接超时，请检查本地服务是否已启动。")
+            ? t("连接超时，请检查网络后重试；持续失败时请联系服务管理员。")
             : reason instanceof Error
               ? reason.message
               : t("无法连接控制端。"),
@@ -192,6 +194,9 @@ function App({
             ))}
         </nav>
         <div className="sidebar-account">
+          <a className="nav-item" href="/help">
+            {t("帮助中心")}
+          </a>
           <LanguageSwitch />
           <AccountMenu
             username={username}
@@ -213,7 +218,7 @@ function App({
               <p className="subtitle">
                 {page === "overview"
                   ? t("将分散的服务器，变成触手可及的网络。")
-                  : t("星渡 · VPS 与线路自动化管理")}
+                  : t("管理当前组织的服务器、节点与客户端配置。")}
               </p>
             </div>
             <button
@@ -280,7 +285,7 @@ function App({
                   <Stat
                     label={t("客户端订阅")}
                     value={t("已开放")}
-                    note={t("Stash / Mihomo 配置订阅")}
+                    note={t("多种客户端格式，按支持范围导出")}
                   />
                 </div>
               )}
@@ -288,7 +293,9 @@ function App({
                 <div className="section-heading">
                   <div>
                     <h2>{t("服务器")}</h2>
-                    <p>{t("你的网络，从第一台服务器开始。")}</p>
+                    <p>
+                      {t("添加服务器资料后，通过「接入 / 状态」安装 Agent。")}
+                    </p>
                   </div>
                   <div className="inventory-actions">
                     <button
@@ -511,13 +518,11 @@ function App({
                     <p className="eyebrow">BUILT TO CONNECT</p>
                     <h2>{t("与你习惯的客户端相遇。")}</h2>
                     <div className="client-tags">
-                      {["Stash", "Surge", "Loon", "Shadowrocket"].map(
-                        (name) => (
-                          <span key={name}>{name}</span>
-                        ),
-                      )}
+                      {["Stash", "Mihomo", "Surge", "Loon"].map((name) => (
+                        <span key={name}>{name}</span>
+                      ))}
                     </div>
-                    <p>{t("计划支持 · 协议与版本兼容性待验证")}</p>
+                    <p>{t("已提供格式导出 · 实际 App 导入与联网需验证")}</p>
                   </section>
                 </div>
               )}

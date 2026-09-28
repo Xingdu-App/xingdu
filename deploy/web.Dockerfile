@@ -3,7 +3,8 @@ WORKDIR /src
 COPY apps/web/package*.json ./
 RUN npm ci
 COPY apps/web/ ./
-RUN npm run build
+ARG XINGDU_SITE_URL=https://xingdu.app
+RUN XINGDU_SITE_URL="$XINGDU_SITE_URL" npm run build
 
 FROM nginxinc/nginx-unprivileged:stable-alpine
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf

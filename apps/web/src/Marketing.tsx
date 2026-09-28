@@ -1,3 +1,5 @@
+import Blog, { BlogCards } from "./Blog";
+import { blogPosts } from "./blog-posts";
 import type { ReactNode } from "react";
 import "./Marketing.css";
 
@@ -41,7 +43,7 @@ function ProductPreview() {
       <div className="preview-orbit orbit-one" aria-hidden="true" />
       <div className="preview-orbit orbit-two" aria-hidden="true" />
       <div className="preview-float">
-        <span className="site-live-dot" /> 一个空间，连接你的团队
+        <span className="site-live-dot" /> 一个空间，管理你的 VPS
       </div>
       <div className="product-preview">
         <div className="preview-chrome">
@@ -65,7 +67,7 @@ function ProductPreview() {
                 <small>YOUR WORKSPACE</small>
                 <h3>每一台，都在这里。</h3>
               </div>
-              <span className="preview-pill">团队空间</span>
+              <span className="preview-pill">我的空间</span>
             </div>
             <div className="preview-metrics">
               <div>
@@ -113,13 +115,49 @@ function ProductPreview() {
               <span className="preview-status">在线</span>
             </div>
             <div className="preview-bottom">
-              <span className="site-live-dot" /> 组织协作 · 权限清晰 · 状态可见
+              <span className="site-live-dot" /> 机器状态 · 协议部署 ·
+              客户端配置
             </div>
           </div>
         </div>
       </div>
       <p className="preview-caption">产品界面示意 · 非实时数据</p>
     </div>
+  );
+}
+function GettingStarted() {
+  return (
+    <section className="site-section site-container">
+      <SectionTitle eyebrow="GET STARTED" title="三步，建立你的工作空间。">
+        准备一台你有权管理的 Linux 服务器；部署协议服务时，还需准备域名和有效的
+        TLS 证书。
+      </SectionTitle>
+      <div className="site-feature-grid">
+        {[
+          [
+            "创建或加入组织",
+            "使用当前开放的方式登录，创建用于管理 VPS 的工作空间。个人使用也可以创建组织，无需邀请其他成员；需要协作时再邀请他人加入。",
+          ],
+          [
+            "添加服务器并接入",
+            "先登记服务器，再安装 Agent。只查看状态可使用探针模式；需要部署协议时，由管理员授权托管模式。",
+          ],
+          [
+            "部署节点并生成配置",
+            "提交前检查证书与端口，部署后查看节点状态，再创建客户端订阅。导入对应 App 后，验证实际连接。",
+          ],
+        ].map(([title, body], index) => (
+          <article className="site-feature" key={title}>
+            <span className="feature-number">0{index + 1}</span>
+            <h3>{title}</h3>
+            <p>{body}</p>
+          </article>
+        ))}
+      </div>
+      <a className="site-text-link" href="/help">
+        阅读入门与常见问题 <Arrow />
+      </a>
+    </section>
   );
 }
 function Plans({ compact = false }: { compact?: boolean }) {
@@ -180,8 +218,8 @@ function Home() {
       <section className="site-hero site-container">
         <div className="hero-copy">
           <span className="site-release">
-            <span className="site-live-dot" /> 开源开发预览 <span>·</span>{" "}
-            为协作而生
+            <span className="site-live-dot" /> 产品预览 <span>·</span> 从一台
+            VPS 开始
           </span>
           <h1>
             分散的服务器，
@@ -189,7 +227,8 @@ function Home() {
             <em>在星渡相遇。</em>
           </h1>
           <p>
-            一个清晰的工作空间，连接你的服务器与团队。掌握机器状态，分配访问权限，让每一次协作都有条不紊。
+            无论一台还是多台
+            VPS，都能在一个工作空间查看状态、部署协议服务、管理客户端配置。自己使用轻松有序，需要协作时也能邀请他人加入。
           </p>
           <div className="hero-actions">
             <a className="site-button site-button-dark" href="/app">
@@ -219,7 +258,7 @@ function Home() {
       <section id="features" className="site-section site-container">
         <SectionTitle
           eyebrow="LESS FRICTION. MORE CLARITY."
-          title="接入、部署、协作。一处完成。"
+          title="接入、部署、使用。一处完成。"
         >
           把重复的管理步骤，整理成清晰的工作流。
         </SectionTitle>
@@ -261,9 +300,10 @@ function Home() {
             <div className="feature-glyph" aria-hidden="true">
               ▦
             </div>
-            <h3>共享工作，不共享账号</h3>
+            <h3>个人使用，按需共享</h3>
             <p>
-              通过组织邀请团队成员，按角色分配权限。不同组织的服务器、凭据与成员访问分别管理。
+              为自己的 VPS
+              建立工作空间，集中管理服务器与节点。需要共同维护时，再邀请成员并分配权限，无需共享账号。
             </p>
             <div className="feature-tags">
               <span>组织空间</span>
@@ -273,6 +313,7 @@ function Home() {
           </article>
         </div>
       </section>
+      <GettingStarted />
       <section className="site-security-band">
         <div className="site-container security-band-inner">
           <div>
@@ -332,24 +373,37 @@ function Home() {
       <section className="site-roadmap site-container">
         <div>
           <span className="site-roadmap-label">接下来</span>
-          <h2>从机器接入，走向线路编排。</h2>
+          <h2>从服务部署，到客户端配置。</h2>
           <p>
-            五种协议的安装与卸载、基础 Mihomo
-            订阅已实现，线路编排与其他客户端格式仍在计划中。部署完成后，需自行验证实际客户端连通性。
+            五种协议的安装与卸载、Stash、Mihomo、Surge、Loon 配置及 Hysteria 2
+            分享链接已提供。各格式支持的协议和证书要求不同，实际 App
+            导入与联网仍需验证；线路编排尚未开放。
           </p>
         </div>
         <div className="roadmap-clients">
           <span>Stash</span>
           <span>Surge</span>
           <span>Loon</span>
-          <span>Shadowrocket</span>
-          <small>计划兼容 · 非当前功能</small>
+          <span>Hysteria 2 URI</span>
+          <small>提供受限格式导出 · App 联网待验收</small>
         </div>
+      </section>
+      <section className="site-section site-container">
+        <SectionTitle
+          eyebrow="FROM THE JOURNAL"
+          title="让每一次管理，都有方法可循。"
+        >
+          从个人 VPS 接入到多服务器管理，找到适合自己的使用方法。
+        </SectionTitle>
+        <BlogCards posts={blogPosts.slice(0, 2)} />
+        <a className="site-text-link" href="/blog">
+          浏览全部文章 <Arrow />
+        </a>
       </section>
       <section className="site-final-cta site-container">
         <p className="site-eyebrow">A SIMPLE BEGINNING</p>
         <h2>下一段连接，从这里开始。</h2>
-        <p>从第一台服务器，或第一个协作空间开始。</p>
+        <p>从自己的第一台 VPS 开始。</p>
         <a className="site-button site-button-dark" href="/app">
           打开星渡控制台 <Arrow />
         </a>
@@ -392,7 +446,7 @@ function Pricing() {
         <details>
           <summary>免费版本有机器或成员数量限制吗？</summary>
           <p>
-            当前自托管版本尚未实现计费配额，实际容量取决于你的部署资源。这不是对未来托管服务额度的承诺。
+            当前版本已有组织资源配额，组织管理员可在设置中查看资源用量与上限。额度由服务管理员配置，自托管软件免费不代表资源无限。
           </p>
         </details>
         <details>
@@ -415,8 +469,9 @@ function Pricing() {
           <summary>支持一键部署协议和客户端订阅吗？</summary>
           <p>
             已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC
-            v5，须提供 TLS 证书并明确授权。基础 Mihomo
-            订阅已开放；线路编排与其他客户端格式尚未开放，托管套餐尚未上线。
+            v5，须提供 TLS 证书并明确授权。已提供 Stash、Mihomo、Surge、Loon
+            配置及 Hysteria 2 分享链接，具体协议和证书支持范围不同；实际 App
+            联网仍需验证。
           </p>
         </details>
       </section>
@@ -434,7 +489,9 @@ const privacySections = [
           日。不同自托管实例由各自部署者运行；部署位置、日志、备份和保留期限由实际部署配置决定。
         </p>
         <p>
-          星渡目前提供部署预览，邮箱服务未配置时不开放新账号注册。正式托管服务的运营主体、处理地区、服务商、保留期限及隐私联络方式将在开放前单独公布。本页不替代未来托管服务的正式隐私政策。
+          星渡目前提供产品预览。邮箱注册需要有效邮件服务；Google / GitHub
+          登录需要部署者分别配置，未配置的方式不可用。正式托管服务的运营主体、处理地区、服务商、保留期限及具体数据处理政策将在开放前单独公布。本页不替代未来托管服务的正式隐私政策。隐私咨询可发送至
+          info@xingdu.app；自托管实例的数据请求应联系实际部署者。
         </p>
       </>
     ),
@@ -444,7 +501,9 @@ const privacySections = [
     body: (
       <>
         <p>
-          新账号使用邮箱验证注册，保存邮箱、验证时间和密码哈希；已有用户名账号仍可登录。验证完成前只保存限时注册挑战，不创建可登录账户。组织名称、成员关系、角色、邀请状态，以及你添加的服务器地址、SSH
+          邮箱注册保存邮箱、验证时间和密码哈希；已有用户名账号仍可登录。通过
+          Google / GitHub
+          创建的账号保存该服务的用户标识与返回的已验证邮箱，不会获得你的第三方账号密码。验证完成前只保存限时注册挑战，不创建可登录账户。组织名称、成员关系、角色、邀请状态，以及你添加的服务器地址、SSH
           用户、端口、标签和备注会保存在该实例的数据库中。
         </p>
         <p>
@@ -515,6 +574,20 @@ const privacySections = [
           凭据和节点私钥不会包含在邮件中；星渡数据库只保存验证码摘要，不保存明文验证码。未配置有效邮件服务时，不发送邮件，也不绕过邮箱验证。
         </p>
         <p>
+          选择 Google 或 GitHub
+          登录、绑定时，浏览器会跳转至对应服务授权。第三方会处理该次访问和授权请求，星渡服务端会获取用于核验身份的用户标识与已验证邮箱。星渡不会请求访问代码仓库、联系人或云盘；用于身份核验的访问令牌不作为长期凭据保存。第三方提供的已验证邮箱与星渡账号的已验证邮箱一致时，会自动关联并登录已有账号，无需先手动绑定。仅用户名相同不会触发关联；已经关联的第三方身份仍以其稳定标识识别账号。
+        </p>
+        <p>
+          第三方授权流程使用短期安全状态与 Cookie
+          校验请求来源。解绑会移除星渡账号与第三方身份的关联，不会删除第三方账号，也不一定撤销第三方服务中的应用授权；你可以在对应服务的账号设置中撤销授权。至少需要保留一种星渡登录方式。
+        </p>
+        <p>
+          云端计费启用后，支付页面与账单管理由 Stripe 提供。星渡保存组织对应的
+          Stripe
+          客户、订阅标识、账期和状态，不保存完整银行卡号或安全码；银行卡信息直接交给
+          Stripe。星渡不会把机器地址、SSH 凭据或节点密钥发送给 Stripe。
+        </p>
+        <p>
           点击 GitHub 等外部链接后，将适用对应网站的数据处理规则。请不要把 SSH
           凭据、邀请令牌或私人服务器信息提交到公开 issue。
         </p>
@@ -534,7 +607,7 @@ const privacySections = [
           凭据不取消已提交任务持有的临时副本；需要同时终止后续接入时，应撤销机器接入。撤销不会停止已部署的协议服务，也不会卸载机器上的软件；需要终止服务时，应先卸载并确认完成，再撤销接入。已发出的操作无法撤回。
         </p>
         <p>
-          在线数据删除不意味着备份中的历史副本立即消失，已记录的审计事件也可能继续保留。当前尚无账号和组织的一键删除功能。自托管实例的数据查阅、删除与备份请求，请联系该实例部署者。
+          在线数据删除不意味着备份中的历史副本立即消失，已记录的审计事件也可能继续保留。当前尚无账号和组织的一键删除功能。星渡相关数据咨询请通过下方邮箱联系，并说明请求类型和账号邮箱；请勿发送密码或密钥。自托管实例的数据查阅、删除与备份请求，请联系该实例部署者。
         </p>
       </>
     ),
@@ -570,12 +643,155 @@ function Privacy() {
             </section>
           ))}
           <div className="document-note">
-            想进一步了解权限和凭据保护？
+            隐私与数据咨询：<a href="mailto:info@xingdu.app">info@xingdu.app</a>
+            。想进一步了解权限和凭据保护？
             <a href="/security">
               查看安全设计 <Arrow />
             </a>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+function Help() {
+  return (
+    <div className="site-container">
+      <section className="site-page-intro">
+        <p className="site-eyebrow">HELP & SUPPORT</p>
+        <h1>
+          从第一次登录，<em>到第一台服务器。</em>
+        </h1>
+        <p>了解使用步骤、权限分工，以及遇到问题时如何继续。</p>
+      </section>
+      <section className="site-faq">
+        {[
+          [
+            "只有自己使用、一台 VPS，也适合吗？",
+            "可以。星渡支持个人管理自己的 VPS，一台服务器也可以开始使用。注册时创建的组织就是资源工作空间，不要求有多名成员，也不需要邀请他人。以后需要共同维护时，再按需邀请成员。",
+          ],
+          [
+            "没有账号，如何开始？",
+            "在控制台使用已开放的登录方式。邮箱注册需要完成验证码验证；如果注册未开放，请联系当前服务管理员。第三方已验证邮箱与已有账号的已验证邮箱相同时，可直接登录并自动关联，无需先手动绑定。",
+          ],
+          [
+            "收到团队邀请后怎么做？",
+            "打开邀请链接并登录，核对组织名称后接受邀请。链接过期或已撤销时，请邀请人重新发送。加入后，在侧边栏组织菜单切换工作空间。",
+          ],
+          [
+            "服务器、节点和客户端订阅有什么区别？",
+            "服务器是你管理的机器；节点是部署在机器上的协议服务；客户端订阅把选中的节点和分流规则生成可导入的配置。客户端订阅不是星渡云服务的付费套餐。",
+          ],
+          [
+            "为什么有些操作不可用？",
+            "操作范围由组织角色决定。接入机器、部署协议和管理客户端订阅需要所有者或管理员权限。达到资源上限时，请先在设置中查看用量，再联系服务管理员。",
+          ],
+          [
+            "显示在线或部署成功，就能连接了吗？",
+            "在线表示 Agent 最近成功上报心跳；部署成功表示机器完成了对应任务。客户端连接还取决于域名解析、防火墙、端口、证书和 App 支持情况，需要实际导入并测试。",
+          ],
+          [
+            "客户端格式应该怎么选？",
+            "按实际使用的客户端选择，不能把一种格式直接当作另一种使用。Surge 不导出 VLESS，Loon 不导出 TUIC 且要求系统信任的完整证书链；Hysteria 2 分享链接仅用于该协议且不支持分流规则。Shadowrocket 暂无专用输出。",
+          ],
+          [
+            "没有收到验证码或忘记密码怎么办？",
+            "先检查垃圾邮件、邮箱拼写和重发倒计时，重发后请使用最新验证码。当前尚未提供邮件找回密码；若已绑定其他登录方式，可用它登录。仍无法登录时，请联系当前服务管理员，不要向他人发送密码或验证码。",
+          ],
+          [
+            "删除订阅或撤销 Agent 会停止节点吗？",
+            "停用、删除或重置订阅链接会阻止旧链接继续获取配置，但不会撤回已下载的节点凭据。撤销 Agent 也不会停止机器上运行的服务。需要终止服务时，应先完成协议卸载并确认结果，再撤销接入。",
+          ],
+        ].map(([title, body]) => (
+          <details key={title}>
+            <summary>{title}</summary>
+            <p>{body}</p>
+          </details>
+        ))}
+      </section>
+      <section className="security-boundary">
+        <h2>获取帮助与反馈</h2>
+        <p>
+          星渡使用与隐私问题可联系
+          info@xingdu.app。自托管实例的账号、组织权限、额度和数据处理问题，请联系当前实例的服务管理员。自托管部署步骤见部署文档；可公开的问题可提交到项目
+          Issue，附上操作步骤、发生时间和脱敏后的错误提示。
+        </p>
+        <p>
+          请勿公开密码、验证码、SSH
+          私钥、订阅链接或服务器地址。安全漏洞的报告要求见安全说明；当前没有已公布的客服响应时限。
+        </p>
+        <p>
+          <a href="mailto:info@xingdu.app">联系支持：info@xingdu.app</a>
+        </p>
+        <p>
+          <a href={docs}>部署文档</a> ·{" "}
+          <a href={`${repository}/issues`}>问题反馈</a> ·{" "}
+          <a href={`${repository}/blob/main/SECURITY.md`}>安全报告说明</a>
+        </p>
+      </section>
+    </div>
+  );
+}
+function Service() {
+  return (
+    <div className="site-container">
+      <section className="site-page-intro">
+        <p className="site-eyebrow">SERVICE SCOPE</p>
+        <h1>
+          开始使用前，<em>了解服务范围。</em>
+        </h1>
+        <p>当前产品预览的使用说明。正式运营条款与信息仍需在服务开放前补齐。</p>
+      </section>
+      <div className="site-document">
+        <section>
+          <h2>你在星渡管理什么</h2>
+          <p>
+            星渡提供服务器资料管理、Agent
+            接入、协议部署、客户端配置与组织协作。服务器、域名、证书及网络流量由你自行准备；星渡不提供
+            VPS，也不承诺特定网络环境下的连接效果。
+          </p>
+        </section>
+        <section>
+          <h2>按授权使用资源</h2>
+          <p>
+            只添加你拥有或已获授权管理的服务器。邀请成员前确认其职责，按需分配权限；不要分享个人账号。启用托管
+            Agent 前，请了解其安装、重启和卸载服务所需的权限。
+          </p>
+        </section>
+        <section>
+          <h2>预览范围与后续变化</h2>
+          <p>
+            当前版本处于早期预览，功能与接口可能调整。自动证书签发与续期、配置回滚、线路编排和客户端
+            App
+            全量兼容验收尚未完成。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。
+          </p>
+        </section>
+        <section>
+          <h2>费用与资源上限</h2>
+          <p>
+            MIT
+            开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。组织配额以控制台显示为准。云端套餐与包含额度见价格页，实际购买入口以当前实例控制台为准。付款前请核对计费周期与续费信息；退款和特殊账单问题请联系
+            info@xingdu.app，不预设退款结果。
+          </p>
+        </section>
+        <section>
+          <h2>停止使用与数据处理</h2>
+          <p>
+            停止使用前，请确认机器上的服务是否需要卸载，处理订阅链接和访问凭据，再撤销机器接入。当前未提供账号或组织的一键删除入口；数据查阅、删除及备份处理请联系实际部署者，处理边界见隐私说明。
+          </p>
+        </section>
+        <section>
+          <h2>文档与支持</h2>
+          <p>
+            使用问题请先查看帮助中心。自托管实例由各自部署者维护；可通过
+            info@xingdu.app
+            联系星渡。正式托管服务的运营主体、支持时间与数据处理政策尚待公布。
+          </p>
+          <p>
+            <a href="/help">帮助中心</a> · <a href="/privacy">隐私说明</a> ·{" "}
+            <a href="/pricing">价格与部署方式</a>
+          </p>
+        </section>
       </div>
     </div>
   );
@@ -633,7 +849,7 @@ function Security() {
         </p>
         <p>
           当前是开发预览，尚未完成公网生产运营准备，也没有独立安全认证或 SLA
-          承诺。加密密钥轮换、备份恢复、正式运营隐私政策等工作仍需在服务开放前完善。
+          承诺。已提供加密备份与隔离恢复工具；生产恢复演练、密钥轮换和正式运营隐私政策仍需在服务开放前完成。
         </p>
         <a
           className="site-text-link"
@@ -674,6 +890,17 @@ export default function Marketing({ page }: { page: PublicPage }) {
             >
               隐私
             </a>
+            <a
+              href="/blog"
+              aria-current={
+                page === "blog" || page.startsWith("blog/") ? "page" : undefined
+              }
+            >
+              博客
+            </a>
+            <a href="/help" aria-current={page === "help" ? "page" : undefined}>
+              帮助
+            </a>
           </nav>
           <a className="site-login" href="/app">
             登录控制台 <Arrow />
@@ -681,12 +908,18 @@ export default function Marketing({ page }: { page: PublicPage }) {
         </div>
       </header>
       <main id="site-content" className="site-main">
-        {page === "home" ? (
+        {page === "blog" || page.startsWith("blog/") ? (
+          <Blog slug={page === "blog" ? undefined : page.slice(5)} />
+        ) : page === "home" ? (
           <Home />
         ) : page === "pricing" ? (
           <Pricing />
         ) : page === "privacy" ? (
           <Privacy />
+        ) : page === "help" ? (
+          <Help />
+        ) : page === "service" ? (
+          <Service />
         ) : (
           <Security />
         )}
@@ -696,7 +929,7 @@ export default function Marketing({ page }: { page: PublicPage }) {
           <div className="site-footer-top">
             <div>
               <Brand />
-              <p>连点成网，一键抵达。</p>
+              <p>你的 VPS 与节点，一处管理。</p>
             </div>
             <div className="site-footer-links">
               <div>
@@ -707,6 +940,10 @@ export default function Marketing({ page }: { page: PublicPage }) {
               </div>
               <div>
                 <strong>了解更多</strong>
+                <a href="/blog">博客与指南</a>
+                <a href="/help">帮助中心</a>
+                <a href="mailto:info@xingdu.app">联系我们</a>
+                <a href="/service">服务范围</a>
                 <a href="/privacy">隐私说明</a>
                 <a href="/security">安全设计</a>
                 <a href={docs}>部署文档</a>
@@ -727,7 +964,7 @@ export default function Marketing({ page }: { page: PublicPage }) {
           </div>
           <div className="site-footer-bottom">
             <span>© 2026 星渡 Xingdu</span>
-            <span>开源可用 · 托管服务筹备中</span>
+            <span>MIT 开源 · 产品预览</span>
             <span>Built to connect.</span>
           </div>
         </div>
