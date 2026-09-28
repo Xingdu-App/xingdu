@@ -159,7 +159,7 @@ func (a *api) tenantRoutes(mux *http.ServeMux) {
 			storeError(w, err)
 			return
 		}
-		reply(w, 201, map[string]any{"data": map[string]any{"invitation": out, "url": a.origin + "/#invite=" + token}})
+		reply(w, 201, map[string]any{"data": map[string]any{"invitation": out, "url": a.origin + "/app#invite=" + token}})
 	}))
 	mux.HandleFunc("DELETE /api/v1/invitations/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validID(w, r) {

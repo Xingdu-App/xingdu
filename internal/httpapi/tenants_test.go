@@ -107,6 +107,9 @@ func TestOrganizationsAndInvitations(t *testing.T) {
 		}
 	}
 	json.Unmarshal(w.Body.Bytes(), &invite)
+	if !strings.Contains(invite.Data.URL, "/app#invite=") {
+		t.Fatalf("invitation must target console: %s", invite.Data.URL)
+	}
 	token := strings.Split(invite.Data.URL, "#invite=")[1]
 	request(b, "POST", "/api/v1/invitations/accept", map[string]string{"token": token}, 200)
 	request(b, "POST", "/api/v1/invitations/accept", map[string]string{"token": token}, 404)

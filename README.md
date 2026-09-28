@@ -57,7 +57,7 @@ cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-Open the console at **[http://127.0.0.1:15173](http://127.0.0.1:15173)**. The first build downloads dependencies and container images, so it may take a few minutes.
+Open the public website at **[http://127.0.0.1:15173](http://127.0.0.1:15173)** and the console at **[/app](http://127.0.0.1:15173/app)**. The website includes pricing, privacy and security pages; hosted service pricing is not yet announced. The first build downloads dependencies and container images, so it may take a few minutes.
 
 Create your initial user and organization from a local terminal. The command prompts for a hidden password of 12–72 bytes; there is no default password. It refuses to overwrite an existing username.
 
@@ -69,7 +69,8 @@ Sign in, select an organization, then add your first server record. In **组织�
 
 | Service | Local address |
 | --- | --- |
-| Web console | `http://127.0.0.1:15173` |
+| Public website | `http://127.0.0.1:15173` |
+| Web console | `http://127.0.0.1:15173/app` |
 | API | `http://127.0.0.1:18080` |
 | PostgreSQL | `127.0.0.1:54329` |
 

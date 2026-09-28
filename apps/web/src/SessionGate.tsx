@@ -88,6 +88,9 @@ export default function SessionGate() {
   if (session) return <OrganizationGate session={session} onLogout={signOut} />;
   return (
     <div className="auth-page">
+      <a className="auth-home-link" href="/">
+        ← 返回星渡官网
+      </a>
       <section className="auth-card">
         <img className="auth-logo" src="/xingdu-logo.png" alt="星渡 Logo" />
         <p className="eyebrow">XINGDU · 星渡</p>
@@ -184,11 +187,15 @@ export default function SessionGate() {
           </p>
           <code>docker compose exec api admin --username admin</code>
           <p>
-            组织管理员可以分享邀请链接。公开注册由部署者控制；Agent
-            接入与协议部署仍在开发中。
+            组织管理员可以分享邀请链接。公开注册由部署者控制。当前支持机器接入与探针，协议部署仍在开发中。
           </p>
         </details>
         <div className="auth-footer">开源 · 自托管 · 自由连接</div>
+        <nav className="auth-public-links" aria-label="公开信息">
+          <a href="/pricing">价格</a>
+          <a href="/privacy">隐私说明</a>
+          <a href="/security">安全设计</a>
+        </nav>
       </section>
     </div>
   );
