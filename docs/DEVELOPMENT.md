@@ -15,7 +15,7 @@ cp .env.example .env
 make up
 ```
 
-如果已有 `.env`，不要覆盖。示例密码仅供本地开发；迁移使用 `POSTGRES_PASSWORD`；API/Worker 使用独立 `XINGDU_APP_DATABASE_PASSWORD`（至少 16 字节）。Compose 中建议使用 URL 安全的随机十六进制密码；手动配置连接串时对特殊字符进行 URL 编码。当前 Compose 用于多租户开发预览，公网运维尚未完成。已有 `.env` 需新增运行账号密码，不能继续让 API 使用迁移账号。
+如果已有 `.env`，不要覆盖。示例密码仅供本地开发；迁移使用 `POSTGRES_PASSWORD`；API/Worker 使用独立 `XINGDU_APP_DATABASE_PASSWORD`（至少 16 字节），Worker 使用 `XINGDU_WORKER_DATABASE_PASSWORD`。Compose 中建议使用 URL 安全的随机十六进制密码；手动配置连接串时对特殊字符进行 URL 编码。当前 Compose 用于多租户开发预览，公网运维尚未完成。已有 `.env` 需新增运行账号密码，不能继续让 API 使用迁移账号。
 
 | 服务 | 地址 / 行为 |
 | --- | --- |
@@ -23,9 +23,9 @@ make up
 | API | http://127.0.0.1:18080 |
 | PostgreSQL | 127.0.0.1:54329 |
 | Migrate | 一次性应用嵌入式迁移，成功退出 |
-| Worker | 骨架进程，检查数据库；不执行部署任务 |
+| Worker | 执行 SSH 安装队列；不执行协议部署任务 |
 
-Agent 当前仅有独立进程入口，不在 Compose 中连接真实主机。
+Agent 提供注册、心跳和 Linux systemd 安装，不在 Compose 中自动连接真实 VPS。使用方式见 [机器接入](MACHINE-ACCESS.md)。
 
 停止服务：`make down`。数据库命名卷保留；不要随意使用 `docker compose down -v`，该命令会删除数据库数据。
 
@@ -47,7 +47,7 @@ make dev-api
 
 另开一个终端，在仓库根目录执行 `make dev-web`。控制台使用同源 API 代理，不需要开放 CORS。
 
-Worker 可使用 `make worker`，Agent 可使用 `make agent`；二者支持 SIGINT / SIGTERM 退出，Agent 尚不注册设备或修改系统。
+Worker 可使用 `make worker`，Agent 可使用 `make agent`；二者支持 SIGINT / SIGTERM 退出，Agent 未指定安装参数时只发送心跳，`--install` 明确执行 Linux systemd 安装。
 
 ## 检查与构建
 
@@ -116,7 +116,7 @@ docker compose exec api admin --username admin
 - `PUT /api/v1/hosts/{id}`：完整更新服务器资料。
 - `DELETE /api/v1/hosts/{id}`：删除资料，不操作实际 VPS。
 
-服务器字段为 `name`、`address`、`ssh_port`、`ssh_user`、`tags`、`notes`。同一组织内地址与端口组合不能重复。状态由服务端管理，新增固定为 pending；不能通过更新资料伪造在线状态。当前不收集 SSH 密码和私钥。
+服务器字段为 `name`、`address`、`ssh_port`、`ssh_user`、`tags`、`notes`。同一组织内地址与端口组合不能重复。状态由服务端管理，新增固定为 pending；不能通过更新资料伪造在线状态。SSH 密码和私钥使用独立安装接口提交，不属于服务器资料字段。
 
 未登录返回 401，跨站或 CSRF 验证失败返回 403，重复记录返回 409，字段校验失败返回 422，数据库不可用返回 503。底层数据库错误不会直接返回给客户端。
 
@@ -130,3 +130,7 @@ git config --local user.email noreply@xingdu.app
 ```
 
 提交前核对 author 和 committer；CI 发布流程尚未建立，不会自动发布包。真实 `.env`、运行数据和本机路径不应提交。外部贡献者可使用自己的公开身份；贡献继续适用 MIT。
+
+## 机器接入配置
+
+新增 `XINGDU_WORKER_DATABASE_PASSWORD`（独立低权限 Worker 账号），可选 `XINGDU_CREDENTIAL_KEY`（64 位随机 hex，用于 SSH 凭据加密）和 `XINGDU_AGENT_ORIGIN`（VPS 可达的 HTTPS 来源）。私有网络 SSH 需部署者显式配置 `XINGDU_SSH_ALLOWED_CIDRS`。没有加密密钥时，SSH 安装关闭，主动 Agent 注册仍可用。详细端点与安全语义见 [机器接入](MACHINE-ACCESS.md)。

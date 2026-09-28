@@ -33,5 +33,11 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	if password := os.Getenv("XINGDU_WORKER_DATABASE_PASSWORD"); password != "" {
+		if err := store.ConfigureWorker(ctx, password); err != nil {
+			slog.Error("worker database role provisioning failed")
+			os.Exit(1)
+		}
+	}
 	slog.Info("migrations applied")
 }

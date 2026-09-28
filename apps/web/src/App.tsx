@@ -5,6 +5,7 @@ import type { Organization } from "./api";
 import { useEffect, useState } from "react";
 import { errorMessage, loadHosts, loadSystem } from "./api";
 import HostDialog from "./HostDialog";
+import MachineDialog from "./MachineDialog";
 import type { Host, System } from "./api";
 import "./App.css";
 
@@ -49,6 +50,9 @@ function App({
   onLogout: () => Promise<void>;
 }) {
   const canWrite = organization.role !== "viewer";
+  const manageMachines =
+    organization.role === "owner" || organization.role === "admin";
+  const [machineHost, setMachineHost] = useState<Host | null>(null);
   const [editing, setEditing] = useState<Host | null | undefined>(undefined);
   const [notice, setNotice] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
@@ -91,6 +95,10 @@ function App({
     };
   }, [attempt]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setAttempt((v) => v + 1), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
   const refresh = () => {
     setState("loading");
     setAttempt((value) => value + 1);
@@ -147,7 +155,7 @@ function App({
             <br />
             <strong>一键抵达。</strong>
           </p>
-          <span className="version">{system?.version ?? "0.3.0-dev"}</span>
+          <span className="version">{system?.version ?? "0.4.0-dev"}</span>
         </div>
       </aside>
       <div className="body">
@@ -221,7 +229,7 @@ function App({
                 ? "控制端与数据库已连接"
                 : "控制端或数据库不可用"}
             <span className="status-divider">/</span>
-            <span>开发预览 · Agent 接入尚未开放</span>
+            <span>开发预览 · Agent 心跳与机器接入</span>
           </div>
           {(page === "overview" || page === "hosts") && (
             <>
@@ -242,7 +250,7 @@ function App({
                           )
                         : "—"
                     }
-                    note="以实际心跳状态为准"
+                    note="90 秒无心跳视为离线"
                   />
                   <Stat label="线路编排" value="待开放" note="直连 / 中转" />
                   <Stat
@@ -323,12 +331,25 @@ function App({
                                     pending: "待接入",
                                   }[host.status]
                                 }
+                                {host.last_seen_at && (
+                                  <small className="heartbeat-time">
+                                    {new Date(
+                                      host.last_seen_at,
+                                    ).toLocaleString()}
+                                  </small>
+                                )}
                               </td>
                               <td>
                                 <button
+                                  className="secondary compact"
+                                  onClick={() => setMachineHost(host)}
+                                >
+                                  接入 / 状态
+                                </button>
+                                <button
                                   className="secondary"
                                   aria-label={`编辑 ${host.name}`}
-                                  disabled={!canWrite}
+                                  disabled={!manageMachines}
                                   onClick={() => setEditing(host)}
                                 >
                                   编辑
@@ -345,15 +366,27 @@ function App({
                           <div className="host-card-heading">
                             <h3>{host.name}</h3>
                             <button
+                              className="secondary compact"
+                              onClick={() => setMachineHost(host)}
+                            >
+                              接入 / 状态
+                            </button>
+                            <button
                               className="secondary"
                               aria-label={`编辑 ${host.name}`}
-                              disabled={!canWrite}
+                              disabled={!manageMachines}
                               onClick={() => setEditing(host)}
                             >
                               编辑
                             </button>
                           </div>
                           <p className="host-card-address">{host.address}</p>
+                          {host.last_seen_at && (
+                            <p className="host-card-ssh">
+                              最近心跳：
+                              {new Date(host.last_seen_at).toLocaleString()}
+                            </p>
+                          )}
                           <p className="host-card-ssh">
                             SSH · {host.ssh_user} · {host.ssh_port}
                           </p>
@@ -465,6 +498,14 @@ function App({
           </footer>
         </main>
       </div>
+      {machineHost && (
+        <MachineDialog
+          host={machineHost}
+          manage={manageMachines}
+          onClose={() => setMachineHost(null)}
+          onChanged={refresh}
+        />
+      )}
       {editing !== undefined && (
         <HostDialog
           host={editing}

@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/config"
 	"xingdu.app/xingdu/internal/storage"
 )
@@ -32,8 +33,13 @@ func run() bool {
 		return false
 	}
 	defer store.Close()
-	slog.Info("worker scaffold started; deployment execution is not implemented")
-	ticker := time.NewTicker(30 * time.Second)
+	connector, credentialVault, origin, err := bootstrap.Configuration(cfg.PublicOrigin)
+	if err != nil {
+		slog.Error("invalid machine configuration")
+		return false
+	}
+	slog.Info("machine installation worker started")
+	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -41,11 +47,11 @@ func run() bool {
 			slog.Info("worker stopped")
 			return true
 		case <-ticker.C:
-			check, cancel := context.WithTimeout(ctx, 3*time.Second)
-			err := store.Ready(check)
+			check, cancel := context.WithTimeout(ctx, 110*time.Second)
+			err := bootstrap.WorkOnce(check, store, credentialVault, connector, origin)
 			cancel()
 			if err != nil {
-				slog.Warn("worker database unavailable")
+				slog.Warn("machine job could not finish; check worker and database availability")
 			}
 		}
 	}

@@ -23,11 +23,17 @@ func OpenRuntime(ctx context.Context, url string) (*Store, error) {
 
 // Only the deployment/migration process receives this credential, never the API's owner password.
 func (s *Store) ConfigureRuntime(ctx context.Context, password string) error {
+	return s.configureRole(ctx, "xingdu_app", password)
+}
+func (s *Store) ConfigureWorker(ctx context.Context, password string) error {
+	return s.configureRole(ctx, "xingdu_worker", password)
+}
+func (s *Store) configureRole(ctx context.Context, role, password string) error {
 	if len(password) < 16 || strings.ContainsRune(password, 0) {
 		return errors.New("runtime database password must contain at least 16 bytes")
 	}
 	// Utility statements cannot bind password parameters. Quote as an SQL literal and never log SQL.
-	_, err := s.Pool.Exec(ctx, "ALTER ROLE xingdu_app LOGIN PASSWORD '"+strings.ReplaceAll(password, "'", "''")+"'")
+	_, err := s.Pool.Exec(ctx, "ALTER ROLE "+role+" LOGIN PASSWORD '"+strings.ReplaceAll(password, "'", "''")+"'")
 	if err != nil {
 		return errors.New("could not configure runtime database role")
 	}

@@ -161,3 +161,79 @@ export const acceptInvitation = (token: string) =>
   request<{ organization_id: string }>("/api/v1/invitations/accept", "POST", {
     token,
   });
+
+export type MachineMetrics = {
+  hostname: string;
+  os: string;
+  arch: string;
+  version: string;
+  uptime_seconds: number;
+  memory_total_bytes: number;
+  memory_available_bytes: number;
+  load_1: number;
+  cpus: number;
+};
+export type MachineState = {
+  agent: null | {
+    mode: "monitor" | "manage";
+    enrolled_at: string;
+    revoked_at: string | null;
+    metrics: MachineMetrics;
+  };
+  credential: null | { method: string; fingerprint: string; saved_at: string };
+  jobs: {
+    id: string;
+    host_id: string;
+    mode: string;
+    state: string;
+    result: string;
+    created_at: string;
+    finished_at: string | null;
+  }[];
+};
+export type Enrollment = {
+  token: string;
+  expires_at: string;
+  origin: string;
+  command: string;
+};
+export const getMachine = (id: string) =>
+  request<MachineState>(`/api/v1/hosts/${id}/machine`);
+export const issueEnrollment = (
+  id: string,
+  mode: string,
+  confirm_manage: boolean,
+) =>
+  request<Enrollment>(`/api/v1/hosts/${id}/enrollment`, "POST", {
+    mode,
+    confirm_manage,
+  });
+export const revokeMachine = (id: string) =>
+  request<void>(`/api/v1/hosts/${id}/agent`, "DELETE");
+export const forgetCredential = (id: string) =>
+  request<void>(`/api/v1/hosts/${id}/credential`, "DELETE");
+export const inspectSSH = (id: string) =>
+  request<{ fingerprint: string }>(
+    `/api/v1/hosts/${id}/ssh/fingerprint`,
+    "POST",
+  );
+export const installSSH = (
+  id: string,
+  input: {
+    method: string;
+    password: string;
+    private_key: string;
+    passphrase: string;
+    fingerprint: string;
+    mode: string;
+    retain: boolean;
+    use_saved: boolean;
+    confirm_manage: boolean;
+    confirm_fingerprint: boolean;
+  },
+) =>
+  request<{ id: string; state: string }>(
+    `/api/v1/hosts/${id}/ssh/install`,
+    "POST",
+    input,
+  );

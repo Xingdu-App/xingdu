@@ -15,7 +15,7 @@ Xingdu is an open-source project building a multi-tenant SaaS control panel for 
 
 Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent onboarding, protocol deployment, and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
+> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; protocol deployment and subscription export are not yet available. Keep this preview local; it is not ready for public or production deployment.
 
 ## What you can try today
 
@@ -23,11 +23,12 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **Team workspaces:** create and switch organizations, invite members, and assign owner, admin, member or viewer roles.
 - **Tenant isolation:** PostgreSQL row-level security and a separate low-privilege runtime database account.
 - **User sign-in:** optional registration, revocable sessions, and protected management endpoints.
+- **Machine access:** manual Agent enrollment or SSH password/private-key installation, with pinned host keys and optional encrypted credential retention. See [machine access](docs/MACHINE-ACCESS.md) for setup and current validation limits.
 - **Live service status:** API and database availability, with error messages and retry when the connection fails.
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
 
-The worker does not execute deployment jobs yet, and the agent does not enroll or configure servers. The current console UI is in Simplified Chinese.
+The worker executes SSH Agent installation jobs. The agent reports machine status; protocol deployment and arbitrary remote commands are not implemented. Linux systemd installation still requires target-distribution acceptance testing. The current console UI is in Simplified Chinese.
 
 ## Where Xingdu is heading
 
@@ -64,7 +65,7 @@ Create your initial user and organization from a local terminal. The command pro
 docker compose exec api admin --username admin
 ```
 
-Sign in, select an organization, then add your first server record. In **组织与成员**, generate a single-use invitation link valid for seven days; share it privately with the intended member. Set `XINGDU_REGISTRATION_ENABLED=true` to enable sign-up; otherwise provision users through the same CLI. Saving connection details does not contact the VPS: new records remain **Pending enrollment** until Agent onboarding is implemented. Do not put passwords or private keys in notes.
+Sign in, select an organization, then add your first server record. In **组织与成员**, generate a single-use invitation link valid for seven days; share it privately with the intended member. Set `XINGDU_REGISTRATION_ENABLED=true` to enable sign-up; otherwise provision users through the same CLI. Saving connection details does not contact the VPS: new records remain **Pending enrollment** until a registered Agent reports a real heartbeat. Do not put passwords or private keys in notes.
 
 | Service | Local address |
 | --- | --- |
@@ -72,7 +73,7 @@ Sign in, select an organization, then add your first server record. In **组织�
 | API | `http://127.0.0.1:18080` |
 | PostgreSQL | `127.0.0.1:54329` |
 
-All published ports bind to loopback. Use the exact console URL above: write requests are checked against `XINGDU_PUBLIC_ORIGIN`, which defaults to `http://127.0.0.1:15173`. The example credentials are for local development only. If you already have a `.env` file, keep it instead of copying over it, and add `XINGDU_APP_DATABASE_PASSWORD` (at least 16 URL-safe characters) for the separate runtime account.
+All published ports bind to loopback. Use the exact console URL above: write requests are checked against `XINGDU_PUBLIC_ORIGIN`, which defaults to `http://127.0.0.1:15173`. The example credentials are for local development only. If you already have a `.env` file, keep it instead of copying over it, and add `XINGDU_APP_DATABASE_PASSWORD` (at least 16 URL-safe characters) for the separate runtime account, plus `XINGDU_WORKER_DATABASE_PASSWORD` for the installation worker.
 
 To stop the preview while keeping database data:
 

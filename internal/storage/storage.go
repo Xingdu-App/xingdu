@@ -30,7 +30,7 @@ func Open(ctx context.Context, url string) (*Store, error) {
 func (s *Store) Close() { s.Pool.Close() }
 func (s *Store) Ready(ctx context.Context) error {
 	var version string
-	return s.Pool.QueryRow(ctx, "SELECT version FROM schema_migrations WHERE version = '004_membership_policies.sql'").Scan(&version)
+	return s.Pool.QueryRow(ctx, "SELECT version FROM schema_migrations WHERE version = '006_machine_permissions.sql'").Scan(&version)
 }
 
 // Migrate applies embedded migrations transactionally under a database-wide lock.

@@ -104,7 +104,10 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
       {confirmDelete ? (
         <div className="delete-confirm">
           <p>确定删除“{host?.name}”的资料？</p>
-          <p>此操作仅删除星渡中的记录，不会连接、关机或删除实际 VPS。</p>
+          <p>
+            此操作会删除资料并撤销 Agent
+            身份、安装令牌和保存的凭据，不会关机或卸载实际 VPS 上的服务。
+          </p>
           {error && (
             <p role="alert" className="form-error">
               {error}
@@ -126,7 +129,8 @@ export default function HostDialog({ host, onClose, onSaved }: Props) {
       ) : (
         <form onSubmit={submit}>
           <p className="form-hint">
-            先记录连接信息。保存后状态为“待接入”，不会自动连接服务器。
+            资料保存后不会自动连接 VPS。请通过“接入 / 状态”安装 Agent；修改 SSH
+            连接信息后，需要重新提供凭据。
           </p>
           <fieldset disabled={busy}>
             <label htmlFor="host-name">服务器名称</label>

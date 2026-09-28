@@ -35,3 +35,8 @@ up:
 
 down:
 	docker compose down
+
+.PHONY: agents
+agents:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-amd64 ./cmd/agent
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-arm64 ./cmd/agent

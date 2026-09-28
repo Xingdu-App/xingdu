@@ -23,6 +23,7 @@ services:
     environment:
       DATABASE_URL: postgres://xingdu:${POSTGRES_PASSWORD}@db:5432/xingdu?sslmode=disable
       XINGDU_APP_DATABASE_PASSWORD: ${XINGDU_APP_DATABASE_PASSWORD:?Set a separate runtime database password in .env}
+      XINGDU_WORKER_DATABASE_PASSWORD: ${XINGDU_WORKER_DATABASE_PASSWORD:?Set a worker database password in .env}
     depends_on:
       db:
         condition: service_healthy
@@ -36,6 +37,9 @@ services:
       XINGDU_HTTP_ADDR: 0.0.0.0:8080
       XINGDU_PUBLIC_ORIGIN: ${XINGDU_PUBLIC_ORIGIN:-http://127.0.0.1:15173}
       XINGDU_REGISTRATION_ENABLED: ${XINGDU_REGISTRATION_ENABLED:-false}
+      XINGDU_AGENT_ORIGIN: ${XINGDU_AGENT_ORIGIN:-http://127.0.0.1:15173}
+      XINGDU_CREDENTIAL_KEY: ${XINGDU_CREDENTIAL_KEY:-}
+      XINGDU_SSH_ALLOWED_CIDRS: ${XINGDU_SSH_ALLOWED_CIDRS:-}
     ports:
       - "127.0.0.1:18080:8080"
     depends_on:
@@ -51,7 +55,9 @@ services:
       context: .
       dockerfile: deploy/Dockerfile
     command: ["worker"]
-    environment: *runtime_env
+    environment:
+      <<: *runtime_env
+      DATABASE_URL: postgres://xingdu_worker:${XINGDU_WORKER_DATABASE_PASSWORD}@db:5432/xingdu?sslmode=disable
     depends_on:
       migrate:
         condition: service_completed_successfully

@@ -5,7 +5,7 @@ import (
 	"xingdu.app/xingdu/internal/hosts"
 )
 
-const hostColumns = "id::text,name,address,ssh_port,ssh_user,tags,notes,status,last_seen_at"
+const hostColumns = "id::text,name,address,ssh_port,ssh_user,tags,notes,CASE WHEN status='online' AND last_seen_at<now()-interval '90 seconds' THEN 'offline' ELSE status END,last_seen_at"
 
 type scanner interface{ Scan(...any) error }
 
@@ -50,7 +50,7 @@ func (s *Store) CreateHost(ctx context.Context, in hosts.Input) (Host, error) {
 	return h, tx.Commit(ctx)
 }
 func (s *Store) UpdateHost(ctx context.Context, id string, in hosts.Input) (Host, error) {
-	tx, _, err := s.tenantTx(ctx, true, false)
+	tx, _, err := s.tenantTx(ctx, true, true)
 	if err != nil {
 		return Host{}, err
 	}
@@ -63,7 +63,7 @@ func (s *Store) UpdateHost(ctx context.Context, id string, in hosts.Input) (Host
 	return h, tx.Commit(ctx)
 }
 func (s *Store) DeleteHost(ctx context.Context, id string) error {
-	tx, _, err := s.tenantTx(ctx, true, false)
+	tx, _, err := s.tenantTx(ctx, true, true)
 	if err != nil {
 		return err
 	}
@@ -75,6 +75,9 @@ func (s *Store) DeleteHost(ctx context.Context, id string) error {
 	}
 	if result.RowsAffected() == 0 {
 		return ErrNotFound
+	}
+	if err = audit(ctx, tx, id, "host_deleted"); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }
