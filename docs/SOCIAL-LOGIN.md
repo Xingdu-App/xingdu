@@ -9,7 +9,7 @@
 | Google | `XINGDU_GOOGLE_CLIENT_ID`、`XINGDU_GOOGLE_CLIENT_SECRET` | `/api/v1/auth/oauth/google/callback` |
 | GitHub | `XINGDU_GITHUB_CLIENT_ID`、`XINGDU_GITHUB_CLIENT_SECRET` | `/api/v1/auth/oauth/github/callback` |
 
-回调地址是 `XINGDU_PUBLIC_ORIGIN` 加上表中路径，必须与提供方后台完全一致。例如预览域名下 Google 使用 `https://xingdu.zeabur.app/api/v1/auth/oauth/google/callback`，GitHub 使用 `https://xingdu.zeabur.app/api/v1/auth/oauth/github/callback`。正式启用 `xingdu.app` 时，需要同步更新应用配置和 API origin。正式环境使用 HTTPS。
+回调地址是 `XINGDU_PUBLIC_ORIGIN` 加上表中路径，必须与提供方后台完全一致。例如星渡托管服务的 Google 使用 `https://xingdu.app/api/v1/auth/oauth/google/callback`，GitHub 使用 `https://xingdu.app/api/v1/auth/oauth/github/callback`。更换域名时，需要同步更新提供方回调地址、`XINGDU_PUBLIC_ORIGIN` 和 API/Worker 的 `XINGDU_AGENT_ORIGIN`。正式环境使用 HTTPS。
 
 Google 创建 Web application 类型客户端，并配置同意屏幕、受众以及测试用户。只申请登录所需的 OpenID 与邮箱信息。GitHub 创建独立 OAuth App，使用身份和邮箱范围，不申请仓库或组织管理权限。应用名称、首页及隐私政策应指向实际部署的星渡服务。参考 [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect) 与 [GitHub OAuth Web flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps)。
 

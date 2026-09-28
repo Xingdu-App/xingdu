@@ -113,7 +113,7 @@ func TestEmailRegistrationRequiresDeliveryAndVerification(t *testing.T) {
 
 func TestEmailConfigurationPlaceholderFailClosed(t *testing.T) {
 	sender := emailverification.NewResend("PLACEHOLDER_REPLACE_WITH_RESEND_API_KEY", "Xingdu <noreply@xingdu.app>")
-	handler := New(fakeStore{}, Options{PublicOrigin: "https://xingdu.zeabur.app", RegistrationEnabled: true, EmailSender: sender})
+	handler := New(fakeStore{}, Options{PublicOrigin: "https://xingdu.app", RegistrationEnabled: true, EmailSender: sender})
 	config := httptest.NewRecorder()
 	handler.ServeHTTP(config, httptest.NewRequest("GET", "/api/v1/auth/config", nil))
 	var result struct{ Data map[string]any }
@@ -121,7 +121,7 @@ func TestEmailConfigurationPlaceholderFailClosed(t *testing.T) {
 		t.Fatal("unexpected placeholder configuration", config.Body.String())
 	}
 	request := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"email":"fixture@example.invalid","password":"fixture-password","organization":"Fixture"}`))
-	request.Header.Set("Origin", "https://xingdu.zeabur.app")
+	request.Header.Set("Origin", "https://xingdu.app")
 	request.Header.Set("X-Xingdu-Request", "1")
 	request.Header.Set("Content-Type", "application/json")
 	response := httptest.NewRecorder()
