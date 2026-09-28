@@ -45,7 +45,7 @@ export const publicPages: Record<
     path: "/",
     title: "星渡 Xingdu — 开源 VPS 服务器管理与协议部署面板",
     description:
-      "星渡是适合个人与团队的开源 VPS 管理面板，支持 Agent 接入、SSH 安装、TLS 协议部署、运行状态监测和客户端配置。自托管免费，托管服务筹备中。",
+      "星渡是适合个人与团队的开源 VPS 管理面板，支持 Agent 接入、SSH 安装、TLS 协议部署、运行状态监测和客户端配置。自托管免费，云端套餐按组织订阅，购买入口以控制台开放状态为准。",
   },
   help: {
     path: "/help",
@@ -63,7 +63,7 @@ export const publicPages: Record<
     path: "/pricing",
     title: "价格与部署方式 · 星渡 Xingdu",
     description:
-      "选择适合你的星渡：MIT 开源版本免费自托管；托管服务的价格与套餐将在开放前公布。",
+      "选择适合你的星渡：MIT 开源版本免费自托管；云端套餐 $5/月或 $40/年，每个组织包含 5 台服务器，VPS 与流量另行准备。",
   },
   privacy: {
     path: "/privacy",

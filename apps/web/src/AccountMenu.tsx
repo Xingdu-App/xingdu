@@ -8,14 +8,16 @@ import Avatar from "./Avatar";
 import type { AccountSection } from "./AccountPage";
 
 export default function AccountMenu({
+  cloud,
   username,
   organization,
   onNavigate,
   onLogout,
 }: {
+  cloud: boolean;
   username: string;
   organization: Organization;
-  onNavigate: (page: AccountSection | "members") => void;
+  onNavigate: (page: AccountSection | "members" | "billing") => void;
   onLogout: () => Promise<void>;
 }) {
   useLocale();
@@ -152,6 +154,18 @@ export default function AccountMenu({
             <span aria-hidden="true">♧</span>
             {t("人员管理")}
           </button>
+          {cloud && (
+          <button
+            role="menuitem"
+            onClick={() => {
+              close();
+              onNavigate("billing");
+            }}
+          >
+            <span aria-hidden="true">◇</span>
+            {t("套餐与账单")}
+          </button>
+          )}
           <button role="menuitem" onClick={() => choose("settings")}>
             <span aria-hidden="true">⚙</span>
             {t("设置")}

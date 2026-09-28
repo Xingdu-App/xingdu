@@ -13,11 +13,21 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-type Store struct{ Pool *pgxpool.Pool }
+type Store struct {
+	Pool         *pgxpool.Pool
+	CloudBilling bool
+}
 type Host = hosts.Host
 
-func Open(ctx context.Context, url string) (*Store, error) {
-	pool, err := pgxpool.New(ctx, url)
+func Open(ctx context.Context, url string, mode ...string) (*Store, error) {
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		return nil, fmt.Errorf("invalid database configuration")
+	}
+	if len(mode) > 0 {
+		cfg.ConnConfig.RuntimeParams["app.deployment_mode"] = mode[0]
+	}
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("invalid database configuration")
 	}

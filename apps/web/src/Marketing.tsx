@@ -165,7 +165,7 @@ function Plans({ compact = false }: { compact?: boolean }) {
     <div className="site-plans">
       <article className="site-plan">
         <span className="plan-type">SELF-HOSTED</span>
-        <h3>自己部署，自由掌握。</h3>
+        <h3>自托管，掌握自己的数据。</h3>
         <p>适合希望自主运行和管理数据的个人与团队。</p>
         <div className="plan-price">
           免费<span>MIT 开源版本</span>
@@ -185,28 +185,27 @@ function Plans({ compact = false }: { compact?: boolean }) {
         </p>
       </article>
       <article className="site-plan plan-hosted">
-        <span className="plan-ribbon">筹备中</span>
+        <span className="plan-ribbon">年付省 33%</span>
         <span className="plan-type">XINGDU CLOUD</span>
         <h3>更少维护，更多专注。</h3>
-        <p>为希望减少控制端部署维护的团队准备。</p>
-        <div className="plan-price price-pending">
-          价格待公布<span>托管服务尚未开放</span>
+        <p>按组织订阅，为个人和小团队管理服务器。</p>
+        <div className="plan-price">
+          $5<span>/ 月，或 $40 / 年</span>
         </div>
-        <a
-          className="site-button site-button-dark"
-          href={`${repository}/releases`}
-        >
-          关注版本动态 <Arrow />
+        <p>年付约 $3.33/月，比连续月付节省 $20。</p>
+        <a className="site-button site-button-dark" href="/app/billing">
+          查看套餐与账单 <Arrow />
         </a>
         <ul>
-          <li>计划由星渡运行和维护控制端</li>
-          <li>沿用熟悉的组织协作体验</li>
-          <li>套餐、额度与服务范围待公布</li>
-          <li>开放前说明数据处理与计费规则</li>
-          {!compact && <li>当前不提供购买或自动续费</li>}
+          <li>每个组织包含 5 台服务器</li>
+          <li>机器状态监控与协议部署</li>
+          <li>节点订阅与组织成员协作</li>
+          <li>Stripe 安全支付与账单管理</li>
+          {!compact && <li>月付或年付自动续费，可取消下次续费</li>}
         </ul>
         <p className="plan-footnote">
-          本页不构成已上线的托管服务、价格或服务等级承诺。
+          用户自备
+          VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。
         </p>
       </article>
     </div>
@@ -362,7 +361,7 @@ function Home() {
             eyebrow="YOUR INFRASTRUCTURE. YOUR CHOICE."
             title="选择你的运行方式。"
           >
-            开源版本免费使用，托管服务正在准备中。
+            自部署版免费，云端版 $5/月或 $40/年。
           </SectionTitle>
           <a className="site-text-link" href="/pricing">
             查看价格说明 <Arrow />
@@ -419,9 +418,7 @@ function Pricing() {
         <h1>
           自由部署，<em>按需选择。</em>
         </h1>
-        <p>
-          先找到适合你的运行方式。开源版本免费，托管服务价格将在开放前公布。
-        </p>
+        <p>自部署版免费。云端版每个组织 $5/月，年付 $40，包含 5 台服务器。</p>
       </section>
       <Plans />
       <section className="pricing-explanation">
@@ -430,7 +427,7 @@ function Pricing() {
           <h2>开源免费，不等于基础设施零成本。</h2>
           <p>
             自托管版本采用 MIT
-            许可证，不收取软件许可费。你需要自行提供服务器并负责部署、备份与维护。未来托管版的费用与额度不会改变已发布代码的
+            许可证，不收取软件许可费。你需要自行提供服务器并负责部署、备份与维护。云端版的费用与额度不会改变已发布代码的
             MIT 许可。
           </p>
         </div>
@@ -438,9 +435,9 @@ function Pricing() {
       <section className="site-section site-faq">
         <SectionTitle eyebrow="A FEW MORE THINGS" title="你可能还想知道" />
         <details>
-          <summary>现在可以购买托管服务吗？</summary>
+          <summary>如何购买和取消云端套餐？</summary>
           <p>
-            还不可以。目前没有已发布的托管套餐、在线支付或自动续费。本地控制台供部署者和已获授权的成员使用。
+            组织所有者可在控制台的「套餐与账单」查看当前实例是否开放购买。已开放时，可选择月付或年付，并通过账单管理入口取消后续续费。请在付款前核对金额、计费周期和生效时间。
           </p>
         </details>
         <details>
@@ -452,8 +449,8 @@ function Pricing() {
         <details>
           <summary>价格包含 VPS 和流量吗？</summary>
           <p>
-            自托管版本不包含
-            VPS、域名、存储或网络流量。未来托管服务的包含项将在套餐发布时列明，目前没有相关收费承诺。
+            价格仅包含星渡控制端的管理服务。自部署版与云端版都需要你自行提供
+            VPS，服务器、域名和网络流量费用另行承担。
           </p>
         </details>
         <details>

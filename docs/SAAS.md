@@ -75,3 +75,23 @@ API 与 Worker 使用独立 `xingdu_app` 登录角色，无超级用户、BYPASS
 数据库集成测试使用真实低权限运行角色，覆盖漏写 WHERE 的 RLS 查询、跨组织 CRUD、跨组织唯一性、缺失上下文与连接池清理、角色边界、撤销权限及邀请过期/撤销/重放。HTTP 集成测试覆盖注册、会话、组织选择、邀请接受、角色变更和成员移除。
 
 机器接入、探针及凭据安全边界见 [机器接入设计](MACHINE-ACCESS.md)。
+
+
+## 云端计费
+
+组织级 Stripe 月付/年付、签名回调、账单管理和五台服务器限额的配置与验证边界见 [BILLING.md](BILLING.md)。自部署模式默认免费；代码实现不代表真实支付或公网托管服务已验收。
+# Deployment mode
+
+Set `MODE=cloud` for the hosted service: multiple organizations and Stripe
+billing. Set `MODE=self_hosted` (the default) for one organization without paid
+subscriptions. Organization memberships and invitations remain available; the
+organization switcher, additional organization creation and billing menu are
+hidden in self-hosted mode. Registration that creates another organization is
+also rejected; this does not automatically enroll strangers in the existing team.
+
+The API enforces the single-organization limit through a database trigger, not
+just the interface. It refuses to start in self-hosted mode if the database
+already contains multiple organizations. No organizations are deleted or merged.
+Apply migrations before starting the API. All API replicas sharing a database
+must use the same mode; stop them before changing modes. `MODE` takes precedence
+over the deprecated `XINGDU_BILLING_MODE` fallback for direct API startup.

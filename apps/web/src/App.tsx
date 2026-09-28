@@ -4,6 +4,7 @@ import LanguageSwitch from "./LanguageSwitch";
 import TeamPanel from "./TeamPanel";
 import AccountMenu from "./AccountMenu";
 import AccountPage from "./AccountPage";
+import BillingPage from "./BillingPage";
 import type { Organization } from "./api";
 import { useEffect, useState, useRef } from "react";
 import { loadHosts, loadSystem, loadNodes } from "./api";
@@ -19,6 +20,7 @@ import { pages, pagePath, pageFromURL } from "./routes";
 import type { Page } from "./routes";
 const currentPage = () => pageFromURL(new URL(window.location.href));
 const accountPages = new Set<string>([
+  "billing",
   "profile",
   "security",
   "settings",
@@ -39,12 +41,14 @@ const pendingCopy: Record<string, { title: string; description: string }> = {
 };
 
 function App({
+  cloud,
   username,
   onLogout,
   organization,
   organizationControls,
   organizationBanner,
 }: {
+  cloud: boolean;
   organization: Organization;
   organizationControls: ReactNode;
   organizationBanner: ReactNode;
@@ -199,6 +203,7 @@ function App({
           </a>
           <LanguageSwitch />
           <AccountMenu
+            cloud={cloud}
             username={username}
             organization={organization}
             onNavigate={setPage}
@@ -245,6 +250,7 @@ function App({
               <button onClick={refresh}>{t("重试")}</button>
             </div>
           )}
+          {page === "billing" && <BillingPage key={organization.id} organization={organization} />}
           {page === "members" && <TeamPanel organization={organization} />}
           {(page === "profile" ||
             page === "security" ||

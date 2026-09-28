@@ -3,6 +3,7 @@ import Select from "./Select";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  authConfig,
   acceptInvitation,
   createOrganization,
   errorMessage,
@@ -20,6 +21,7 @@ export default function OrganizationGate({
   onLogout: () => Promise<void>;
 }) {
   useLocale();
+  const [cloud, setCloud] = useState(false);
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(true);
@@ -49,11 +51,13 @@ export default function OrganizationGate({
   }
   useEffect(() => {
     let active = true;
-    listOrganizations()
-      .then((values) => {
+    Promise.all([listOrganizations(), authConfig()])
+      .then(([values, config]) => {
         if (!active) return;
+        setCloud(config.mode === "cloud");
         setOrgs(values);
-        const id = values[0]?.id ?? "";
+        const requested = new URL(window.location.href).searchParams.get("organization");
+        const id = values.find((value) => value.id === requested)?.id ?? values[0]?.id ?? "";
         setOrganization(id);
         setSelected(id);
       })
@@ -87,7 +91,7 @@ export default function OrganizationGate({
   const controls = (
     <div className="org-switch">
       <label htmlFor="organization-switch">{t("当前组织")}</label>
-      <Select
+      {cloud ? <Select
         id="organization-switch"
         label={t("切换组织")}
         variant="organization"
@@ -104,7 +108,7 @@ export default function OrganizationGate({
           setSelected(value);
           setError("");
         }}
-      />
+      /> : <strong>{org?.name}</strong>}
     </div>
   );
   const createForm = (
@@ -166,7 +170,7 @@ export default function OrganizationGate({
       <OrganizationDialog busy={busy} onClose={() => setCreating(false)}>
         {createForm}
       </OrganizationDialog>
-    ) : !org && !loading ? (
+    ) : cloud && !org && !loading ? (
       <div className="org-create">{createForm}</div>
     ) : null;
   const banner = (
@@ -242,6 +246,7 @@ export default function OrganizationGate({
       <div className="auth-page">
         <section className="auth-card">
           {banner}
+          {!cloud && !orgs.length && <p>{t("你尚未加入此实例的组织，请联系管理员获取邀请。")}</p>}
           <button className="secondary" onClick={() => void onLogout()}>
             {t("退出登录")}
           </button>
@@ -250,6 +255,7 @@ export default function OrganizationGate({
     );
   return (
     <App
+      cloud={cloud}
       key={org.id}
       username={session.username}
       onLogout={onLogout}

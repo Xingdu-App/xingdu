@@ -1,6 +1,13 @@
 import { t } from "./i18n";
 export const pages = [
   {
+    id: "billing",
+    get label() {
+      return t("套餐与账单");
+    },
+    icon: "◇",
+  },
+  {
     id: "overview",
     get label() {
       return t("概览");

@@ -1,0 +1,129 @@
+.billing-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.billing-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+.billing-summary h2 {
+  margin: 10px 0;
+  font-size: 24px;
+}
+.billing-summary p,
+.billing-plan p,
+.billing-note {
+  color: #667b88;
+  line-height: 1.8;
+  font-size: 13px;
+}
+.billing-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.billing-plan {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  overflow: hidden;
+}
+.billing-plan-info {
+  padding: 36px;
+}
+.billing-plan-info h2 {
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 14px 0;
+}
+.billing-plan-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 26px 0 0;
+  color: #526b68;
+  line-height: 2.5;
+  font-size: 14px;
+}
+.billing-plan-info li::before {
+  content: "✓";
+  margin-right: 12px;
+  color: #38786b;
+}
+.billing-plan-price {
+  padding: 32px;
+  background: #f3f8f6;
+  border-left: 1px solid #e0eae6;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.billing-cadence {
+  display: flex;
+  padding: 4px;
+  border: 1px solid #d9e5df;
+  border-radius: 10px;
+  background: #e9f0ed;
+  gap: 4px;
+}
+.billing-cadence button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 10px 7px;
+  border-radius: 7px;
+  color: #5c736a;
+  font-size: 13px;
+}
+.billing-cadence button[aria-pressed="true"] {
+  background: white;
+  color: #224d41;
+  box-shadow: 0 2px 5px #21392c0c;
+}
+.billing-cadence span {
+  font-size: 10px;
+  color: #36745e;
+  margin-left: 4px;
+}
+p.billing-amount {
+  font-size: 48px;
+  font-weight: 600;
+  color: #1c4236;
+  line-height: 1.2;
+  margin: 26px 0 0;
+}
+.billing-amount span {
+  font-size: 15px;
+  font-weight: 400;
+}
+.billing-plan-price .primary {
+  margin: 12px 0;
+}
+.billing-plan-price small {
+  font-size: 11px;
+  line-height: 1.7;
+  color: #788a84;
+}
+.billing-note {
+  padding: 8px 4px;
+}
+@media (max-width: 850px) {
+  .billing-plan {
+    grid-template-columns: 1fr;
+  }
+  .billing-plan-price {
+    border-left: 0;
+    border-top: 1px solid #e0eae6;
+  }
+  .billing-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .billing-plan-info,
+  .billing-plan-price {
+    padding: 24px;
+  }
+}

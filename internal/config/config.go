@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	Mode          string
 	HTTPAddr      string
 	PublicOrigin  string
 	SecureCookies bool
@@ -15,6 +16,16 @@ type Config struct {
 
 func Load() (Config, error) {
 	c := Config{HTTPAddr: os.Getenv("XINGDU_HTTP_ADDR"), DatabaseURL: os.Getenv("DATABASE_URL")}
+	c.Mode = os.Getenv("MODE")
+	if c.Mode == "" {
+		c.Mode = os.Getenv("XINGDU_BILLING_MODE")
+	} // Legacy deployment compatibility.
+	if c.Mode == "" {
+		c.Mode = "self_hosted"
+	}
+	if c.Mode != "cloud" && c.Mode != "self_hosted" {
+		return Config{}, errors.New("MODE must be cloud or self_hosted")
+	}
 	if c.HTTPAddr == "" {
 		c.HTTPAddr = "127.0.0.1:18080"
 	}

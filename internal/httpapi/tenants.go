@@ -33,7 +33,7 @@ func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User,
 }
 func (a *api) tenantRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
-		reply(w, 200, map[string]any{"data": map[string]any{"registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady(), "oauth_providers": a.oauthConfig()}})
+		reply(w, 200, map[string]any{"data": map[string]any{"mode": a.mode, "multi_organization": a.mode != "self_hosted", "registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady(), "oauth_providers": a.oauthConfig()}})
 	})
 	mux.HandleFunc("POST /api/v1/auth/register", a.register)
 	mux.HandleFunc("POST /api/v1/auth/register/verify", a.verifyRegistration)
@@ -51,6 +51,17 @@ func (a *api) tenantRoutes(mux *http.ServeMux) {
 		}
 		if !decode(w, r, &in) {
 			return
+		}
+		if a.mode == "self_hosted" {
+			orgs, err := a.store.Organizations(r.Context(), u.ID)
+			if err != nil {
+				storeError(w, err)
+				return
+			}
+			if len(orgs) > 0 {
+				failure(w, 409, "single_organization", "自部署模式仅支持一个组织")
+				return
+			}
 		}
 		out, err := a.store.CreateOrganization(r.Context(), u.ID, in.Name)
 		if err != nil {

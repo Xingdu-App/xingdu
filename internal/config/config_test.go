@@ -25,3 +25,35 @@ func TestPublicOriginCookiePolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestDeploymentMode(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://localhost/test")
+	t.Setenv("XINGDU_PUBLIC_ORIGIN", "http://localhost")
+	t.Setenv("XINGDU_BILLING_MODE", "")
+	for _, mode := range []string{"", "cloud", "self_hosted", "invalid"} {
+		t.Setenv("MODE", mode)
+		c, err := Load()
+		if mode == "invalid" {
+			if err == nil {
+				t.Fatal("accepted invalid mode")
+			}
+			continue
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := mode
+		if want == "" {
+			want = "self_hosted"
+		}
+		if c.Mode != want {
+			t.Fatal(c.Mode)
+		}
+	}
+	t.Setenv("MODE", "self_hosted")
+	t.Setenv("XINGDU_BILLING_MODE", "cloud")
+	c, err := Load()
+	if err != nil || c.Mode != "self_hosted" {
+		t.Fatal("MODE must override legacy billing setting")
+	}
+}

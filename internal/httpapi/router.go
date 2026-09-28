@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"xingdu.app/xingdu/internal/billing"
 	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/hosts"
@@ -20,6 +21,7 @@ import (
 )
 
 type Store interface {
+	BillingStore
 	OAuthStore
 	EmailRegistrationStore
 	AccountStore
@@ -41,6 +43,10 @@ type Store interface {
 	DeleteHost(context.Context, string) error
 }
 type Options struct {
+	Billing             billing.Gateway
+	Mode                string
+	BillingCloud        bool
+	BillingTest         bool
 	OAuthProviders      map[string]socialauth.Provider
 	EmailSender         emailverification.Sender
 	PublicOrigin        string
@@ -52,6 +58,9 @@ type Options struct {
 	SSHConnector        *bootstrap.Connector
 }
 type api struct {
+	billing         billing.Gateway
+	billingCloud    bool
+	billingTest     bool
 	oauthProviders  map[string]socialauth.Provider
 	emailSender     emailverification.Sender
 	agentOrigin     string
@@ -59,6 +68,7 @@ type api struct {
 	vault           *vault.Vault
 	connector       *bootstrap.Connector
 	connectionSlots chan struct{}
+	mode            string
 	registration    bool
 	store           Store
 	origin          string
@@ -70,7 +80,7 @@ type api struct {
 
 func New(store Store, opts Options) http.Handler {
 	dummy, _ := bcrypt.GenerateFromPassword([]byte("non-authenticating-dummy-password"), bcrypt.DefaultCost)
-	a := &api{oauthProviders: opts.OAuthProviders, emailSender: opts.EmailSender, registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
+	a := &api{mode: opts.Mode, oauthProviders: opts.OAuthProviders, emailSender: opts.EmailSender, registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
 	if opts.AgentOrigin == "" {
 		opts.AgentOrigin = opts.PublicOrigin
 	}
@@ -82,7 +92,11 @@ func New(store Store, opts Options) http.Handler {
 		a.connector = &bootstrap.Connector{}
 	}
 	a.connectionSlots = make(chan struct{}, 4)
+	a.billing = opts.Billing
+	a.billingCloud = opts.BillingCloud
+	a.billingTest = opts.BillingTest
 	mux := http.NewServeMux()
+	a.billingRoutes(mux)
 	a.machineRoutes(mux)
 	a.deploymentRoutes(mux)
 	a.subscriptionRoutes(mux)
@@ -175,7 +189,7 @@ func New(store Store, opts Options) http.Handler {
 				return
 			}
 		}
-		if r.Method != "GET" && r.Method != "HEAD" && !machineRequest {
+		if r.Method != "GET" && r.Method != "HEAD" && !machineRequest && r.URL.Path != stripeWebhookPath {
 			if a.origin == "" || r.Header.Get("Origin") != a.origin || r.Header.Get("X-Xingdu-Request") != "1" {
 				failure(w, 403, "origin_rejected", "请求来源不受信任")
 				return
@@ -193,6 +207,9 @@ func New(store Store, opts Options) http.Handler {
 		requestTimeout := 5 * time.Second
 		if r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/v1/auth/oauth/") && strings.HasSuffix(r.URL.Path, "/callback") {
 			requestTimeout = 8 * time.Second
+		}
+		if strings.HasPrefix(r.URL.Path, "/api/v1/billing") {
+			requestTimeout = 25 * time.Second
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 		defer cancel()
@@ -225,6 +242,14 @@ func decodeLimit(w http.ResponseWriter, r *http.Request, out any, limit int64) b
 }
 func storeError(w http.ResponseWriter, err error) {
 	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) && databaseError.Code == "P0006" {
+		failure(w, 409, "single_organization", "自部署模式仅支持一个组织")
+		return
+	}
+	if errors.As(err, &databaseError) && databaseError.Code == "P0005" {
+		failure(w, 402, "payment_required", "请先为当前组织开通云端套餐，再新增资源")
+		return
+	}
 	if errors.As(err, &databaseError) && databaseError.Code == "P0004" {
 		failure(w, 409, "quota_exceeded", "当前组织已达到资源配额，请联系服务管理员")
 		return

@@ -52,6 +52,11 @@ func (s *Store) tenantTx(ctx context.Context, write, manage bool) (pgx.Tx, strin
 	if err = setScope(ctx, tx, sc.User, sc.Org); err != nil {
 		return fail(err)
 	}
+	if s.CloudBilling {
+		if _, err = tx.Exec(ctx, "SELECT set_config('app.billing_mode','cloud',true)"); err != nil {
+			return fail(err)
+		}
+	}
 	// Serialize membership mutations, invitations and inventory access per organization.
 	// This makes a committed removal effective before the next tenant operation.
 	if _, err = tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1,0))", sc.Org); err != nil {

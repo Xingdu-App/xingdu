@@ -82,3 +82,13 @@ Web 启动脚本从容器 `/etc/resolv.conf` 读取实际 DNS resolver，用 ngi
 - Worker 无 HTTP 服务，需通过平台进程状态、无敏感信息的日志及受控任务执行验证。不要给 Worker 配置 HTTP 探活后把正常后台进程误判故障。
 
 先完成迁移，再滚动部署 API 与 Worker，确认 API readiness 后部署 Web。涉及不兼容数据库修改时单独安排维护窗口；不要假设回滚镜像会自动回滚 schema。加密密钥丢失无法解密历史机器凭据，数据库备份必须与密钥备份、恢复演练配套。
+
+## 可选：Stripe 云端计费
+
+默认 `MODE=self_hosted`，不收取订阅费。托管服务准备接入支付时，
+仅在 API 服务配置 `MODE=cloud`、`STRIPE_SECRET_KEY`、
+`STRIPE_WEBHOOK_SECRET`、`STRIPE_PRICE_MONTHLY`、`STRIPE_PRICE_YEARLY` 和
+`STRIPE_PORTAL_CONFIGURATION`。不要把 Stripe 密钥配置到 Web 构建环境。
+价格固定为 USD 5/月、USD 40/年，每组织 5 台服务器；配置和测试步骤见
+[BILLING.md](BILLING.md)。Web 模板已转发 `/api/v1/billing/stripe/webhook`，
+公开回调地址应使用该部署实际的 HTTPS 域名。真实支付和公网回调需单独验收。

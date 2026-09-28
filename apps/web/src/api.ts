@@ -46,7 +46,7 @@ export async function request<T>(
   signal?: AbortSignal,
   quiet401 = false,
 ): Promise<T> {
-  const timeout = AbortSignal.timeout(10000);
+  const timeout = AbortSignal.timeout(path.startsWith("/api/v1/billing") ? 30000 : 10000);
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const headers: Record<string, string> = {};
   if (organizationID) headers["X-Xingdu-Organization"] = organizationID;
@@ -139,6 +139,8 @@ export const setOrganization = (id: string) => {
   organizationID = id;
 };
 export type AuthConfig = {
+  mode: "cloud" | "self_hosted";
+  multi_organization: boolean;
   registration_enabled: boolean;
   email_verification_required: boolean;
   email_delivery_configured: boolean;
