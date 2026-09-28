@@ -49,6 +49,13 @@ func (s *Store) OrganizationOperations(ctx context.Context) (Operations, error) 
 	if err != nil {
 		return out, err
 	}
+	if s.CloudBilling {
+		hosts := out.Usage["hosts"]
+		if hosts.Limit > 5 {
+			hosts.Limit = 5
+		}
+		out.Usage["hosts"] = hosts
+	}
 	rows, err = tx.Query(ctx, `SELECT kind,resource_id,actor_id,event,created_at FROM (
  SELECT 'machine' AS kind,host_id::text AS resource_id,actor_id::text AS actor_id,event,created_at,id FROM machine_audit WHERE organization_id=request_org_id()
  UNION ALL SELECT 'subscription',subscription_id::text,actor_id::text,event,created_at,id FROM subscription_audit WHERE organization_id=request_org_id()

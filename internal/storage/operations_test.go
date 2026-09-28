@@ -48,6 +48,17 @@ func TestOrganizationQuotaAndIsolation(t *testing.T) {
 	}
 	org := orgs[0].ID
 	scoped := WithTenant(ctx, id, org)
+	for _, tc := range []struct {
+		cloud bool
+		limit int
+	}{{false, 25}, {true, 5}} {
+		s.CloudBilling = tc.cloud
+		ops, err := s.OrganizationOperations(scoped)
+		if err != nil || ops.Usage["hosts"] != (ResourceUsage{0, tc.limit}) {
+			t.Fatalf("cloud=%v: usage=%v err=%v", tc.cloud, ops.Usage, err)
+		}
+	}
+	s.CloudBilling = false
 	_, err = admin.Pool.Exec(ctx, "INSERT INTO organization_limits(organization_id,hosts) VALUES($1,1)", org)
 	if err != nil {
 		t.Fatal(err)
@@ -82,6 +93,11 @@ func TestOrganizationQuotaAndIsolation(t *testing.T) {
 	}
 	if ops.Usage["hosts"] != (ResourceUsage{1, 1}) {
 		t.Fatal(ops.Usage)
+	}
+	s.CloudBilling = true
+	ops, err = s.OrganizationOperations(scoped)
+	if err != nil || ops.Usage["hosts"] != (ResourceUsage{1, 1}) {
+		t.Fatalf("cloud must preserve stricter quota: usage=%v err=%v", ops.Usage, err)
 	}
 	if _, err = s.OrganizationOperations(WithTenant(ctx, id, NewID("obj"))); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("tenant escape: %v", err)

@@ -46,7 +46,9 @@ export async function request<T>(
   signal?: AbortSignal,
   quiet401 = false,
 ): Promise<T> {
-  const timeout = AbortSignal.timeout(path.startsWith("/api/v1/billing") ? 30000 : 10000);
+  const timeout = AbortSignal.timeout(
+    path.startsWith("/api/v1/billing") ? 30000 : 10000,
+  );
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const headers: Record<string, string> = {};
   if (organizationID) headers["X-Xingdu-Organization"] = organizationID;
