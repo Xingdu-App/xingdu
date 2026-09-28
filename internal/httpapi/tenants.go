@@ -33,7 +33,7 @@ func (a *api) tenant(next func(http.ResponseWriter, *http.Request, storage.User,
 }
 func (a *api) tenantRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
-		reply(w, 200, map[string]any{"data": map[string]bool{"registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady()}})
+		reply(w, 200, map[string]any{"data": map[string]any{"registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady(), "oauth_providers": a.oauthConfig()}})
 	})
 	mux.HandleFunc("POST /api/v1/auth/register", a.register)
 	mux.HandleFunc("POST /api/v1/auth/register/verify", a.verifyRegistration)

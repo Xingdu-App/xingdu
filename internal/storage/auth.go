@@ -14,9 +14,10 @@ var ErrNotFound = errors.New("not found")
 var ErrConflict = errors.New("conflict")
 
 type User struct {
-	ID           string `json:"id"`
-	Username     string `json:"username"`
-	PasswordHash string `json:"-"`
+	ID                   string `json:"id"`
+	Username             string `json:"username"`
+	PasswordHash         string `json:"-"`
+	PasswordLoginEnabled bool   `json:"-"`
 }
 
 func NewID() string {
@@ -42,7 +43,7 @@ func (s *Store) CreateAdmin(ctx context.Context, username, hash string) error {
 }
 func (s *Store) Credentials(ctx context.Context, username string) (User, error) {
 	var a User
-	err := s.Pool.QueryRow(ctx, "SELECT id::text,username,password_hash FROM users WHERE username=$1", username).Scan(&a.ID, &a.Username, &a.PasswordHash)
+	err := s.Pool.QueryRow(ctx, "SELECT id::text,username,password_hash,password_login_enabled FROM users WHERE username=$1", username).Scan(&a.ID, &a.Username, &a.PasswordHash, &a.PasswordLoginEnabled)
 	return a, mapError(err)
 }
 func (s *Store) Session(ctx context.Context, hash string) (User, error) {

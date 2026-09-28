@@ -116,8 +116,8 @@ func TestEmailConfigurationPlaceholderFailClosed(t *testing.T) {
 	handler := New(fakeStore{}, Options{PublicOrigin: "https://xingdu.zeabur.app", RegistrationEnabled: true, EmailSender: sender})
 	config := httptest.NewRecorder()
 	handler.ServeHTTP(config, httptest.NewRequest("GET", "/api/v1/auth/config", nil))
-	var result struct{ Data map[string]bool }
-	if json.Unmarshal(config.Body.Bytes(), &result) != nil || config.Code != 200 || !result.Data["registration_enabled"] || !result.Data["email_verification_required"] || result.Data["email_delivery_configured"] {
+	var result struct{ Data map[string]any }
+	if json.Unmarshal(config.Body.Bytes(), &result) != nil || config.Code != 200 || result.Data["registration_enabled"] != true || result.Data["email_verification_required"] != true || result.Data["email_delivery_configured"] != false {
 		t.Fatal("unexpected placeholder configuration", config.Body.String())
 	}
 	request := httptest.NewRequest("POST", "/api/v1/auth/register", strings.NewReader(`{"email":"fixture@example.invalid","password":"fixture-password","organization":"Fixture"}`))

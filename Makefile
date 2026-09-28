@@ -28,6 +28,7 @@ check:
 	go vet ./...
 	go test -race ./...
 	npm --prefix apps/web run lint
+	npm --prefix apps/web test
 	npm --prefix apps/web run build
 
 up:

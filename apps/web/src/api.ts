@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import type { OAuthProvider, OAuthProviders } from "./oauth";
 export type HostInput = {
   name: string;
   address: string;
@@ -141,6 +142,7 @@ export type AuthConfig = {
   registration_enabled: boolean;
   email_verification_required: boolean;
   email_delivery_configured: boolean;
+  oauth_providers: OAuthProviders;
 };
 export const authConfig = (signal?: AbortSignal) =>
   request<AuthConfig>("/api/v1/auth/config", "GET", undefined, signal, true);
@@ -167,6 +169,14 @@ export const verifyRegistration = (registration_token: string, code: string) =>
     { registration_token, code },
     undefined,
     true,
+  );
+export const startOAuth = (provider: OAuthProvider, mode: "login" | "link") =>
+  request<{ authorization_url: string }>(
+    `/api/v1/auth/oauth/${provider}/start`,
+    "POST",
+    { mode },
+    undefined,
+    mode === "login",
   );
 export const listOrganizations = () =>
   request<Organization[]>("/api/v1/organizations");

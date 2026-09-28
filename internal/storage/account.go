@@ -103,10 +103,11 @@ func (s *Store) NewVerifiedSession(ctx context.Context, tokenHash, userID, passw
 		return err
 	}
 	var hash string
-	if err = tx.QueryRow(ctx, `SELECT password_hash FROM users WHERE id=$1`, userID).Scan(&hash); err != nil {
+	var enabled bool
+	if err = tx.QueryRow(ctx, `SELECT password_hash,password_login_enabled FROM users WHERE id=$1`, userID).Scan(&hash, &enabled); err != nil {
 		return mapError(err)
 	}
-	if hash != passwordHash {
+	if !enabled || hash != passwordHash {
 		return ErrConflict
 	}
 	if _, err = tx.Exec(ctx, `DELETE FROM sessions WHERE expires_at<=now()`); err != nil {

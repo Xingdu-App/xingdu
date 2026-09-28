@@ -1,4 +1,5 @@
 import { request } from "./api";
+import type { OAuthProvider } from "./oauth";
 export type AccountSession = {
   id: string;
   created_at: string;
@@ -31,3 +32,17 @@ export const changePassword = (
     current_password,
     new_password,
   });
+
+export type LoginIdentities = {
+  has_password: boolean;
+  identities: { provider: OAuthProvider; email: string; created_at: string }[];
+};
+export const getLoginIdentities = (signal?: AbortSignal) =>
+  request<LoginIdentities>(
+    "/api/v1/account/identities",
+    "GET",
+    undefined,
+    signal,
+  );
+export const unlinkLoginIdentity = (provider: OAuthProvider) =>
+  request<void>(`/api/v1/account/identities/${provider}`, "DELETE");

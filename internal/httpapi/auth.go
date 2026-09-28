@@ -97,7 +97,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		hash = string(a.dummyHash)
 	}
 	valid := bcrypt.CompareHashAndPassword([]byte(hash), []byte(in.Password)) == nil
-	if err != nil || !valid {
+	if err != nil || !valid || !admin.PasswordLoginEnabled {
 		failure(w, 401, "invalid_credentials", "用户名或密码不正确")
 		return
 	}

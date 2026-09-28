@@ -11,10 +11,18 @@ import {
   login,
   logout,
   setSessionToken,
+  startOAuth,
 } from "./api";
 import type { PendingRegistration, Session } from "./api";
 import AvatarProvider from "./AvatarProvider";
 import OrganizationGate from "./OrganizationGate";
+import {
+  oauthAuthorizationURL,
+  oauthFeedback,
+  oauthProviderNames,
+} from "./oauth";
+import type { OAuthProvider, OAuthProviders } from "./oauth";
+import "./AccountForms.css";
 
 type Verification = PendingRegistration & {
   email: string;
@@ -24,6 +32,11 @@ type Verification = PendingRegistration & {
 
 export default function SessionGate() {
   useLocale();
+  const [providers, setProviders] = useState<OAuthProviders>({
+    google: false,
+    github: false,
+  });
+  const [authConfigLoaded, setAuthConfigLoaded] = useState(false);
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [mailConfigured, setMailConfigured] = useState(false);
   const [configError, setConfigError] = useState(false);
@@ -38,6 +51,10 @@ export default function SessionGate() {
     authConfig(controller.signal)
       .then((config) => {
         if (controller.signal.aborted) return;
+        setProviders(
+          config.oauth_providers ?? { google: false, github: false },
+        );
+        setAuthConfigLoaded(true);
         setRegistrationEnabled(config.registration_enabled);
         setMailConfigured(config.email_delivery_configured === true);
       })
@@ -55,7 +72,11 @@ export default function SessionGate() {
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() =>
+    window.location.pathname.replace(/\/+$/, "") === "/app/security"
+      ? ""
+      : t(oauthFeedback(new URL(window.location.href)).message),
+  );
   const [busy, setBusy] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -96,10 +117,32 @@ export default function SessionGate() {
     window.addEventListener("xingdu:unauthorized", expire);
     return () => window.removeEventListener("xingdu:unauthorized", expire);
   }, []);
+  useEffect(() => {
+    if (window.location.pathname.replace(/\/+$/, "") === "/app/security")
+      return;
+    const feedback = oauthFeedback(new URL(window.location.href));
+    if (feedback.consumed)
+      window.history.replaceState(window.history.state, "", feedback.cleanPath);
+  }, []);
+  async function socialLogin(provider: OAuthProvider) {
+    if (busy || !providers[provider]) return;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await startOAuth(provider, "login");
+      const url = oauthAuthorizationURL(provider, result.authorization_url);
+      setPassword("");
+      window.location.assign(url);
+    } catch (reason) {
+      showError(reason);
+      setBusy(false);
+    }
+  }
   function showError(reason: unknown) {
     if (reason instanceof APIError && reason.code === "email_unavailable") {
       setMailConfigured(false);
-      setError(t("邮件注册暂不可用，请联系部署管理员配置邮件服务。"));
+      setError(t("邮箱注册暂不可用，请稍后重试或联系服务管理员。"));
     } else if (
       reason instanceof APIError &&
       reason.code === "invalid_verification"
@@ -110,6 +153,7 @@ export default function SessionGate() {
   async function sendCode() {
     const email = username.trim().toLowerCase();
     const result = await register(email, password, organization.trim());
+    // oxlint-disable-next-line react/purity -- Runs after an explicit registration request, never during render.
     const sentAt = Date.now();
     setNow(sentAt);
     setPending({
@@ -131,6 +175,7 @@ export default function SessionGate() {
     setNotice("");
     try {
       if (pending) {
+        // oxlint-disable-next-line react/purity -- Submit event needs current wall time even when the tab timer was throttled.
         if (Date.now() >= pending.expiresAt) {
           setError(t("验证码已过期，请重新发送。"));
           return;
@@ -149,7 +194,7 @@ export default function SessionGate() {
         accept(await login(email, verifiedPassword));
       } else if (registering) {
         if (!registrationEnabled || !mailConfigured) {
-          setError(t("邮件注册暂不可用，请联系部署管理员配置邮件服务。"));
+          setError(t("邮箱注册暂不可用，请稍后重试或联系服务管理员。"));
           return;
         }
         await sendCode();
@@ -161,6 +206,7 @@ export default function SessionGate() {
     }
   }
   async function resend() {
+    // oxlint-disable-next-line react/purity -- Resend click handler, not a render-time clock read.
     if (busy || !pending || Date.now() < pending.resendAt || !mailConfigured)
       return;
     setBusy(true);
@@ -223,11 +269,35 @@ export default function SessionGate() {
           {pending
             ? t("验证邮箱，完成注册")
             : registering
-              ? t("创建账号与组织")
+              ? t("创建账号，开始管理你的服务器")
               : t("登录你的星渡控制台")}
         </p>
         {window.location.hash.startsWith("#invite=") && (
           <p>{t("登录或注册后，可接受组织邀请。")}</p>
+        )}
+        {!checking && !checkError && !pending && authConfigLoaded && (
+          <div className="social-login-options" aria-label={t("第三方登录")}>
+            <p className="form-hint">{t("使用第三方账号继续")}</p>
+            {(["google", "github"] as const).map((provider) => (
+              <button
+                className="secondary social-login-button"
+                key={provider}
+                type="button"
+                disabled={busy || !providers[provider]}
+                onClick={() => void socialLogin(provider)}
+              >
+                <span className="social-provider-mark" aria-hidden="true">
+                  {provider === "google" ? "G" : "GH"}
+                </span>
+                {providers[provider]
+                  ? t("使用 {0} 继续", { 0: oauthProviderNames[provider] })
+                  : t("{0} 暂不可用", { 0: oauthProviderNames[provider] })}
+              </button>
+            ))}
+            <p className="form-hint">
+              {t("第三方已验证邮箱与已有账号一致时，将自动关联并登录。")}
+            </p>
+          </div>
         )}
         {checking ? (
           <p role="status">{t("正在检查登录状态…")}</p>
@@ -247,6 +317,7 @@ export default function SessionGate() {
           </div>
         ) : (
           <form onSubmit={submit}>
+            {!pending && <p className="form-hint">{t("或使用邮箱和密码")}</p>}
             {pending ? (
               <>
                 <p>{t("待验证邮箱：{0}", { 0: pending.email })}</p>
@@ -313,6 +384,13 @@ export default function SessionGate() {
                   disabled={busy}
                 />
                 {registering && (
+                  <p className="form-hint">
+                    {t(
+                      "密码至少 12 位，最长 72 字节；建议使用密码管理器生成并保存。",
+                    )}
+                  </p>
+                )}
+                {registering && (
                   <>
                     <label htmlFor="initial-org">{t("组织名称")}</label>
                     <input
@@ -323,7 +401,11 @@ export default function SessionGate() {
                       required
                       disabled={busy}
                     />
-                    <small>{t("创建你的组织后，也可以加入受邀组织。")}</small>
+                    <small>
+                      {t(
+                        "组织就是你的资源工作空间，个人使用也可创建，无需邀请成员。",
+                      )}
+                    </small>
                   </>
                 )}
               </>
@@ -407,7 +489,7 @@ export default function SessionGate() {
             )}
             {registrationEnabled && !mailConfigured && (
               <p className="form-hint" role="status">
-                {t("邮件注册暂不可用，请联系部署管理员配置邮件服务。")}
+                {t("邮箱注册暂不可用，请稍后重试或联系服务管理员。")}
               </p>
             )}
             {configError && (
@@ -421,18 +503,22 @@ export default function SessionGate() {
           <summary>{t("首次使用？")}</summary>
           <p>
             {t(
-              "开放注册时，使用邮箱接收验证码后即可创建账号。自托管管理员也可以通过本地终端创建初始账号，没有默认密码。",
+              "创建账号后，即可建立自己的工作空间来管理 VPS；也可以登录后接受他人的组织邀请。遇到注册、登录或权限问题，请查看帮助中心。",
             )}
           </p>
-          <code>docker compose exec api admin --username admin</code>
           <p>
-            {t(
-              "已有用户名账号仍可登录。组织管理员可以分享邀请链接，验证注册后即可接受邀请。",
-            )}
+            <a href="/help">{t("查看入门指引")}</a>
           </p>
         </details>
-        <div className="auth-footer">{t("开源 · 自托管 · 自由连接")}</div>
+        <p className="form-hint">
+          {t(
+            "开始使用前，请阅读服务范围与隐私说明，了解当前预览能力和数据处理方式。",
+          )}
+        </p>
+        <div className="auth-footer">{t("你的 VPS 与节点，一处管理")}</div>
         <nav className="auth-public-links" aria-label={t("公开信息")}>
+          <a href="/help">{t("帮助中心")}</a>
+          <a href="/service">{t("服务范围")}</a>
           <a href="/pricing">{t("价格")}</a>
           <a href="/privacy">{t("隐私说明")}</a>
           <a href="/security">{t("安全设计")}</a>

@@ -9,15 +9,18 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strings"
 	"time"
 	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/hosts"
+	"xingdu.app/xingdu/internal/socialauth"
 	"xingdu.app/xingdu/internal/storage"
 	"xingdu.app/xingdu/internal/vault"
 )
 
 type Store interface {
+	OAuthStore
 	EmailRegistrationStore
 	AccountStore
 	OperationsStore
@@ -38,6 +41,7 @@ type Store interface {
 	DeleteHost(context.Context, string) error
 }
 type Options struct {
+	OAuthProviders      map[string]socialauth.Provider
 	EmailSender         emailverification.Sender
 	PublicOrigin        string
 	SecureCookies       bool
@@ -48,6 +52,7 @@ type Options struct {
 	SSHConnector        *bootstrap.Connector
 }
 type api struct {
+	oauthProviders  map[string]socialauth.Provider
 	emailSender     emailverification.Sender
 	agentOrigin     string
 	artifacts       string
@@ -65,7 +70,7 @@ type api struct {
 
 func New(store Store, opts Options) http.Handler {
 	dummy, _ := bcrypt.GenerateFromPassword([]byte("non-authenticating-dummy-password"), bcrypt.DefaultCost)
-	a := &api{emailSender: opts.EmailSender, registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
+	a := &api{oauthProviders: opts.OAuthProviders, emailSender: opts.EmailSender, registration: opts.RegistrationEnabled, store: store, origin: opts.PublicOrigin, secure: opts.SecureCookies, dummyHash: dummy, attempts: limiter{entries: make(map[string]attempt)}, hashSlots: make(chan struct{}, 4)}
 	if opts.AgentOrigin == "" {
 		opts.AgentOrigin = opts.PublicOrigin
 	}
@@ -83,6 +88,7 @@ func New(store Store, opts Options) http.Handler {
 	a.subscriptionRoutes(mux)
 	a.avatarRoutes(mux)
 	a.tenantRoutes(mux)
+	a.oauthRoutes(mux)
 	a.accountRoutes(mux)
 	a.operationsRoutes(mux)
 	mux.HandleFunc("POST /api/v1/organization/ownership", a.tenant(a.transferOwnership))
@@ -184,7 +190,11 @@ func New(store Store, opts Options) http.Handler {
 				return
 			}
 		}
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		requestTimeout := 5 * time.Second
+		if r.Method == "GET" && strings.HasPrefix(r.URL.Path, "/api/v1/auth/oauth/") && strings.HasSuffix(r.URL.Path, "/callback") {
+			requestTimeout = 8 * time.Second
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), requestTimeout)
 		defer cancel()
 		mux.ServeHTTP(w, r.WithContext(ctx))
 	})
