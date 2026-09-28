@@ -1,21 +1,37 @@
-# 贡献说明
+# Contributing to Xingdu
 
-星渡目前处于规划阶段，采用 MIT 许可证，计划公开源码。公开协作流程会随项目实现继续完善。
+Keep client exporters independent of server runtimes. Preserve organization isolation and use the restricted PostgreSQL runtime role for business operations. Never add credentials, real subscriptions, private deployment data or personal filesystem paths to the repository.
 
-## 实现原则
+Run `make check` before submitting code. Changes involving data or authorization need the dedicated PostgreSQL integration suite; UI changes also need a browser check. See [development](docs/DEVELOPMENT.md) and [implementation status](docs/IMPLEMENTATION-STATUS.md).
 
-- 业务模型不绑定特定协议引擎或客户端配置格式。
-- 兼容能力以版本化矩阵及真实连接验证为依据。
-- 主机操作必须可追踪、可重试，并有明确的恢复路径。
-- 不提交真实服务器地址、访问令牌、SSH 私钥、用户订阅或生产日志。
-- 提交前检查作者名、邮箱以及文件中的个人路径；本地 Git 身份只为本仓库设置，避免影响其他项目。
+## Commit messages
 
-## 提交与验证
+Use an English imperative subject such as `fix(auth): require email verification before creating accounts`. A behavior change should explain why the old behavior was a problem, what now happens, and the key choices and limits a reviewer needs to understand. Record the validation actually performed in a separate paragraph. Wrap body lines around 72–80 characters.
 
-提交说明描述具体行为变化及验证结果。实现阶段按影响范围增加配置生成、任务恢复和协议集成验证；本地检查使用 `make check`，数据库集成验证见 [开发指南](docs/DEVELOPMENT.md)。
+For example (illustrative, not a claim that these checks ran):
 
-## 许可
+```text
+fix(auth): reject unverified registration challenges
 
-本项目采用 [MIT 许可证](LICENSE)。提交供本项目合入的贡献时，你同意以 MIT 许可证授权这些贡献，并确认拥有相应授权权利。贡献者保留各自的版权。
+A pending registration could previously be treated as an active account.
+Require the challenge to be verified and consumed before creating the user
+and their first organization in one transaction.
 
-引入第三方代码时，请注明来源、保留其版权与许可声明，并确认许可证兼容性。
+Keep existing administrator logins available. Missing email-provider
+configuration disables new registration instead of bypassing verification.
+
+Validation: describe the actual tests and environment used here. Identify
+any live email or production verification that remains pending.
+```
+
+Keep independently reviewable requirements in separate commits when practical. Stage only relevant files and inspect the staged diff. Include real issue links when applicable. Do not rewrite published history as part of message cleanup.
+
+Contributors should use their own appropriate public identity. Automation for this repository uses `Xingdu <noreply@xingdu.app>` and credits actual Codex work with `Co-Authored-By: Codex <noreply@openai.com>`. Do not impersonate other contributors or reuse identities from historical examples.
+
+An optional commented template is available in `.gitmessage`:
+
+```sh
+git config --local commit.template .gitmessage
+```
+
+A successful commit or push is separate from a successful deployment. Release notes should distinguish source changes, local tests, actual client/runtime acceptance and public availability.
