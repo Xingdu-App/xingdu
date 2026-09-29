@@ -90,6 +90,12 @@ func TestRuleTemplateHTTP(t *testing.T) {
 			t.Fatalf("HTTP %d want %d: %s", w.Code, status, w.Body.String())
 		}
 	}
+	catalog := call("GET", "/api/v1/subscription-presets", "", "", true, nil)
+	assert(catalog, 200)
+	if !strings.Contains(catalog.Body.String(), "streaming-v1") || !strings.Contains(catalog.Body.String(), "ChinaDomain.list") {
+		t.Fatal("missing template catalog")
+	}
+	assert(call("GET", "/api/v1/subscription-presets", "", "", false, nil), 401)
 	body := `{"name":"Daily","rules":[{"type":"domain_suffix","value":"example.com","target":"direct"}],"final_action":"proxy"}`
 	assert(call("POST", "/api/v1/rule-templates", body, "", false, nil), 403)
 	w := call("POST", "/api/v1/rule-templates", body, "", true, nil)

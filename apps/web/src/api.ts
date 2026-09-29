@@ -418,8 +418,42 @@ export const loadNodes = (signal: AbortSignal) =>
 export type SubscriptionRule = {
   type: "domain" | "domain_suffix" | "ip_cidr";
   value: string;
-  target: "proxy" | "direct" | "reject";
+  target: "proxy" | "direct" | "reject" | `group:${string}`;
 };
+export type RoutingGroup = {
+  id: string;
+  name: string;
+  type: "select" | "url-test" | "fallback";
+  node_ids: string[];
+};
+export type SubscriptionRouting = {
+  preset: string;
+  groups: RoutingGroup[];
+  targets: Record<string, string>;
+  final: string;
+};
+export type RoutingPreset = {
+  id: string;
+  name: string;
+  name_en: string;
+  description: string;
+  description_en: string;
+  reference: string;
+  groups: (Omit<RoutingGroup, "node_ids"> & { name_en: string })[];
+  bindings: { source: string; target: string }[];
+  final: string;
+};
+export type RoutingCatalog = {
+  sources: { id: string; name: string; name_en: string; url: string }[];
+  presets: RoutingPreset[];
+};
+export const loadRoutingCatalog = (signal: AbortSignal) =>
+  request<RoutingCatalog>(
+    "/api/v1/subscription-presets",
+    "GET",
+    undefined,
+    signal,
+  );
 export type SubscriptionInput = {
   format: "stash" | "mihomo" | "surge" | "loon" | "hysteria2_uri";
   name: string;
@@ -427,6 +461,7 @@ export type SubscriptionInput = {
   rules: SubscriptionRule[];
   final_action: "proxy" | "direct";
   enabled: boolean;
+  routing?: SubscriptionRouting | null;
 };
 export type Subscription = SubscriptionInput & {
   subscription_path?: string;

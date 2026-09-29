@@ -1,0 +1,295 @@
+{
+  "sources": [
+    {
+      "id": "lan",
+      "name": "局域网",
+      "name_en": "Local networks",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/LocalAreaNetwork.list"
+    },
+    {
+      "id": "unban",
+      "name": "常用服务放行",
+      "name_en": "Service exceptions",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/UnBan.list"
+    },
+    {
+      "id": "ads",
+      "name": "广告拦截",
+      "name_en": "Advertising",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/BanAD.list"
+    },
+    {
+      "id": "ai",
+      "name": "OpenAI",
+      "name_en": "OpenAI",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/OpenAi.list"
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "name_en": "GitHub",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Github.list"
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "name_en": "YouTube",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/YouTube.list"
+    },
+    {
+      "id": "netflix",
+      "name": "Netflix",
+      "name_en": "Netflix",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Netflix.list"
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram",
+      "name_en": "Telegram",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Telegram.list"
+    },
+    {
+      "id": "microsoft",
+      "name": "微软服务",
+      "name_en": "Microsoft",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Microsoft.list"
+    },
+    {
+      "id": "apple",
+      "name": "苹果服务",
+      "name_en": "Apple",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Apple.list"
+    },
+    {
+      "id": "proxy",
+      "name": "海外常用服务",
+      "name_en": "Global services",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ProxyLite.list"
+    },
+    {
+      "id": "china",
+      "name": "国内域名",
+      "name_en": "China domains",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaDomain.list"
+    },
+    {
+      "id": "china-ip",
+      "name": "国内 IP",
+      "name_en": "China IP ranges",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"
+    }
+  ],
+  "presets": [
+    {
+      "id": "balanced-v1",
+      "name": "日常均衡",
+      "name_en": "Everyday",
+      "description": "国内直连，海外代理，拦截常见广告。",
+      "description_en": "Direct access to China services, proxy global services, and block common ads.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config"
+    },
+    {
+      "id": "streaming-v1",
+      "name": "影音与社交",
+      "name_en": "Streaming & social",
+      "description": "YouTube、Netflix 和 Telegram 独立选组，其他沿用日常分流。",
+      "description_en": "Separate groups for YouTube, Netflix, and Telegram with everyday routing.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "youtube",
+          "name": "YouTube",
+          "name_en": "YouTube",
+          "type": "select"
+        },
+        {
+          "id": "netflix",
+          "name": "Netflix",
+          "name_en": "Netflix",
+          "type": "select"
+        },
+        {
+          "id": "telegram",
+          "name": "Telegram",
+          "name_en": "Telegram",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "youtube",
+          "target": "group:youtube"
+        },
+        {
+          "source": "netflix",
+          "target": "group:netflix"
+        },
+        {
+          "source": "telegram",
+          "target": "group:telegram"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config"
+    },
+    {
+      "id": "developer-v1",
+      "name": "AI 与开发",
+      "name_en": "AI & development",
+      "description": "OpenAI、GitHub、微软服务和 Telegram 分组，便于指定出口。",
+      "description_en": "Dedicated exits for OpenAI, GitHub, Microsoft services, and Telegram.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "OpenAI",
+          "name_en": "OpenAI",
+          "type": "select"
+        },
+        {
+          "id": "github",
+          "name": "GitHub",
+          "name_en": "GitHub",
+          "type": "select"
+        },
+        {
+          "id": "microsoft",
+          "name": "Microsoft",
+          "name_en": "Microsoft",
+          "type": "select"
+        },
+        {
+          "id": "telegram",
+          "name": "Telegram",
+          "name_en": "Telegram",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:github"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:microsoft"
+        },
+        {
+          "source": "telegram",
+          "target": "group:telegram"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/tree/master/Clash/config"
+    }
+  ]
+}

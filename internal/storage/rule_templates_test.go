@@ -100,6 +100,33 @@ func TestRuleTemplateIsolationAndSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// Full configuration is a subscription snapshot under the same RLS scope.
+	sub.Routing = &subscription.Routing{Preset: "balanced-v1", Groups: []subscription.RoutingGroup{{ID: "proxy", Name: "Default", Type: "url-test"}, {ID: "work", Name: "Work", Type: "fallback", NodeIDs: []string{node}}}, Targets: map[string]string{"proxy": "group:work"}, Final: "group:proxy"}
+	sub, err = s.SaveSubscription(ca, sub, "", false)
+	if err != nil || sub.Routing == nil || sub.Routing.Groups[1].NodeIDs[0] != node {
+		t.Fatal("routing round trip", err)
+	}
+	visible, err := s.Subscriptions(cb)
+	if err != nil || len(visible) != 0 {
+		t.Fatal("cross-tenant routing visible", err)
+	}
+	if _, err = s.SaveSubscription(cb, sub, "", false); err == nil {
+		t.Fatal("cross-tenant routing update")
+	}
+	if _, err = s.SaveSubscription(WithTenant(ctx, viewer, org), sub, "", false); !errors.Is(err, ErrForbidden) {
+		t.Fatal("viewer routing write", err)
+	}
+	sub.Routing.Groups[1].NodeIDs = []string{NewID("node")}
+	if _, err = s.SaveSubscription(ca, sub, "", false); !errors.Is(err, ErrInvalid) {
+		t.Fatal("foreign group membership", err)
+	}
+	sub.Routing.Groups[1].NodeIDs = []string{node}
+	sub.Format = "hysteria2_uri"
+	if _, err = s.SaveSubscription(ca, sub, "", false); !errors.Is(err, ErrInvalid) {
+		t.Fatal("URI routing accepted", err)
+	}
+	sub.Format = "stash"
 	template.Rules = []subscription.Rule{{Type: "domain", Value: "changed.example.com", Target: "reject"}}
 	template.FinalAction = "direct"
 	template, err = s.SaveRuleTemplate(ca, template, false)
@@ -114,8 +141,15 @@ func TestRuleTemplateIsolationAndSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	saved, err := s.Subscriptions(ca)
-	if err != nil || len(saved) != 1 || saved[0].ID != sub.ID || saved[0].Rules[0].Value != "example.com" || saved[0].FinalAction != "proxy" {
+	if err != nil || len(saved) != 1 || saved[0].ID != sub.ID || saved[0].Rules[0].Value != "example.com" || saved[0].FinalAction != "proxy" || saved[0].Routing == nil || saved[0].Routing.Targets["proxy"] != "group:work" {
 		t.Fatal("template edit/delete changed subscription snapshot", err)
+	}
+	if _, err = admin.Pool.Exec(ctx, "DELETE FROM subscription_nodes WHERE subscription_id=$1 AND node_id=$2", sub.ID, node); err != nil {
+		t.Fatal(err)
+	}
+	saved, err = s.Subscriptions(ca)
+	if err != nil || len(saved[0].Routing.Groups[1].NodeIDs) != 0 {
+		t.Fatal("deleted node retained stale group membership", err)
 	}
 	bad := RuleTemplate{Name: "Bad", Rules: []subscription.Rule{{Type: "domain", Value: "bad\n.example", Target: "direct"}}, FinalAction: "proxy"}
 	if _, err = s.SaveRuleTemplate(ca, bad, true); !errors.Is(err, ErrInvalid) {

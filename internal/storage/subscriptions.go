@@ -13,19 +13,20 @@ import (
 )
 
 type Subscription struct {
-	EncryptedToken   []byte              `json:"-"`
-	TokenHash        string              `json:"-"`
-	SubscriptionPath string              `json:"subscription_path,omitempty"`
-	LinkState        string              `json:"link_state,omitempty"`
-	Format           string              `json:"format"`
-	ID               string              `json:"id"`
-	Name             string              `json:"name"`
-	NodeIDs          []string            `json:"node_ids"`
-	Rules            []subscription.Rule `json:"rules"`
-	FinalAction      string              `json:"final_action"`
-	Enabled          bool                `json:"enabled"`
-	CreatedAt        time.Time           `json:"created_at"`
-	UpdatedAt        time.Time           `json:"updated_at"`
+	Routing          *subscription.Routing `json:"routing,omitempty"`
+	EncryptedToken   []byte                `json:"-"`
+	TokenHash        string                `json:"-"`
+	SubscriptionPath string                `json:"subscription_path,omitempty"`
+	LinkState        string                `json:"link_state,omitempty"`
+	Format           string                `json:"format"`
+	ID               string                `json:"id"`
+	Name             string                `json:"name"`
+	NodeIDs          []string              `json:"node_ids"`
+	Rules            []subscription.Rule   `json:"rules"`
+	FinalAction      string                `json:"final_action"`
+	Enabled          bool                  `json:"enabled"`
+	CreatedAt        time.Time             `json:"created_at"`
+	UpdatedAt        time.Time             `json:"updated_at"`
 }
 
 func (s Subscription) Validate() error {
@@ -42,7 +43,7 @@ func (s Subscription) Validate() error {
 		}
 		seen[id] = true
 	}
-	if subscription.ValidateRules(s.Rules, s.FinalAction) != nil {
+	if subscription.ValidateRouting(s.Routing, s.NodeIDs, s.Rules, s.FinalAction, s.Format) != nil {
 		return ErrInvalid
 	}
 	if s.Format == "hysteria2_uri" && (len(s.Rules) > 0 || s.FinalAction != "proxy") {
@@ -51,14 +52,37 @@ func (s Subscription) Validate() error {
 	return nil
 }
 
-const subscriptionColumns = `s.id::text,s.name,s.format,s.rules,s.final_action,s.enabled,s.created_at,s.updated_at,COALESCE((SELECT array_agg(n.node_id::text ORDER BY n.position) FROM subscription_nodes n WHERE n.subscription_id=s.id),'{}')`
+const subscriptionColumns = `s.id::text,s.name,s.format,s.rules,s.final_action,s.enabled,s.created_at,s.updated_at,COALESCE((SELECT array_agg(n.node_id::text ORDER BY n.position) FROM subscription_nodes n WHERE n.subscription_id=s.id),'{}'),s.routing`
 
 func scanSubscription(row pgx.Row, out *Subscription) error {
-	var rules []byte
-	if err := row.Scan(&out.ID, &out.Name, &out.Format, &rules, &out.FinalAction, &out.Enabled, &out.CreatedAt, &out.UpdatedAt, &out.NodeIDs); err != nil {
+	var rules, routing []byte
+	if err := row.Scan(&out.ID, &out.Name, &out.Format, &rules, &out.FinalAction, &out.Enabled, &out.CreatedAt, &out.UpdatedAt, &out.NodeIDs, &routing); err != nil {
 		return err
 	}
-	return json.Unmarshal(rules, &out.Rules)
+	if err := json.Unmarshal(rules, &out.Rules); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(routing, &out.Routing); err != nil {
+		return err
+	}
+	// Deployment deletion cascades subscription_nodes but not JSON members.
+	// Keep the snapshot aligned with the authoritative, tenant-scoped relation.
+	if out.Routing != nil {
+		selected := map[string]bool{}
+		for _, id := range out.NodeIDs {
+			selected[id] = true
+		}
+		for i := range out.Routing.Groups {
+			members := []string{}
+			for _, id := range out.Routing.Groups[i].NodeIDs {
+				if selected[id] {
+					members = append(members, id)
+				}
+			}
+			out.Routing.Groups[i].NodeIDs = members
+		}
+	}
+	return nil
 }
 func (s *Store) Subscriptions(ctx context.Context) ([]Subscription, error) {
 	out := []Subscription{}
@@ -164,13 +188,14 @@ func (s *Store) SaveSubscription(ctx context.Context, in Subscription, hash stri
 		return in, err
 	}
 	rules, _ := json.Marshal(in.Rules)
+	routing, _ := json.Marshal(in.Routing)
 	event := "subscription_updated"
 	if create {
 		event = "subscription_created"
-		_, err = tx.Exec(ctx, `INSERT INTO subscriptions(id,organization_id,name,rules,final_action,enabled,token_hash,format,encrypted_token) VALUES($1,request_org_id(),$2,$3,$4,$5,$6,$7,$8)`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, hash, in.Format, in.EncryptedToken)
+		_, err = tx.Exec(ctx, `INSERT INTO subscriptions(id,organization_id,name,rules,final_action,enabled,token_hash,format,encrypted_token,routing) VALUES($1,request_org_id(),$2,$3,$4,$5,$6,$7,$8,$9)`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, hash, in.Format, in.EncryptedToken, routing)
 	} else {
 		var found string
-		err = tx.QueryRow(ctx, `UPDATE subscriptions SET name=$2,rules=$3,final_action=$4,enabled=$5,format=$6,updated_at=now() WHERE id=$1 RETURNING id::text`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, in.Format).Scan(&found)
+		err = tx.QueryRow(ctx, `UPDATE subscriptions SET name=$2,rules=$3,final_action=$4,enabled=$5,format=$6,routing=$7,updated_at=now() WHERE id=$1 RETURNING id::text`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, in.Format, routing).Scan(&found)
 	}
 	if err != nil {
 		return in, mapError(err)

@@ -1,0 +1,213 @@
+.routing-section {
+  margin: 20px 0;
+  min-width: 0;
+}
+.routing-presets {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.routing-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid #dfe7e9;
+  border-radius: 12px;
+  color: #294d48;
+  background: #fff;
+  cursor: pointer;
+  min-width: 0;
+}
+.routing-preset.is-selected {
+  border-color: #529b86;
+  background: #edf7f1;
+  box-shadow: inset 0 0 0 1px #529b86;
+}
+.routing-preset strong {
+  font-size: 14px;
+}
+.routing-preset span {
+  font-size: 12px;
+  line-height: 1.65;
+  flex: 1;
+}
+.routing-preset small {
+  font-size: 11px;
+  color: #667c76;
+}
+.routing-groups {
+  display: grid;
+  gap: 12px;
+}
+.routing-group {
+  border: 1px solid #dfe7e9;
+  border-radius: 12px;
+  padding: 16px;
+  min-width: 0;
+}
+.routing-group-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px 28px;
+  gap: 10px;
+  align-items: center;
+}
+.routing-group-heading input {
+  margin: 0;
+  min-width: 0;
+}
+.routing-node-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.routing-node-chips label {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  margin: 0 !important;
+  padding: 8px 11px;
+  border: 1px solid #dfe7e9;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.routing-node-chips input {
+  width: auto !important;
+  margin: 0 !important;
+}
+.routing-node-chips .is-selected {
+  background: #edf7f1;
+  border-color: #88b8ad;
+}
+.routing-inherit {
+  color: #71847e;
+  font-size: 12px;
+  align-self: center;
+}
+.routing-targets {
+  margin-top: 20px;
+  border: 1px solid #dfe7e9;
+  border-radius: 12px;
+  padding: 16px;
+}
+.routing-targets summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+.routing-targets summary span {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #71847e;
+  font-weight: 400;
+}
+.routing-target {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+  align-items: center;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf1ef;
+}
+.routing-target strong {
+  display: block;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.routing-target a,
+.routing-targets > a {
+  font-size: 11px;
+  color: #57766a;
+}
+.routing-order {
+  color: #8da39b;
+  margin-right: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.subscription-rule-actions {
+  display: flex;
+  gap: 2px;
+}
+.subscription-rule-actions .icon-button {
+  width: 24px;
+  min-width: 24px;
+  padding: 3px;
+}
+.subscription-rule,
+html[lang="en"] .subscription-rule {
+  grid-template-columns:
+    minmax(115px, 0.9fr) minmax(100px, 1fr) minmax(125px, 0.9fr)
+    78px;
+}
+@media (max-width: 700px) {
+  .routing-presets {
+    grid-template-columns: 1fr;
+  }
+  .routing-group-heading {
+    grid-template-columns: minmax(0, 1fr) 28px;
+  }
+  .routing-group-heading > .select-control {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .routing-group-heading > .icon-button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .routing-target {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .routing-targets summary span {
+    display: block;
+    margin: 6px 0;
+  }
+  .subscription-rule,
+  html[lang="en"] .subscription-rule {
+    grid-template-columns: minmax(0, 1fr) 78px;
+    padding: 12px;
+    border: 1px solid #dfe7e9;
+    border-radius: 10px;
+  }
+  .subscription-rule > input {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .subscription-rule > .select-control:nth-of-type(2) {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+  .subscription-rule-actions {
+    grid-row: 1;
+    grid-column: 2;
+  }
+}
+.configuration-template-library {
+  margin: 28px 28px 0;
+  padding-top: 22px;
+  border-top: 1px solid #e4ebe8;
+}
+.configuration-template-library h3 {
+  font-size: 16px;
+  margin: 0 0 8px;
+}
+.routing-preset b {
+  font-size: 12px;
+  margin-top: 3px;
+}
+.preset-section > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+@media (max-width: 700px) {
+  .configuration-template-library {
+    margin-inline: 16px;
+  }
+}

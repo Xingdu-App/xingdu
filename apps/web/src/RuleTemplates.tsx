@@ -201,7 +201,7 @@ export function RuleTemplatePanel({ manage }: { manage: boolean }) {
   return (
     <section className="rule-template-panel">
       <div className="subscription-step">
-        <h3>{t("规则模板")}</h3>
+        <h3>{t("自定义规则模板")}</h3>
         {manage && (
           <button
             className="secondary compact"
@@ -213,12 +213,10 @@ export function RuleTemplatePanel({ manage }: { manage: boolean }) {
         )}
       </div>
       <p className="form-hint">
-        {t(
-          "在组织内复用分流规则。应用时复制到订阅，模板修改或删除不影响已有订阅。",
-        )}
+        {t("完整配置模板在创建或编辑订阅时选择；此处管理可复用的自定义规则。")}
       </p>
-      <div className="preset-section">
-        <h4>{t("内置基础模板")}</h4>
+      <details className="preset-section">
+        <summary>{t("基础规则示例")}</summary>
         <p className="form-hint">
           {t(
             "星渡维护的精简方案，可直接应用或复制后编辑；不等同于社区完整规则集，不自动更新。",
@@ -260,7 +258,7 @@ export function RuleTemplatePanel({ manage }: { manage: boolean }) {
           <summary>{t("社区规则参考")}</summary>
           <p className="form-hint">
             {t(
-              "以下是外部项目入口，暂不直接导入其 RULE-SET、GEOIP 或多策略组配置。订阅地址不会发送给这些项目。",
+              "完整配置模板引用 ACL4SSR 规则集；以下其他项目可作为自定义规则的参考。订阅地址不会发送给这些项目。",
             )}
           </p>
           {ruleTemplateSources.map((source) => (
@@ -272,7 +270,7 @@ export function RuleTemplatePanel({ manage }: { manage: boolean }) {
             </p>
           ))}
         </details>
-      </div>
+      </details>
       {error && editor === undefined && (
         <p className="form-error" role="alert">
           {t(error)}

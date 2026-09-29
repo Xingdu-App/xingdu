@@ -120,6 +120,26 @@ func TestLoonWithIsolatedTrustStore(t *testing.T) {
 				t.Fatal("invalid credential boundary")
 			}
 		}
+		plan := routingFixture(t, "streaming-v1")
+		ids := []string{}
+		for _, n := range nodes {
+			ids = append(ids, n.ID)
+		}
+		plan.Groups[1].NodeIDs = ids[:1]
+		plan.Groups[1].Type = "fallback"
+		b, err = RenderRouting("loon", "Loon", nodes, []Rule{{"domain", "example.com", "group:youtube"}}, "proxy", plan, ids)
+		if err != nil {
+			t.Fatal(err)
+		}
+		text = string(b)
+		for _, want := range []string{"[Remote Rule]", "YouTube.list,policy=YouTube,enabled=true", "YouTube = fallback,", "url=https://www.gstatic.com/generate_204", "DOMAIN,example.com,YouTube", "FINAL,默认代理"} {
+			if !strings.Contains(text, want) {
+				t.Fatal("missing Loon routing field", want)
+			}
+		}
+		if strings.Contains(text, "RULE-SET,") {
+			t.Fatal("Loon must use Remote Rule section")
+		}
 		return
 	}
 	var nodes []Node

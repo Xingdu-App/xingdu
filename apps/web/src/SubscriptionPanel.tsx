@@ -1,3 +1,9 @@
+import { RoutingPresetPicker, RoutingEditor } from "./SubscriptionRouting";
+import {
+  selectSubscriptionNodes,
+  validRoutingNames,
+  applyRoutingPreset,
+} from "./subscription-routing";
 import { RuleTemplatePanel, TemplatePicker } from "./RuleTemplates";
 import RulesEditor from "./RulesEditor";
 import SubscriptionAccess from "./SubscriptionAccess";
@@ -5,6 +11,7 @@ import { t, useLocale, localeTag } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
+  loadRoutingCatalog,
   createSubscription,
   deleteSubscription,
   errorMessage,
@@ -12,7 +19,12 @@ import {
   rotateSubscription,
   updateSubscription,
 } from "./api";
-import type { ManagedNode, Subscription, SubscriptionInput } from "./api";
+import type {
+  ManagedNode,
+  Subscription,
+  SubscriptionInput,
+  RoutingCatalog,
+} from "./api";
 import Select from "./Select";
 import { isShadowsocks, protocolNames } from "./api";
 
@@ -53,9 +65,25 @@ export default function SubscriptionPanel({
   refreshKey: number;
   onNodes: () => void;
 }) {
-  useLocale();
+  const locale = useLocale();
   const [rows, setRows] = useState<Subscription[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [catalog, setCatalog] = useState<RoutingCatalog | null>(null);
+  const [catalogError, setCatalogError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    loadRoutingCatalog(controller.signal)
+      .then((value) => {
+        if (!controller.signal.aborted) {
+          setCatalog(value);
+          setCatalogError("");
+        }
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setCatalogError(errorMessage(e));
+      });
+    return () => controller.abort();
+  }, [refreshKey]);
   const [version, setVersion] = useState(0);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -110,6 +138,7 @@ export default function SubscriptionPanel({
             rules: row.rules.map((r) => ({ ...r })),
             final_action: row.final_action,
             enabled: row.enabled,
+            routing: row.routing ? structuredClone(row.routing) : null,
           }
         : emptyInput(),
     );
@@ -206,9 +235,15 @@ export default function SubscriptionPanel({
               <p className="subscription-meta">
                 {row.node_ids.length}
                 {t("个已选节点 ·")}
-                {row.rules.length}
-                {t("条规则 · 默认")}
-                {row.final_action === "proxy" ? t("使用节点") : t("直连")}
+                {row.routing ? (
+                  t("{0} 个策略组", { 0: row.routing.groups.length })
+                ) : (
+                  <>
+                    {row.rules.length}
+                    {t("条规则 · 默认")}
+                    {row.final_action === "proxy" ? t("使用节点") : t("直连")}
+                  </>
+                )}
               </p>
               <div className="host-tags">
                 {row.node_ids.map((id) => (
@@ -262,6 +297,7 @@ export default function SubscriptionPanel({
                             rules: row.rules,
                             final_action: row.final_action,
                             enabled: !row.enabled,
+                            routing: row.routing,
                           },
                           signal,
                         );
@@ -335,6 +371,47 @@ export default function SubscriptionPanel({
             </article>
           ))}
         </div>
+      )}
+      {catalog && (
+        <section className="configuration-template-library">
+          <h3>{t("配置模板")}</h3>
+          <p className="form-hint">
+            {t(
+              "选择完整分流方案，分配节点后即可生成订阅。规则集由客户端自动更新。",
+            )}
+          </p>
+          <div className="routing-presets">
+            {catalog.presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="routing-preset"
+                disabled={!manage || busy}
+                onClick={() => {
+                  setInput(
+                    applyRoutingPreset(emptyInput(), preset, locale === "en"),
+                  );
+                  setError("");
+                  setEditor(null);
+                }}
+              >
+                <strong>
+                  {locale === "en" ? preset.name_en : preset.name}
+                </strong>
+                <span>
+                  {locale === "en" ? preset.description_en : preset.description}
+                </span>
+                <small>
+                  {t("{0} 个策略组 · {1} 个规则集", {
+                    0: preset.groups.length,
+                    1: preset.bindings.length,
+                  })}
+                </small>
+                <b>{t("使用此模板")} →</b>
+              </button>
+            ))}
+          </div>
+        </section>
       )}
       <RuleTemplatePanel manage={manage} />
       <p className="node-footnote">
@@ -441,13 +518,29 @@ export default function SubscriptionPanel({
               </p>
             )}
             {input.format === "hysteria2_uri" &&
-              (input.rules.length > 0 || input.final_action !== "proxy") && (
+              (input.rules.length > 0 ||
+                input.final_action !== "proxy" ||
+                !!input.routing) && (
                 <p className="form-error">
                   {t(
-                    "分享链接不包含分流规则；请清空规则并将默认连接设为使用节点",
+                    "分享链接不包含分流规则；请先切回完整配置格式移除模板，清空规则并将默认连接设为使用节点",
                   )}
                 </p>
               )}
+            {catalogError && (
+              <p className="form-error">
+                {t("配置模板加载失败，请刷新页面重试。")}
+              </p>
+            )}
+            {!catalog && !catalogError && (
+              <p className="form-hint">{t("正在加载配置模板…")}</p>
+            )}
+            <RoutingPresetPicker
+              input={input}
+              setInput={setInput}
+              catalog={catalog}
+              busy={busy}
+            />
             <div className="subscription-step">
               <h3>{t("01 · 选择节点")}</h3>
               <span className="badge">
@@ -466,12 +559,14 @@ export default function SubscriptionPanel({
                       !input.node_ids.includes(node.id)
                     }
                     onChange={(e) =>
-                      setInput((current) => ({
-                        ...current,
-                        node_ids: e.target.checked
-                          ? [...current.node_ids, node.id]
-                          : current.node_ids.filter((id) => id !== node.id),
-                      }))
+                      setInput((current) =>
+                        selectSubscriptionNodes(
+                          current,
+                          e.target.checked
+                            ? [...current.node_ids, node.id]
+                            : current.node_ids.filter((id) => id !== node.id),
+                        ),
+                      )
                     }
                   />
                   <span>
@@ -497,20 +592,45 @@ export default function SubscriptionPanel({
                     type="button"
                     className="text-danger"
                     onClick={() =>
-                      setInput({
-                        ...input,
-                        node_ids: input.node_ids.filter((v) => v !== id),
-                      })
+                      setInput(
+                        selectSubscriptionNodes(
+                          input,
+                          input.node_ids.filter((v) => v !== id),
+                        ),
+                      )
                     }
                   >
                     {t("移除选择")}
                   </button>
                 </div>
               ))}
-            {editor !== undefined && (
+            <RoutingEditor
+              input={input}
+              setInput={setInput}
+              catalog={catalog}
+              busy={busy}
+              nodes={nodes}
+            />
+            {editor !== undefined && !input.routing && (
               <TemplatePicker input={input} onChange={setInput} busy={busy} />
             )}
-            <RulesEditor input={input} setInput={setInput} busy={busy} />
+            <RulesEditor
+              input={input}
+              setInput={setInput}
+              busy={busy}
+              hideFinal={!!input.routing}
+              groupOptions={input.routing?.groups.map((g) => ({
+                value: `group:${g.id}`,
+                label: g.name,
+              }))}
+            />
+            {!validRoutingNames(input) && (
+              <p className="form-error">
+                {t(
+                  "策略组名称必须唯一，不能使用 DIRECT、REJECT 或逗号等配置分隔符。",
+                )}
+              </p>
+            )}
             <label className="check-row">
               <input
                 type="checkbox"
@@ -527,13 +647,16 @@ export default function SubscriptionPanel({
               className="primary"
               disabled={
                 busy ||
+                !validRoutingNames(input) ||
                 (!editor && !input.node_ids.length) ||
                 input.node_ids.some((id) => {
                   const node = available.find((n) => n.id === id);
                   return node && !supportsFormat(input.format, node.protocol);
                 }) ||
                 (input.format === "hysteria2_uri" &&
-                  (input.rules.length > 0 || input.final_action !== "proxy"))
+                  (input.rules.length > 0 ||
+                    input.final_action !== "proxy" ||
+                    !!input.routing))
               }
             >
               {busy

@@ -28,6 +28,9 @@ func subscriptionPath(id, token string) string {
 }
 func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 	a.ruleTemplateRoutes(mux)
+	mux.HandleFunc("GET /api/v1/subscription-presets", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		reply(w, 200, map[string]any{"data": subscription.RoutingCatalog()})
+	}))
 	mux.HandleFunc("GET /api/v1/subscriptions", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		out, err := a.store.Subscriptions(r.Context())
 		if err != nil {
@@ -50,7 +53,7 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 				return
 			}
 			var in storage.Subscription
-			if !decodeLimit(w, r, &in, 64*1024) {
+			if !decodeLimit(w, r, &in, 256*1024) {
 				return
 			}
 			in.SubscriptionPath, in.LinkState = "", ""
@@ -153,7 +156,7 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			}
 			nodes = append(nodes, subscription.Node{ID: d.ID, Name: d.Name, Server: d.Server, Spec: spec})
 		}
-		content, err := subscription.Render(format, sub.Name, nodes, sub.Rules, sub.FinalAction)
+		content, err := subscription.RenderRouting(format, sub.Name, nodes, sub.Rules, sub.FinalAction, sub.Routing, sub.NodeIDs)
 		if err != nil {
 			var compatibility *subscription.CompatibilityError
 			if errors.As(err, &compatibility) {

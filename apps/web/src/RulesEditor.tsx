@@ -47,10 +47,14 @@ export default function RulesEditor<T extends RuleTemplateInput>({
   input,
   setInput,
   busy,
+  groupOptions = [],
+  hideFinal = false,
 }: {
   input: T;
   setInput: Dispatch<SetStateAction<T>>;
   busy: boolean;
+  groupOptions?: { value: string; label: string }[];
+  hideFinal?: boolean;
 }) {
   function patchRule(index: number, patch: Partial<SubscriptionRule>) {
     setInput((current) => ({
@@ -83,7 +87,9 @@ export default function RulesEditor<T extends RuleTemplateInput>({
       </div>
       <p className="form-hint">
         {t(
-          "从上到下匹配，第一条命中生效。不添加规则时，所有流量按默认方式连接。",
+          hideFinal
+            ? "自定义规则优先于模板规则集，从上到下匹配，第一条命中生效。"
+            : "从上到下匹配，第一条命中生效。不添加规则时，所有流量按默认方式连接。",
         )}
       </p>
       {input.rules.map((rule, index) => (
@@ -111,8 +117,16 @@ export default function RulesEditor<T extends RuleTemplateInput>({
           />
           <Select
             label={t("规则 {0} 动作", { 0: index + 1 })}
-            value={rule.target}
-            options={targets}
+            value={
+              groupOptions.length && rule.target === "proxy"
+                ? "group:proxy"
+                : rule.target
+            }
+            options={
+              groupOptions.length
+                ? [...groupOptions, ...targets.slice(1)]
+                : targets
+            }
             disabled={busy}
             onChange={(value) =>
               patchRule(index, {
@@ -120,36 +134,67 @@ export default function RulesEditor<T extends RuleTemplateInput>({
               })
             }
           />
-          <button
-            type="button"
-            className="icon-button"
-            aria-label={t("删除规则 {0}", { 0: index + 1 })}
-            onClick={() =>
-              setInput({
-                ...input,
-                rules: input.rules.filter((_, i) => i !== index),
-              })
-            }
-          >
-            ×
-          </button>
+          <div className="subscription-rule-actions">
+            {[-1, 1].map((direction) => (
+              <button
+                key={direction}
+                type="button"
+                className="icon-button"
+                disabled={
+                  busy ||
+                  index + direction < 0 ||
+                  index + direction >= input.rules.length
+                }
+                aria-label={t(direction < 0 ? "上移规则 {0}" : "下移规则 {0}", {
+                  0: index + 1,
+                })}
+                onClick={() =>
+                  setInput((current) => {
+                    const rules = [...current.rules];
+                    [rules[index], rules[index + direction]] = [
+                      rules[index + direction],
+                      rules[index],
+                    ];
+                    return { ...current, rules };
+                  })
+                }
+              >
+                {direction < 0 ? "↑" : "↓"}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={t("删除规则 {0}", { 0: index + 1 })}
+              onClick={() =>
+                setInput({
+                  ...input,
+                  rules: input.rules.filter((_, i) => i !== index),
+                })
+              }
+            >
+              ×
+            </button>
+          </div>
         </div>
       ))}
-      <div className="subscription-default">
-        <label>{t("未匹配时")}</label>
-        <Select
-          label={t("默认连接方式")}
-          value={input.final_action}
-          options={targets.slice(0, 2)}
-          disabled={busy}
-          onChange={(value) =>
-            setInput({
-              ...input,
-              final_action: value as "proxy" | "direct",
-            })
-          }
-        />
-      </div>
+      {!hideFinal && (
+        <div className="subscription-default">
+          <label>{t("未匹配时")}</label>
+          <Select
+            label={t("默认连接方式")}
+            value={input.final_action}
+            options={targets.slice(0, 2)}
+            disabled={busy}
+            onChange={(value) =>
+              setInput({
+                ...input,
+                final_action: value as "proxy" | "direct",
+              })
+            }
+          />
+        </div>
+      )}
     </>
   );
 }
