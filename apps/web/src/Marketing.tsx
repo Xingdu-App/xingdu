@@ -673,8 +673,15 @@ function Privacy() {
           </p>
           <p>
             {t(
-              "官网配置 Google Analytics 后，仅在你同意后加载访问统计并使用 Cookie，记录公开页面访问及控制台、价格、GitHub 入口点击。不会在控制台或带未知查询参数、片段的页面加载统计。公开页面仅允许已知 AI 来源的 utm_source 标记，查询参数在上报前移除，只记录固定的来源名称，也不主动上报账号、组织、服务器或订阅信息。Google 会接收统计请求及其网络信息；你可在页脚更改偏好并停止后续统计。Web 服务器或部署平台仍可能记录访问日志。",
-            )}
+              "官网配置 Google Analytics 4 后，访问公开页面时会自动加载统计，使用 Cookie 和浏览器标识收集页面访问、访问时间、来源网站、浏览器与设备信息，以及控制台、价格和 GitHub 入口点击，用于了解访问情况并改进网站内容与体验。Google 会接收统计请求及 IP 地址等网络信息。我们在标签中关闭广告个性化和 Google signals，不主动上报账号、组织、服务器、SSH 凭据、节点密钥或订阅链接；控制台、登录、API 以及带未知查询参数或片段的页面不加载统计。公开页面仅允许已知 AI 来源的 utm_source 标记，查询参数在上报前移除，只记录固定的来源名称。你可以通过浏览器设置或拦截工具限制 Cookie 和统计请求。Web 服务器或部署平台仍可能记录访问日志。",
+            )}{" "}
+            <a
+              href="https://policies.google.com/technologies/partner-sites"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t("了解 Google 如何处理合作伙伴网站的数据")}
+            </a>
           </p>
           <p>
             {t(
@@ -738,7 +745,7 @@ function Privacy() {
         </h1>
         <p>{t("说明收集什么、用于什么，以及你可以控制什么。")}</p>
         <span className="document-version">
-          {t("当前版本数据说明 · 更新于 2026.09.28")}
+          {t("当前版本数据说明 · 更新于 2026.09.29")}
         </span>
       </section>
       <div className="site-document-layout">

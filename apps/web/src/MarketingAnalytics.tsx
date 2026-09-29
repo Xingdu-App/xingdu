@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { useContext } from "react";
-import { MarketingLocale } from "./marketing-locale";
+import { useEffect } from "react";
 import { publicPages } from "./public-pages";
 import {
   analyticsAISource,
@@ -10,10 +8,8 @@ import {
   analyticsTarget,
 } from "./analytics";
 
-const consentKey = "xingdu.analytics-consent.v1";
 const id = analyticsID(import.meta.env.VITE_GA_MEASUREMENT_ID);
 let started = false;
-let allowed = false;
 let send: (...args: unknown[]) => void = () => {};
 const paths = Object.values(publicPages).map((page) => page.path);
 function start() {
@@ -58,7 +54,7 @@ function start() {
   script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
   document.head.appendChild(script);
   document.addEventListener("click", (event) => {
-    if (!allowed || !analyticsPage(window.location.href, paths)) return;
+    if (!analyticsPage(window.location.href, paths)) return;
     const anchor =
       event.target instanceof Element ? event.target.closest("a") : null;
     const target =
@@ -71,72 +67,8 @@ function start() {
   });
 }
 export default function MarketingAnalytics() {
-  const en = useContext(MarketingLocale) === "en";
-  const [visible, setVisible] = useState(false);
-  const [eligible, setEligible] = useState(false);
   useEffect(() => {
-    if (!id || !analyticsPage(window.location.href, paths)) return;
-    setEligible(true);
-    let choice: string | null = null;
-    try {
-      choice = localStorage.getItem(consentKey);
-    } catch {
-      /* Ask again when storage is unavailable. */
-    }
-    allowed = choice === "accepted";
-    if (allowed) start();
-    setVisible(!choice);
+    start();
   }, []);
-  function choose(accept: boolean) {
-    allowed = accept;
-    try {
-      localStorage.setItem(consentKey, accept ? "accepted" : "denied");
-    } catch {
-      /* Choice still applies to this page. */
-    }
-    if (accept) start();
-    else if (started && id) {
-      (window as unknown as Record<string, unknown>)[`ga-disable-${id}`] = true;
-      for (const cookie of document.cookie.split(";")) {
-        const name = cookie.trim().split("=")[0];
-        if (name === "_ga" || name.startsWith("_ga_"))
-          document.cookie = `${name}=; Max-Age=0; Path=/`;
-      }
-      // Remove the loaded tag and its automatic handlers by reloading without consent.
-      window.location.reload();
-    }
-    setVisible(false);
-  }
-  if (!eligible) return null;
-  return (
-    <>
-      <button
-        className="site-analytics-settings"
-        onClick={() => setVisible(true)}
-      >
-        {en ? "Analytics preferences" : "访问统计偏好"}
-      </button>
-      {visible && (
-        <section
-          className="site-analytics-banner"
-          aria-label={en ? "Analytics preferences" : "访问统计偏好"}
-        >
-          <p>
-            {en
-              ? "Allow Google Analytics cookies to help us understand visits to our public website? Console activity is excluded. Your choice does not affect product access."
-              : "允许 Google Analytics 使用 Cookie 统计官网访问吗？不统计控制台操作，你的选择不影响使用产品。"}{" "}
-            <a href="/privacy">{en ? "Privacy" : "隐私说明"}</a>
-          </p>
-          <div>
-            <button onClick={() => choose(false)}>
-              {en ? "Decline" : "拒绝"}
-            </button>
-            <button onClick={() => choose(true)}>
-              {en ? "Allow analytics" : "允许统计"}
-            </button>
-          </div>
-        </section>
-      )}
-    </>
-  );
+  return null;
 }
