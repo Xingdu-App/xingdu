@@ -190,6 +190,11 @@ function Plans({ compact = false }: { compact?: boolean }) {
   const t = useMarketingText();
   return (
     <>
+      <p className="site-plans-free">
+        {t(
+          "公开测试期间，支付使用测试模式，不收取真实费用。以下为套餐定价，正式收费开放时间另行公告。",
+        )}
+      </p>
       <div className="site-plans">
         {paidPlans.map((plan) => (
           <article
@@ -229,14 +234,14 @@ function Plans({ compact = false }: { compact?: boolean }) {
               }
               href={"/app/billing?plan=" + plan.id}
             >
-              {t("选择套餐")} <Arrow />
+              {t("查看套餐")} <Arrow />
             </a>
             <ul>
               <li>
                 {t(
                   plan.id === "start"
-                    ? "每个组织 10 台服务器"
-                    : "每个组织 50 台服务器",
+                    ? "每个组织最多管理 10 台服务器"
+                    : "每个组织最多管理 50 台服务器",
                 )}
               </li>
               <li>{t("机器状态监控与协议部署")}</li>
@@ -245,9 +250,7 @@ function Plans({ compact = false }: { compact?: boolean }) {
               {!compact && <li>{t("月付或年付自动续费，可取消下次续费")}</li>}
             </ul>
             <p className="plan-footnote">
-              {t(
-                "用户自备 VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。",
-              )}
+              {t("价格以美元（USD）计。需自备 VPS，服务器和带宽费用另计。")}
             </p>
           </article>
         ))}
@@ -256,7 +259,7 @@ function Plans({ compact = false }: { compact?: boolean }) {
           <h3>Enterprise</h3>
           <p>{t("适合更大规模与定制需求。")}</p>
           <div className="plan-price">{t("定制报价")}</div>
-          <p>{t("与我们沟通规模、部署方式和服务需求。")}</p>
+          <p>{t("需要更多服务器额度或定制部署？联系我们获取方案与报价。")}</p>
           <a
             className="site-button site-button-outline"
             href={enterpriseContact}
@@ -274,7 +277,7 @@ function Plans({ compact = false }: { compact?: boolean }) {
         </article>
       </div>
       <p className="site-plans-free">
-        {t("先免费管理 1 台服务器，或使用 MIT 开源版本自行部署。")}{" "}
+        {t("免费管理 1 台自有服务器，或使用 MIT 开源版本自行部署。")}{" "}
         <a href={docs}>
           {t("自部署指南")} <Arrow />
         </a>
@@ -290,7 +293,7 @@ function Home() {
       <section className="site-hero site-container">
         <div className="hero-copy">
           <span className="site-release">
-            <span className="site-live-dot" /> {t(" 产品预览 ")}
+            <span className="site-live-dot" /> {t(" 公开测试版 ")}
             <span>·</span> {t(" 从一台 VPS 开始")}
           </span>
           <h1>
@@ -300,7 +303,7 @@ function Home() {
           </h1>
           <p>
             {t(
-              "无论一台还是多台 VPS，都能在一个工作空间查看状态、部署协议服务、管理客户端配置。自己使用轻松有序，需要协作时也能邀请他人加入。",
+              "集中管理你的 VPS、部署协议节点，并为常用客户端生成配置。支持个人使用与团队协作。",
             )}
           </p>
           <div className="hero-actions">
@@ -328,7 +331,11 @@ function Home() {
           <span>Debian</span>
           <span>Amazon Linux</span>
         </div>
-        <small>{t("已验证 arm64 Docker 环境中的 Agent 接入")}</small>
+        <small>
+          <a href={`${repository}/blob/main/docs/MACHINE-ACCESS.md`}>
+            {t("查看系统要求与兼容范围")}
+          </a>
+        </small>
       </div>
       <section id="features" className="site-section site-container">
         <SectionTitle
@@ -367,7 +374,7 @@ function Home() {
               )}
             </p>
             <div className="feature-tags">
-              <span>{t("TLS 加密")}</span>
+              <span>{t("多协议部署")}</span>
               <span>TCP / QUIC</span>
               <span>{t("部署与卸载")}</span>
             </div>
@@ -530,7 +537,7 @@ function Pricing() {
           <summary>{t("如何购买和取消云端套餐？")}</summary>
           <p>
             {t(
-              "组织所有者可在控制台的「套餐与账单」查看当前实例是否开放购买。已开放时，可选择月付或年付，并通过账单管理入口取消后续续费。请在付款前核对金额、计费周期和生效时间。",
+              "Xingdu Cloud 当前为公开测试版，支付使用 Stripe 测试模式，不收取真实费用。正式收款开放前会公布税费、退款及服务规则。组织所有者可在「套餐与账单」查看套餐和测试支付流程。",
             )}
           </p>
         </details>
@@ -538,7 +545,7 @@ function Pricing() {
           <summary>{t("免费版本有机器或成员数量限制吗？")}</summary>
           <p>
             {t(
-              "当前版本已有组织资源配额。组织管理员可在设置中查看服务器、节点部署、客户端订阅与成员的用量和上限，额度由服务管理员配置。自托管软件免费不代表资源无限。",
+              "Cloud 免费额度为 1 台服务器，Starter 为 10 台，Premium 为 50 台，按组织计算。节点部署、客户端订阅与成员也有独立配额，可在组织设置中查看；服务器额度不代表其他资源无限。自托管实例的额度由部署者配置。",
             )}
           </p>
         </details>
@@ -581,12 +588,12 @@ function Privacy() {
         <>
           <p>
             {t(
-              "本页说明星渡当前开源版本与官网页面的数据处理方式，更新于 2026 年 9 月 28 日。不同自托管实例由各自部署者运行；部署位置、日志、备份和保留期限由实际部署配置决定。",
+              "本页说明 Xingdu Cloud 公开测试版、官网及开源软件涉及的数据处理，更新于 2026 年 9 月 29 日。Cloud 的数据问题请联系 info@xingdu.app；自托管实例由各自部署者负责，部署位置、日志、备份和保留期限可能不同。",
             )}
           </p>
           <p>
             {t(
-              "星渡目前提供产品预览。邮箱注册需要有效邮件服务；Google / GitHub 登录需要部署者分别配置，未配置的方式不可用。正式托管服务的运营主体、处理地区、服务商、保留期限及具体数据处理政策将在开放前单独公布。本页不替代未来托管服务的正式隐私政策。隐私咨询可发送至 info@xingdu.app；自托管实例的数据请求应联系实际部署者。",
+              "Xingdu Cloud 当前处于公开测试阶段。正式收费前，仍需补齐运营主体、数据处理地区、服务商清单及保留和删除期限；本页尚不是正式收费服务的完整隐私政策。自托管实例的邮件与第三方登录由部署者配置，数据请求也应联系该实例部署者。",
             )}
           </p>
         </>
@@ -669,7 +676,7 @@ function Privacy() {
           </p>
           <p>
             {t(
-              "部署者配置 Resend 后，注册邮箱、验证码及邮件内容会发送给 Resend 用于投递验证邮件。密码、SSH 凭据和节点私钥不会包含在邮件中；星渡数据库只保存验证码摘要，不保存明文验证码。未配置有效邮件服务时，不发送邮件，也不绕过邮箱验证。",
+              "Xingdu Cloud 使用 Resend 投递注册与找回密码验证码、安全通知、组织邀请和套餐通知。投递会向 Resend 提供收件邮箱及相应邮件内容，可能包含组织名称、邀请链接或套餐状态；不包含密码、SSH 凭据和节点私钥。验证码仅保存摘要。异步通知队列保存收件邮箱、通知内容与投递状态，投递服务运行时清理超过 30 天的记录；这不代表所有业务数据或服务商副本的保留期限。自托管实例由部署者配置邮件服务。",
             )}
           </p>
           <p>
@@ -689,7 +696,7 @@ function Privacy() {
           </p>
           <p>
             {t(
-              "点击 GitHub 等外部链接后，将适用对应网站的数据处理规则。请不要把 SSH 凭据、邀请令牌或私人服务器信息提交到公开 issue。",
+              "启用社区规则集后，客户端会向规则托管服务请求下载和更新，托管方可接收到该请求的来源 IP 等网络信息。星渡不会为此主动发送你的客户端订阅链接或节点凭据。点击 GitHub 等外部链接后，适用对应网站的数据处理规则；请勿在公开 Issue 中提交凭据或私人服务器信息。",
             )}
           </p>
         </>
@@ -822,7 +829,7 @@ function Help() {
           [
             t("没有收到验证码或忘记密码怎么办？"),
             t(
-              "先检查垃圾邮件、邮箱拼写和重发倒计时，重发后请使用最新验证码。当前尚未提供邮件找回密码；若已绑定其他登录方式，可用它登录。仍无法登录时，请联系当前服务管理员，不要向他人发送密码或验证码。",
+              "先检查垃圾邮件、邮箱拼写和重发倒计时，重发后请使用最新验证码。忘记密码时，在登录页选择「忘记密码」，通过邮箱验证码重置。无法访问邮箱时，可尝试已绑定的登录方式或联系支持。自托管实例需配置邮件服务；请勿向他人发送密码或验证码。",
             ),
           ],
           [
@@ -876,7 +883,7 @@ function Service() {
         </h1>
         <p>
           {t(
-            "当前产品预览的使用说明。正式运营条款与信息仍需在服务开放前补齐。",
+            "Xingdu Cloud 公开测试版的功能与使用边界。正式收费前将补齐运营信息、服务条款和退款规则。",
           )}
         </p>
       </section>
@@ -898,10 +905,10 @@ function Service() {
           </p>
         </section>
         <section>
-          <h2>{t("预览范围与后续变化")}</h2>
+          <h2>{t("测试范围与后续变化")}</h2>
           <p>
             {t(
-              "当前版本处于早期预览，功能与接口可能调整。自动证书和外部探测需要单独配置，客户端兼容与公网部署仍需逐项验收。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。",
+              "公开测试期间，功能与接口可能调整，当前不提供服务等级（SLA）承诺。自动证书和外部探测需要单独配置；可导出配置不代表所有客户端版本均已完成联网验证。升级自托管实例前，请备份并核对版本说明。",
             )}
           </p>
         </section>
@@ -909,7 +916,7 @@ function Service() {
           <h2>{t("费用与资源上限")}</h2>
           <p>
             {t(
-              "MIT 开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。组织配额以控制台显示为准。云端套餐与包含额度见价格页，实际购买入口以当前实例控制台为准。付款前请核对计费周期与续费信息；退款和特殊账单问题请联系 info@xingdu.app，不预设退款结果。",
+              "MIT 开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。Cloud 套餐按组织计算，不包含 VPS 和带宽；各项资源上限以控制台为准。目前支付为测试模式，不收取真实费用。正式收费前将公布税费、续费、取消、退款和欠费处理规则。账单咨询请联系 info@xingdu.app。",
             )}
           </p>
         </section>
@@ -1005,7 +1012,7 @@ function Security() {
         </p>
         <p>
           {t(
-            "当前是开发预览，尚未完成公网生产运营准备，也没有独立安全认证或 SLA 承诺。已提供加密备份与隔离恢复工具；生产恢复演练、密钥轮换和正式运营隐私政策仍需在服务开放前完成。",
+            "当前为公开测试版，没有独立安全认证或 SLA 承诺。已提供加密备份与隔离恢复工具，但工具可用不代表 Cloud 的恢复演练或密钥轮换已完成。正式收费前仍需完成运营验收并公布完整隐私政策。",
           )}
         </p>
         <a
@@ -1164,7 +1171,7 @@ function MarketingContent({ page }: { page: PublicPage }) {
           </div>
           <div className="site-footer-bottom">
             <span>{t("© 2026 星渡 Xingdu")}</span>
-            <span>{t("MIT 开源 · 产品预览")}</span>
+            <span>{t("MIT 开源 · 公开测试版")}</span>
             <span>Built to connect.</span>
           </div>
         </div>

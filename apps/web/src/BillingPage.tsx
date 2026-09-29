@@ -192,7 +192,9 @@ export default function BillingPage({
               <h2>
                 {data.active && data.mode === "cloud" && (
                   <>
-                    {data.subscription.plan === "premium" ? "Premium" : "Starter"}{" "}
+                    {data.subscription.plan === "premium"
+                      ? "Premium"
+                      : "Starter"}{" "}
                     ·{" "}
                   </>
                 )}
@@ -208,7 +210,9 @@ export default function BillingPage({
                 </p>
               ) : (
                 <>
-                  <p>{t("免费版 1 台，Starter 10 台，Premium 50 台服务器。")}</p>
+                  <p>
+                    {t("免费版 1 台，Starter 10 台，Premium 50 台服务器。")}
+                  </p>
                   <p>{t("当前服务器额度：{0} 台", { 0: data.server_limit })}</p>
                   {data.subscription.period_end > 0 && (
                     <p>
@@ -307,8 +311,8 @@ export default function BillingPage({
                   <p>
                     {t(
                       plan.id === "start"
-                        ? "每个组织 10 台服务器"
-                        : "每个组织 50 台服务器",
+                        ? "每个组织最多管理 10 台服务器"
+                        : "每个组织最多管理 50 台服务器",
                     )}
                   </p>
                   <ul>
