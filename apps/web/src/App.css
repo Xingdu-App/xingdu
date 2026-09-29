@@ -2591,3 +2591,131 @@ html[lang="en"] .subscription-rule {
 @media (max-width: 760px) {
   .rule-template-panel { padding-left: 20px; padding-right: 20px; }
 }
+
+.account-menu-mobile-tools {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .shell > .sidebar {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px 12px;
+    padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  }
+  .sidebar > .brand {
+    grid-area: 1 / 1;
+    min-width: 0;
+    gap: 8px;
+    font-size: 19px;
+    letter-spacing: 2px;
+  }
+  .sidebar > .brand > span {
+    display: none;
+  }
+  .sidebar .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+  .sidebar > .org-switch {
+    grid-area: 1 / 2;
+    min-width: 0;
+    margin: 0;
+  }
+  .sidebar .select-organization .select-trigger {
+    min-height: 44px;
+    padding: 6px 10px;
+  }
+  .sidebar .select-organization .organization-mark,
+  .sidebar .select-organization .select-value small {
+    display: none;
+  }
+  .sidebar .select-organization .select-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sidebar > nav {
+    grid-area: 2 / 1 / 3 / -1;
+    min-width: 0;
+    margin: 0;
+    scrollbar-width: none;
+  }
+  .sidebar > nav::-webkit-scrollbar {
+    display: none;
+  }
+  .sidebar > nav .nav-item {
+    min-height: 44px;
+    flex-shrink: 0;
+  }
+  .sidebar-account {
+    display: contents;
+  }
+  .sidebar-account > .nav-item,
+  .sidebar-account > .language-switch {
+    display: none;
+  }
+  .sidebar-account > .account-trigger {
+    grid-area: 1 / 3;
+    justify-self: end;
+    width: auto;
+    min-height: 44px;
+    max-width: 140px;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  .sidebar-account .account-trigger-name {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 84px;
+  }
+  .sidebar-account .account-trigger .user-avatar {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  .account-menu-mobile-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid #eaf0ed;
+  }
+  .account-menu-mobile-tools > a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: #356c61;
+    text-decoration: none;
+    font-size: 13px;
+  }
+  .account-menu-mobile-tools .language-switch {
+    margin: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .account-menu-mobile-tools {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .account-menu-mobile-tools > a {
+    flex-basis: 100%;
+    white-space: nowrap;
+  }
+  .account-menu-mobile-tools .language-switch {
+    padding: 0;
+    gap: 6px;
+  }
+  .account-menu-mobile-tools .language-switch button {
+    min-height: 40px;
+    white-space: nowrap;
+  }
+  .account-menu-mobile-tools .language-switch button:not([aria-pressed="true"]) {
+    color: #506d67;
+  }
+}

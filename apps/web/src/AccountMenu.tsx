@@ -5,6 +5,7 @@ import { errorMessage, roleNames } from "./api";
 import type { Organization } from "./api";
 
 import Avatar from "./Avatar";
+import LanguageSwitch from "./LanguageSwitch";
 import type { AccountSection } from "./AccountPage";
 
 export default function AccountMenu({
@@ -86,7 +87,12 @@ export default function AccountMenu({
     } else if (event.key === "Escape") {
       event.preventDefault();
       close();
-    } else if (event.key === "Tab") {
+    } else if (
+      event.key === "Tab" &&
+      !popup.current
+        ?.querySelector(".account-menu-mobile-tools")
+        ?.checkVisibility()
+    ) {
       close();
     }
   }
@@ -190,6 +196,10 @@ export default function AccountMenu({
             <span aria-hidden="true">↪</span>
             {busy ? t("正在退出…") : t("退出登录")}
           </button>
+        </div>
+        <div className="account-menu-mobile-tools">
+          <a href="/help">{t("帮助中心")}</a>
+          <LanguageSwitch />
         </div>
         {error && (
           <p className="form-error" role="alert">
