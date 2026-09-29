@@ -435,6 +435,7 @@ export type SubscriptionRouting = {
 };
 export type RoutingPreset = {
   id: string;
+  recommended?: boolean;
   name: string;
   name_en: string;
   description: string;

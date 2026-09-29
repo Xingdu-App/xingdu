@@ -397,6 +397,9 @@ export default function SubscriptionPanel({
               >
                 <strong>
                   {locale === "en" ? preset.name_en : preset.name}
+                  {preset.recommended && (
+                    <em className="routing-recommendation">{t("推荐")}</em>
+                  )}
                 </strong>
                 <span>
                   {locale === "en" ? preset.description_en : preset.description}

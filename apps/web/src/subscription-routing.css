@@ -211,3 +211,28 @@ html[lang="en"] .subscription-rule {
     margin-inline: 16px;
   }
 }
+.routing-preset strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.routing-recommendation {
+  font-style: normal;
+  font-size: 10px;
+  line-height: 1.5;
+  border-radius: 5px;
+  padding: 2px 6px;
+  background: #dff1e6;
+  color: #27634e;
+}
+.routing-template-choices {
+  margin: 14px 0;
+}
+.routing-template-choices > summary {
+  cursor: pointer;
+  padding: 12px 0;
+  font-size: 13px;
+  font-weight: 550;
+  color: #294d48;
+}

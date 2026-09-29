@@ -19,6 +19,7 @@ type Props = {
 export function RoutingPresetPicker({ input, setInput, catalog, busy }: Props) {
   const english = useLocale() === "en";
   if (input.format === "hysteria2_uri" && !input.routing) return null;
+  const selected = catalog?.presets.find((p) => p.id === input.routing?.preset);
   return (
     <section className="routing-section">
       <div className="subscription-step">
@@ -30,31 +31,49 @@ export function RoutingPresetPicker({ input, setInput, catalog, busy }: Props) {
           "模板已配置策略组和完整社区规则集。更换模板会重置组设置和规则集目标，保留已选节点和自定义规则；失效的组目标改为默认代理。",
         )}
       </p>
-      <div className="routing-presets">
-        {catalog?.presets.map((preset) => (
-          <button
-            type="button"
-            className={`routing-preset ${input.routing?.preset === preset.id ? "is-selected" : ""}`}
-            key={preset.id}
-            aria-pressed={input.routing?.preset === preset.id}
-            disabled={busy || input.format === "hysteria2_uri"}
-            onClick={() =>
-              setInput((current) =>
-                applyRoutingPreset(current, preset, english),
-              )
-            }
-          >
-            <strong>{english ? preset.name_en : preset.name}</strong>
-            <span>{english ? preset.description_en : preset.description}</span>
-            <small>
-              {t("{0} 个策略组 · {1} 个规则集", {
-                0: preset.groups.length,
-                1: preset.bindings.length,
-              })}
-            </small>
-          </button>
-        ))}
-      </div>
+      <details className="routing-template-choices" open={!input.routing}>
+        <summary>
+          {t("选择或更换模板")}
+          {selected && ` · ${english ? selected.name_en : selected.name}`}
+        </summary>
+        <div className="routing-presets">
+          {catalog?.presets.map((preset) => (
+            <button
+              type="button"
+              className={`routing-preset ${input.routing?.preset === preset.id ? "is-selected" : ""}`}
+              key={preset.id}
+              aria-pressed={input.routing?.preset === preset.id}
+              disabled={busy || input.format === "hysteria2_uri"}
+              onClick={() =>
+                setInput((current) =>
+                  applyRoutingPreset(current, preset, english),
+                )
+              }
+            >
+              <strong>
+                {english ? preset.name_en : preset.name}
+                {preset.recommended && (
+                  <em className="routing-recommendation">{t("推荐")}</em>
+                )}
+              </strong>
+              <span>
+                {english ? preset.description_en : preset.description}
+              </span>
+              <small>
+                {t("{0} 个策略组 · {1} 个规则集", {
+                  0: preset.groups.length,
+                  1: preset.bindings.length,
+                })}
+              </small>
+            </button>
+          ))}
+        </div>
+      </details>
+      {selected && (
+        <p className="form-hint">
+          {english ? selected.description_en : selected.description}
+        </p>
+      )}
       <button
         type="button"
         className="secondary compact"

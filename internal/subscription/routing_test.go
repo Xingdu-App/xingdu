@@ -56,7 +56,7 @@ func TestRoutingCatalogAndExports(t *testing.T) {
 					t.Fatal("source enable/disable not respected")
 				}
 				if format == "surge" {
-					for _, want := range []string{"proxy-test-url = https://www.gstatic.com/generate_204", "默认代理 - 2 = url-test,", "RULE-SET,https://raw.githubusercontent.com/ACL4SSR/", "FINAL,默认代理 - 2"} {
+					for _, want := range []string{"proxy-test-url = https://www.gstatic.com/generate_204", "默认代理 - 2 = url-test,", "RULE-SET,https://raw.githubusercontent.com/ACL4SSR/", "FINAL," + finalLabel(r)} {
 						if !strings.Contains(text, want) {
 							t.Fatal("missing", want)
 						}
@@ -77,7 +77,7 @@ func TestRoutingCatalogAndExports(t *testing.T) {
 				if err = yaml.Unmarshal(data, &cfg); err != nil {
 					t.Fatal(err)
 				}
-				if cfg.Groups[0].Name != "默认代理 - 2" || cfg.Rules[0] != "DOMAIN,override.example,默认代理 - 2" || cfg.Rules[len(cfg.Rules)-1] != "MATCH,默认代理 - 2" {
+				if cfg.Groups[0].Name != "默认代理 - 2" || cfg.Rules[0] != "DOMAIN,override.example,默认代理 - 2" || cfg.Rules[len(cfg.Rules)-1] != "MATCH,"+finalLabel(r) {
 					t.Fatal("targets or priority incorrect", cfg)
 				}
 				if len(cfg.Providers) != len(p.Bindings)-1 {
@@ -181,7 +181,14 @@ func TestRoutingMihomoParser(t *testing.T) {
 			dir := t.TempDir()
 			os.Mkdir(filepath.Join(dir, "rules"), 0700)
 			for _, s := range catalog.Sources {
-				if err = os.WriteFile(filepath.Join(dir, "rules", "xd-"+s.ID+".list"), []byte("DOMAIN-SUFFIX,example.com\nIP-CIDR,192.0.2.0/24,no-resolve\n"), 0600); err != nil {
+				contents := []byte("DOMAIN-SUFFIX,example.com\nIP-CIDR,192.0.2.0/24,no-resolve\n")
+				if cache := os.Getenv("XINGDU_TEST_ROUTING_RULE_CACHE"); cache != "" {
+					contents, err = os.ReadFile(filepath.Join(cache, "xd-"+s.ID+".list"))
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err = os.WriteFile(filepath.Join(dir, "rules", "xd-"+s.ID+".list"), contents, 0600); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -192,6 +199,61 @@ func TestRoutingMihomoParser(t *testing.T) {
 			output, err := exec.CommandContext(ctx, binary, "-t", "-d", dir, "-f", path).CombinedOutput()
 			if err != nil {
 				t.Fatalf("Mihomo rejected preset: %v\n%s", err, output)
+			}
+		})
+	}
+}
+
+func finalLabel(r *Routing) string {
+	if r.Final == "direct" {
+		return "DIRECT"
+	}
+	return "默认代理 - 2"
+}
+
+func TestCombinedPresetsCoverWorkAndEntertainment(t *testing.T) {
+	sourceIDs := map[string]bool{}
+	for _, source := range catalog.Sources {
+		if sourceIDs[source.ID] || !strings.HasPrefix(source.URL, "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/") {
+			t.Fatal("invalid or duplicate trusted source", source.ID)
+		}
+		sourceIDs[source.ID] = true
+	}
+	for _, id := range []string{"allround-v1", "allround-fine-v1", "entertainment-v1", "gaming-v1", "work-cloud-v1", "direct-first-v1"} {
+		t.Run(id, func(t *testing.T) {
+			preset, ok := presetFor(id)
+			if !ok {
+				t.Fatal("missing preset")
+			}
+			positions := map[string]int{}
+			targets := map[string]string{}
+			for i, b := range preset.Bindings {
+				if !sourceIDs[b.Source] {
+					t.Fatal("unknown source", b.Source)
+				}
+				if _, exists := positions[b.Source]; exists {
+					t.Fatal("duplicate rule set", b.Source)
+				}
+				positions[b.Source], targets[b.Source] = i, b.Target
+			}
+			for _, source := range []string{"ai", "claude", "gemini", "github", "docker", "developer", "netflix", "youtube", "disney", "spotify", "steam", "telegram", "discord", "microsoft", "google"} {
+				if !strings.HasPrefix(targets[source], "group:") {
+					t.Fatal("combined preset omitted a workload", source)
+				}
+			}
+			for _, pair := range [][2]string{{"gemini", "google"}, {"youtube", "google"}, {"github", "microsoft"}, {"docker", "developer"}, {"steam-cn", "steam"}, {"game-download", "epic"}, {"netflix", "proxy"}, {"proxy", "china"}} {
+				if positions[pair[0]] >= positions[pair[1]] {
+					t.Fatal("specific service shadowed by broad source", pair)
+				}
+			}
+			if targets["steam-cn"] != "direct" {
+				t.Fatal("domestic downloads should precede gaming proxies")
+			}
+			if id == "allround-v1" && (targets["github"] != "group:developer" || targets["netflix"] != "group:media" || targets["claude"] != "group:ai") {
+				t.Fatal("compact groups lost their purpose")
+			}
+			if id == "direct-first-v1" && routingFixture(t, id).Final != "direct" {
+				t.Fatal("unexpected proxy catchall")
 			}
 		})
 	}

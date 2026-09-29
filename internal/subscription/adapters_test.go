@@ -140,6 +140,19 @@ func TestLoonWithIsolatedTrustStore(t *testing.T) {
 		if strings.Contains(text, "RULE-SET,") {
 			t.Fatal("Loon must use Remote Rule section")
 		}
+		for _, preset := range catalog.Presets {
+			plan := routingFixture(t, preset.ID)
+			data, err := RenderRouting("loon", "Loon", nodes, nil, "proxy", plan, ids)
+			if err != nil {
+				t.Fatal(preset.ID, err)
+			}
+			if strings.Count(string(data), "enabled=true") != len(preset.Bindings) {
+				t.Fatal("missing Loon sources", preset.ID)
+			}
+			if plan.Final == "direct" && !strings.Contains(string(data), "FINAL,DIRECT") {
+				t.Fatal("Loon catchall changed")
+			}
+		}
 		return
 	}
 	var nodes []Node

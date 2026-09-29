@@ -77,9 +77,1426 @@
       "name": "国内 IP",
       "name_en": "China IP ranges",
       "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/ChinaCompanyIp.list"
+    },
+    {
+      "id": "ai-platforms",
+      "name": "其他 AI 服务",
+      "name_en": "Other AI services",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/AI.list"
+    },
+    {
+      "id": "claude",
+      "name": "Claude",
+      "name_en": "Claude",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Claude.list"
+    },
+    {
+      "id": "gemini",
+      "name": "Gemini",
+      "name_en": "Gemini",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Gemini.list"
+    },
+    {
+      "id": "developer",
+      "name": "开发工具与镜像",
+      "name_en": "Development tools & registries",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Developer.list"
+    },
+    {
+      "id": "docker",
+      "name": "Docker",
+      "name_en": "Docker",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Docker.list"
+    },
+    {
+      "id": "disney",
+      "name": "Disney+",
+      "name_en": "Disney+",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/DisneyPlus.list"
+    },
+    {
+      "id": "hbo",
+      "name": "HBO",
+      "name_en": "HBO",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/HBO.list"
+    },
+    {
+      "id": "spotify",
+      "name": "Spotify",
+      "name_en": "Spotify",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Spotify.list"
+    },
+    {
+      "id": "discord",
+      "name": "Discord",
+      "name_en": "Discord",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Discord.list"
+    },
+    {
+      "id": "twitter",
+      "name": "X / Twitter",
+      "name_en": "X / Twitter",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitter.list"
+    },
+    {
+      "id": "steam",
+      "name": "Steam",
+      "name_en": "Steam",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Steam.list"
+    },
+    {
+      "id": "steam-cn",
+      "name": "Steam 国内下载",
+      "name_en": "Steam China downloads",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/SteamCN.list"
+    },
+    {
+      "id": "game-download",
+      "name": "游戏下载 CDN",
+      "name_en": "Game download CDNs",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/GameDownload.list"
+    },
+    {
+      "id": "epic",
+      "name": "Epic",
+      "name_en": "Epic",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Epic.list"
+    },
+    {
+      "id": "nintendo",
+      "name": "Nintendo",
+      "name_en": "Nintendo",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Nintendo.list"
+    },
+    {
+      "id": "sony",
+      "name": "PlayStation",
+      "name_en": "PlayStation",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Sony.list"
+    },
+    {
+      "id": "xbox",
+      "name": "Xbox",
+      "name_en": "Xbox",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Xbox.list"
+    },
+    {
+      "id": "google",
+      "name": "Google 服务",
+      "name_en": "Google services",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Google.list"
+    },
+    {
+      "id": "google-cn",
+      "name": "Google 国内可用服务",
+      "name_en": "Google services available in China",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/GoogleCN.list"
+    },
+    {
+      "id": "tiktok",
+      "name": "TikTok",
+      "name_en": "TikTok",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/TikTok.list"
+    },
+    {
+      "id": "twitch",
+      "name": "Twitch",
+      "name_en": "Twitch",
+      "url": "https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/master/Clash/Ruleset/Twitch.list"
     }
   ],
   "presets": [
+    {
+      "id": "allround-v1",
+      "name": "全能日常",
+      "name_en": "All-purpose everyday",
+      "description": "AI、开发、影音、社交、游戏和办公同时分流，按用途分配节点即可。",
+      "description_en": "Route AI, development, streaming, social, gaming and work together. Assign nodes by purpose.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "AI 服务",
+          "name_en": "AI services",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "games",
+          "name": "游戏平台",
+          "name_en": "Gaming",
+          "type": "select"
+        },
+        {
+          "id": "work",
+          "name": "办公云服务",
+          "name_en": "Work & cloud",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:ai"
+        },
+        {
+          "source": "gemini",
+          "target": "group:ai"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:developer"
+        },
+        {
+          "source": "docker",
+          "target": "group:developer"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:media"
+        },
+        {
+          "source": "netflix",
+          "target": "group:media"
+        },
+        {
+          "source": "disney",
+          "target": "group:media"
+        },
+        {
+          "source": "hbo",
+          "target": "group:media"
+        },
+        {
+          "source": "spotify",
+          "target": "group:media"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:social"
+        },
+        {
+          "source": "discord",
+          "target": "group:social"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:games"
+        },
+        {
+          "source": "steam",
+          "target": "group:games"
+        },
+        {
+          "source": "epic",
+          "target": "group:games"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:games"
+        },
+        {
+          "source": "sony",
+          "target": "group:games"
+        },
+        {
+          "source": "xbox",
+          "target": "group:games"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:work"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:work"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini",
+      "recommended": true
+    },
+    {
+      "id": "allround-fine-v1",
+      "name": "全能精细",
+      "name_en": "All-purpose detailed",
+      "description": "同时覆盖工作与娱乐；OpenAI、Claude、Gemini、GitHub、Docker、Netflix 等可独立指定节点。",
+      "description_en": "Work and entertainment together, with dedicated exits for OpenAI, Claude, Gemini, GitHub, Docker, Netflix and more.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "OpenAI 与其他 AI",
+          "name_en": "OpenAI & other AI",
+          "type": "select"
+        },
+        {
+          "id": "claude",
+          "name": "Claude",
+          "name_en": "Claude",
+          "type": "select"
+        },
+        {
+          "id": "gemini",
+          "name": "Gemini",
+          "name_en": "Gemini",
+          "type": "select"
+        },
+        {
+          "id": "github",
+          "name": "GitHub",
+          "name_en": "GitHub",
+          "type": "select"
+        },
+        {
+          "id": "docker",
+          "name": "Docker",
+          "name_en": "Docker",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "youtube",
+          "name": "YouTube",
+          "name_en": "YouTube",
+          "type": "select"
+        },
+        {
+          "id": "netflix",
+          "name": "Netflix",
+          "name_en": "Netflix",
+          "type": "select"
+        },
+        {
+          "id": "disney",
+          "name": "Disney+",
+          "name_en": "Disney+",
+          "type": "select"
+        },
+        {
+          "id": "hbo",
+          "name": "HBO",
+          "name_en": "HBO",
+          "type": "select"
+        },
+        {
+          "id": "spotify",
+          "name": "Spotify",
+          "name_en": "Spotify",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "telegram",
+          "name": "Telegram",
+          "name_en": "Telegram",
+          "type": "select"
+        },
+        {
+          "id": "discord",
+          "name": "Discord",
+          "name_en": "Discord",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "games",
+          "name": "游戏平台",
+          "name_en": "Gaming",
+          "type": "select"
+        },
+        {
+          "id": "microsoft",
+          "name": "Microsoft",
+          "name_en": "Microsoft",
+          "type": "select"
+        },
+        {
+          "id": "google",
+          "name": "Google",
+          "name_en": "Google",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:claude"
+        },
+        {
+          "source": "gemini",
+          "target": "group:gemini"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:github"
+        },
+        {
+          "source": "docker",
+          "target": "group:docker"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:youtube"
+        },
+        {
+          "source": "netflix",
+          "target": "group:netflix"
+        },
+        {
+          "source": "disney",
+          "target": "group:disney"
+        },
+        {
+          "source": "hbo",
+          "target": "group:hbo"
+        },
+        {
+          "source": "spotify",
+          "target": "group:spotify"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:telegram"
+        },
+        {
+          "source": "discord",
+          "target": "group:discord"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:games"
+        },
+        {
+          "source": "steam",
+          "target": "group:games"
+        },
+        {
+          "source": "epic",
+          "target": "group:games"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:games"
+        },
+        {
+          "source": "sony",
+          "target": "group:games"
+        },
+        {
+          "source": "xbox",
+          "target": "group:games"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:microsoft"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:google"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini"
+    },
+    {
+      "id": "entertainment-v1",
+      "name": "影音娱乐增强",
+      "name_en": "Streaming plus",
+      "description": "YouTube、Netflix、Disney+、HBO、Spotify 独立分组，同时保留 AI、开发、社交与游戏分流。",
+      "description_en": "Dedicated YouTube, Netflix, Disney+, HBO and Spotify groups alongside AI, development, social and gaming.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "AI 服务",
+          "name_en": "AI services",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "youtube",
+          "name": "YouTube",
+          "name_en": "YouTube",
+          "type": "select"
+        },
+        {
+          "id": "netflix",
+          "name": "Netflix",
+          "name_en": "Netflix",
+          "type": "select"
+        },
+        {
+          "id": "disney",
+          "name": "Disney+",
+          "name_en": "Disney+",
+          "type": "select"
+        },
+        {
+          "id": "hbo",
+          "name": "HBO",
+          "name_en": "HBO",
+          "type": "select"
+        },
+        {
+          "id": "spotify",
+          "name": "Spotify",
+          "name_en": "Spotify",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "games",
+          "name": "游戏平台",
+          "name_en": "Gaming",
+          "type": "select"
+        },
+        {
+          "id": "work",
+          "name": "办公云服务",
+          "name_en": "Work & cloud",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:ai"
+        },
+        {
+          "source": "gemini",
+          "target": "group:ai"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:developer"
+        },
+        {
+          "source": "docker",
+          "target": "group:developer"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:youtube"
+        },
+        {
+          "source": "netflix",
+          "target": "group:netflix"
+        },
+        {
+          "source": "disney",
+          "target": "group:disney"
+        },
+        {
+          "source": "hbo",
+          "target": "group:hbo"
+        },
+        {
+          "source": "spotify",
+          "target": "group:spotify"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:social"
+        },
+        {
+          "source": "discord",
+          "target": "group:social"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:games"
+        },
+        {
+          "source": "steam",
+          "target": "group:games"
+        },
+        {
+          "source": "epic",
+          "target": "group:games"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:games"
+        },
+        {
+          "source": "sony",
+          "target": "group:games"
+        },
+        {
+          "source": "xbox",
+          "target": "group:games"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:work"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:work"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini"
+    },
+    {
+      "id": "gaming-v1",
+      "name": "游戏与下载",
+      "name_en": "Gaming & downloads",
+      "description": "Steam、Epic、主机平台和下载 CDN 分组；Steam 国内下载直连，兼顾 AI、开发和影音。",
+      "description_en": "Separate Steam, Epic, console and download CDN groups. Steam China downloads connect directly; AI, development and streaming are included.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "AI 服务",
+          "name_en": "AI services",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "steam",
+          "name": "Steam",
+          "name_en": "Steam",
+          "type": "select"
+        },
+        {
+          "id": "epic",
+          "name": "Epic",
+          "name_en": "Epic",
+          "type": "select"
+        },
+        {
+          "id": "console",
+          "name": "主机游戏平台",
+          "name_en": "Console platforms",
+          "type": "select"
+        },
+        {
+          "id": "downloads",
+          "name": "游戏下载",
+          "name_en": "Game downloads",
+          "type": "select"
+        },
+        {
+          "id": "work",
+          "name": "办公云服务",
+          "name_en": "Work & cloud",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:ai"
+        },
+        {
+          "source": "gemini",
+          "target": "group:ai"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:developer"
+        },
+        {
+          "source": "docker",
+          "target": "group:developer"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:media"
+        },
+        {
+          "source": "netflix",
+          "target": "group:media"
+        },
+        {
+          "source": "disney",
+          "target": "group:media"
+        },
+        {
+          "source": "hbo",
+          "target": "group:media"
+        },
+        {
+          "source": "spotify",
+          "target": "group:media"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:social"
+        },
+        {
+          "source": "discord",
+          "target": "group:social"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:downloads"
+        },
+        {
+          "source": "steam",
+          "target": "group:steam"
+        },
+        {
+          "source": "epic",
+          "target": "group:epic"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:console"
+        },
+        {
+          "source": "sony",
+          "target": "group:console"
+        },
+        {
+          "source": "xbox",
+          "target": "group:console"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:work"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:work"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini"
+    },
+    {
+      "id": "work-cloud-v1",
+      "name": "办公与云服务",
+      "name_en": "Work & cloud",
+      "description": "Microsoft、Google、GitHub、Docker 与 AI 独立分组，影音、社交和游戏同样可用。",
+      "description_en": "Dedicated Microsoft, Google, GitHub, Docker and AI groups, with streaming, social and gaming included.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "AI 服务",
+          "name_en": "AI services",
+          "type": "select"
+        },
+        {
+          "id": "github",
+          "name": "GitHub",
+          "name_en": "GitHub",
+          "type": "select"
+        },
+        {
+          "id": "docker",
+          "name": "Docker",
+          "name_en": "Docker",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "microsoft",
+          "name": "Microsoft",
+          "name_en": "Microsoft",
+          "type": "select"
+        },
+        {
+          "id": "google",
+          "name": "Google",
+          "name_en": "Google",
+          "type": "select"
+        },
+        {
+          "id": "telegram",
+          "name": "Telegram",
+          "name_en": "Telegram",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "games",
+          "name": "游戏平台",
+          "name_en": "Gaming",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:ai"
+        },
+        {
+          "source": "gemini",
+          "target": "group:ai"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:github"
+        },
+        {
+          "source": "docker",
+          "target": "group:docker"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:media"
+        },
+        {
+          "source": "netflix",
+          "target": "group:media"
+        },
+        {
+          "source": "disney",
+          "target": "group:media"
+        },
+        {
+          "source": "hbo",
+          "target": "group:media"
+        },
+        {
+          "source": "spotify",
+          "target": "group:media"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:telegram"
+        },
+        {
+          "source": "discord",
+          "target": "group:social"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:games"
+        },
+        {
+          "source": "steam",
+          "target": "group:games"
+        },
+        {
+          "source": "epic",
+          "target": "group:games"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:games"
+        },
+        {
+          "source": "sony",
+          "target": "group:games"
+        },
+        {
+          "source": "xbox",
+          "target": "group:games"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:microsoft"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:google"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "group:proxy",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini"
+    },
+    {
+      "id": "direct-first-v1",
+      "name": "直连优先",
+      "name_en": "Direct-first",
+      "description": "已列出的 AI、开发、影音等海外服务走代理，其余未匹配流量直连；适合国内使用为主。",
+      "description_en": "Listed overseas AI, development, streaming and other services use proxies. Unmatched traffic connects directly; suited to primarily domestic use.",
+      "groups": [
+        {
+          "id": "proxy",
+          "name": "默认代理",
+          "name_en": "Default proxy",
+          "type": "url-test"
+        },
+        {
+          "id": "ai",
+          "name": "AI 服务",
+          "name_en": "AI services",
+          "type": "select"
+        },
+        {
+          "id": "developer",
+          "name": "开发工具",
+          "name_en": "Development",
+          "type": "select"
+        },
+        {
+          "id": "media",
+          "name": "影音娱乐",
+          "name_en": "Streaming",
+          "type": "select"
+        },
+        {
+          "id": "social",
+          "name": "社交沟通",
+          "name_en": "Social",
+          "type": "select"
+        },
+        {
+          "id": "games",
+          "name": "游戏平台",
+          "name_en": "Gaming",
+          "type": "select"
+        },
+        {
+          "id": "work",
+          "name": "办公云服务",
+          "name_en": "Work & cloud",
+          "type": "select"
+        }
+      ],
+      "bindings": [
+        {
+          "source": "lan",
+          "target": "direct"
+        },
+        {
+          "source": "unban",
+          "target": "direct"
+        },
+        {
+          "source": "ads",
+          "target": "reject"
+        },
+        {
+          "source": "ai",
+          "target": "group:ai"
+        },
+        {
+          "source": "claude",
+          "target": "group:ai"
+        },
+        {
+          "source": "gemini",
+          "target": "group:ai"
+        },
+        {
+          "source": "ai-platforms",
+          "target": "group:ai"
+        },
+        {
+          "source": "github",
+          "target": "group:developer"
+        },
+        {
+          "source": "docker",
+          "target": "group:developer"
+        },
+        {
+          "source": "developer",
+          "target": "group:developer"
+        },
+        {
+          "source": "youtube",
+          "target": "group:media"
+        },
+        {
+          "source": "netflix",
+          "target": "group:media"
+        },
+        {
+          "source": "disney",
+          "target": "group:media"
+        },
+        {
+          "source": "hbo",
+          "target": "group:media"
+        },
+        {
+          "source": "spotify",
+          "target": "group:media"
+        },
+        {
+          "source": "tiktok",
+          "target": "group:media"
+        },
+        {
+          "source": "twitch",
+          "target": "group:media"
+        },
+        {
+          "source": "telegram",
+          "target": "group:social"
+        },
+        {
+          "source": "discord",
+          "target": "group:social"
+        },
+        {
+          "source": "twitter",
+          "target": "group:social"
+        },
+        {
+          "source": "steam-cn",
+          "target": "direct"
+        },
+        {
+          "source": "game-download",
+          "target": "group:games"
+        },
+        {
+          "source": "steam",
+          "target": "group:games"
+        },
+        {
+          "source": "epic",
+          "target": "group:games"
+        },
+        {
+          "source": "nintendo",
+          "target": "group:games"
+        },
+        {
+          "source": "sony",
+          "target": "group:games"
+        },
+        {
+          "source": "xbox",
+          "target": "group:games"
+        },
+        {
+          "source": "microsoft",
+          "target": "group:work"
+        },
+        {
+          "source": "google-cn",
+          "target": "direct"
+        },
+        {
+          "source": "google",
+          "target": "group:work"
+        },
+        {
+          "source": "apple",
+          "target": "direct"
+        },
+        {
+          "source": "proxy",
+          "target": "group:proxy"
+        },
+        {
+          "source": "china",
+          "target": "direct"
+        },
+        {
+          "source": "china-ip",
+          "target": "direct"
+        }
+      ],
+      "final": "direct",
+      "reference": "https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online_Full.ini"
+    },
     {
       "id": "balanced-v1",
       "name": "日常均衡",

@@ -1,12 +1,18 @@
 # Subscription configuration templates
 
-The subscription page offers three complete routing presets. Select a preset,
+The subscription page offers nine complete routing presets. Select a preset,
 choose nodes, optionally assign them to category groups, then save the
 subscription. Existing subscriptions without a `routing` object keep their
 original export behavior.
 
 | Preset | Policy groups | Rule sets |
 | --- | --- | --- |
+| `allround-v1` (recommended) | 7 purpose groups: AI, development, streaming, social, gaming, work and default | All 34 catalog sources; work and entertainment coexist |
+| `allround-fine-v1` | 19 groups with individual AI and media services | Same coverage, more detailed node assignment |
+| `entertainment-v1` | 12 groups, including YouTube, Netflix, Disney+, HBO and Spotify | Includes AI, development, social, gaming and work sources |
+| `gaming-v1` | 10 groups with Steam, Epic, consoles and game downloads | Domestic Steam downloads connect directly; also covers work and media |
+| `work-cloud-v1` | 11 groups with Microsoft, Google, GitHub, Docker and AI | Includes streaming, social and gaming sources |
+| `direct-first-v1` | 7 purpose groups | Listed overseas services use proxies; unmatched traffic is DIRECT |
 | `balanced-v1` | Default proxy | LAN, service exceptions, ads, Apple, global services, China domains and IP ranges |
 | `streaming-v1` | Default proxy, YouTube, Netflix, Telegram | Balanced sources plus those three services |
 | `developer-v1` | Default proxy, OpenAI, GitHub, Microsoft, Telegram | Balanced sources plus those four services |
@@ -19,6 +25,33 @@ community profile or distributing its contents. The catalog is embedded from
 `GET /api/v1/subscription-presets` endpoint serves that same catalog to the UI.
 Keep existing versioned preset definitions stable; introduce a new ID when
 changing group defaults or rule-set ordering.
+
+## Combined presets and references
+
+The six expanded presets cover the same set of applications. Their different
+policy groups determine how finely users assign exit nodes, rather than
+requiring users to choose between development and watching movies. The three
+original preset IDs and definitions remain unchanged for existing subscriptions.
+All-purpose everyday is marked as recommended; the editor collapses the template
+catalog after selection so users can proceed directly to node assignments.
+
+Research also reviewed [blackmatrix7's per-application catalog](https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/README.md)
+and [Sukka's modular rules](https://github.com/SukkaW/Surge). These provide
+references for application categories and modular composition. The shipped
+presets still reference ACL4SSR sources only; they do not copy those projects'
+complete profiles, scripts, DNS settings or license terms into this repository.
+
+Specific AI and streaming sources precede broad Google rules; GitHub precedes
+Microsoft, Docker precedes general developer rules, and Steam China and game
+CDN rules precede broader game platform rules. Common and domestic catchalls
+come later. Game download CDNs have their own proxy group in the gaming preset;
+only the Steam China source defaults to direct access. This is routing
+classification, not a guarantee of game latency or streaming access.
+
+Additional rule sources were checked for reachability and classical text
+syntax. No new source requires process matching, rewriting, scripts or MITM.
+AI includes OpenAI, Claude, Gemini and the upstream AI collection. Rules only
+cover entries maintained upstream, not every application or domestic address.
 
 ## Groups and targets
 
