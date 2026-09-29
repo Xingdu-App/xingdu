@@ -498,6 +498,18 @@ export default function ProtocolDialog({
                   ? t("无需证书")
                   : certificateLabel(row.certificate_expires_at)}
               </p>
+              <p>
+                {t("服务端版本")}：
+                {row.runtime_version
+                  ? `sing-box ${row.runtime_version}`
+                  : t("未上报")}
+                {!row.runtime_version && (
+                  <small>
+                    {" "}
+                    · {t("升级 Agent 后自动上报，无需重新部署节点。")}
+                  </small>
+                )}
+              </p>
               {row.result && (
                 <p className="deployment-result">
                   {t("结果：")}

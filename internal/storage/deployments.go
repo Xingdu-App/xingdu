@@ -10,6 +10,7 @@ import (
 )
 
 type Deployment struct {
+	RuntimeVersion       string     `json:"runtime_version"`
 	ProbeOK              *bool      `json:"probe_ok"`
 	ProbeAt              *time.Time `json:"probe_at"`
 	ProbeLatencyMS       *int       `json:"probe_latency_ms"`
@@ -40,10 +41,10 @@ type Deployment struct {
 	PendingRevision      *int       `json:"pending_revision"`
 }
 
-const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at,revision,pending_revision,COALESCE(relay_exit_id,''),probe_ok,probe_at,probe_latency_ms,probe_exit_ip"
+const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at,revision,pending_revision,COALESCE(relay_exit_id,''),probe_ok,probe_at,probe_latency_ms,probe_exit_ip,runtime_version"
 
 func scanDeployment(row pgx.Row, d *Deployment) error {
-	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt, &d.Revision, &d.PendingRevision, &d.RelayExitID, &d.ProbeOK, &d.ProbeAt, &d.ProbeLatencyMS, &d.ProbeExitIP)
+	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt, &d.Revision, &d.PendingRevision, &d.RelayExitID, &d.ProbeOK, &d.ProbeAt, &d.ProbeLatencyMS, &d.ProbeExitIP, &d.RuntimeVersion)
 }
 func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	_, err := tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,result='interrupted_or_expired',encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,finished_at=now() WHERE host_id=$1 AND ((state='running' AND lease_until<=now()) OR (state='queued' AND queued_at<now()-interval '30 minutes'))`, host)

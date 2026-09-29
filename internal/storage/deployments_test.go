@@ -176,12 +176,21 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
-	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active"}}); e != nil {
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active", RuntimeVersion: "1.14.2"}}); e != nil {
 		t.Fatal(e)
 	}
 	checked := assertNodes(ca, 1, "succeeded")[0]
-	if checked.ServiceStatus != "active" || checked.ServiceCheckedAt == nil {
+	if checked.ServiceStatus != "active" || checked.ServiceCheckedAt == nil || checked.RuntimeVersion != "1.14.2" {
 		t.Fatal("missing service report")
+	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active", RuntimeVersion: "arbitrary output"}}); !errors.Is(e, ErrInvalid) {
+		t.Fatal("invalid runtime version", e)
+	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active"}}); e != nil {
+		t.Fatal("legacy report", e)
+	}
+	if n := assertNodes(ca, 1, "succeeded")[0]; n.RuntimeVersion != "" {
+		t.Fatal("legacy report retained an unverified version")
 	}
 	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "arbitrary output"}}); !errors.Is(e, ErrInvalid) {
 		t.Fatal("unbounded report", e)

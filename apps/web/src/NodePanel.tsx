@@ -154,6 +154,14 @@ export default function NodePanel({
               </p>
               <dl className="node-details">
                 <div>
+                  <dt>{t("服务端版本")}</dt>
+                  <dd>
+                    {node.runtime_version
+                      ? `sing-box ${node.runtime_version}`
+                      : t("未上报")}
+                  </dd>
+                </div>
+                <div>
                   <dt>{t("服务器")}</dt>
                   <dd>{node.host_name}</dd>
                 </div>

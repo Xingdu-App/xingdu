@@ -321,6 +321,7 @@ export type Protocol =
 export const isShadowsocks = (p: string) =>
   p === "shadowsocks" || p === "shadowsocks2022";
 export type Deployment = {
+  runtime_version?: string;
   id: string;
   host_id: string;
   name: string;

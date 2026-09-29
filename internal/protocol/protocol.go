@@ -291,6 +291,10 @@ func CertificateExpiry(certificate string) *time.Time {
 }
 
 type ServiceStatus struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
+	RuntimeVersion string `json:"runtime_version,omitempty"`
+	ID             string `json:"id"`
+	Status         string `json:"status"`
 }
+
+// ValidRuntimeVersion bounds metadata without accepting arbitrary command output.
+func ValidRuntimeVersion(v string) bool { return len(v) <= 64 && machine.VersionAtLeast(v, "0.0.0-0") }

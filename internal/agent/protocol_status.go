@@ -90,7 +90,7 @@ func (x *protocolExecutor) reportServices(ctx context.Context, c Config) error {
 		if !resourceid.Valid("node", id) {
 			return errors.New("invalid service identity")
 		}
-		reports = append(reports, protocol.ServiceStatus{ID: id, Status: x.serviceStatus(ctx, id)})
+		reports = append(reports, protocol.ServiceStatus{ID: id, Status: x.serviceStatus(ctx, id), RuntimeVersion: x.runtimeVersion(id)})
 	}
 	if err = request(ctx, c, "/api/v1/agent/deployments/status", struct {
 		Reports []protocol.ServiceStatus `json:"reports"`
@@ -98,4 +98,43 @@ func (x *protocolExecutor) reportServices(ctx context.Context, c Config) error {
 		return err
 	}
 	return atomicProtocolFile(stamp, []byte("ok"), 0600)
+}
+
+// Read the installed version from this node's owned unit, not the Agent build.
+// No executable, config contents or arbitrary command output is sent to the API.
+func (x *protocolExecutor) runtimeVersion(id string) string {
+	if !x.owned(id) {
+		return ""
+	}
+	unit, err := os.ReadFile(filepath.Join(x.unitDir, serviceName(x.localDeploymentID(id))))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(unit), "\n") {
+		if !strings.HasPrefix(line, "ExecStart=") {
+			continue
+		}
+		fields := strings.Fields(strings.TrimPrefix(line, "ExecStart="))
+		if len(fields) != 4 || strings.Join(fields[1:], " ") != "run -c stdin" {
+			return ""
+		}
+		path := fields[0]
+		if filepath.Dir(path) != x.binaryDir {
+			return ""
+		}
+		name := filepath.Base(path)
+		if !strings.HasPrefix(name, "sing-box-") {
+			return ""
+		}
+		version := strings.TrimPrefix(name, "sing-box-")
+		if !protocol.ValidRuntimeVersion(version) {
+			return ""
+		}
+		st, err := os.Lstat(path)
+		if err != nil || !st.Mode().IsRegular() || st.Mode().Perm()&0022 != 0 {
+			return ""
+		}
+		return version
+	}
+	return ""
 }

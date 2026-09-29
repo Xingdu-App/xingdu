@@ -44,7 +44,7 @@ func (s *Store) ReportServices(ctx context.Context, hash string, reports []proto
 	}
 	seen := map[string]bool{}
 	for _, r := range reports {
-		if !id.Valid("node", r.ID) || seen[r.ID] || (r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
+		if (r.RuntimeVersion != "" && !protocol.ValidRuntimeVersion(r.RuntimeVersion)) || !id.Valid("node", r.ID) || seen[r.ID] || (r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
 			return ErrInvalid
 		}
 		seen[r.ID] = true
@@ -55,7 +55,7 @@ func (s *Store) ReportServices(ctx context.Context, hash string, reports []proto
 	}
 	defer tx.Rollback(ctx)
 	for _, r := range reports {
-		tag, e := tx.Exec(ctx, `UPDATE protocol_deployments SET service_status=$3,service_checked_at=now() WHERE id=$1 AND host_id=$2 AND installed_at IS NOT NULL AND state<>'removed'`, r.ID, host, r.Status)
+		tag, e := tx.Exec(ctx, `UPDATE protocol_deployments SET service_status=$3,service_checked_at=now(),runtime_version=$4 WHERE id=$1 AND host_id=$2 AND installed_at IS NOT NULL AND state<>'removed'`, r.ID, host, r.Status, r.RuntimeVersion)
 		if e != nil {
 			return e
 		}
