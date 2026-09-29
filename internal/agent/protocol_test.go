@@ -397,3 +397,21 @@ func TestControlledRestartAndServiceStatus(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestShadowsocksDoesNotReserveUDPPort(t *testing.T) {
+	task := taskFixture(t)
+	listener, err := net.ListenPacket("udp", ":0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	for _, kind := range []string{"shadowsocks", "shadowsocks2022"} {
+		task.Spec, err = protocol.NewSpec(protocol.Input{Name: "SS", Protocol: kind, Port: listener.LocalAddr().(*net.UDPAddr).Port})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !portAvailable(task.Spec) {
+			t.Fatal("TCP-only SS incorrectly reserves UDP", kind)
+		}
+	}
+}

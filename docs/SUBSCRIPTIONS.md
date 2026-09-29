@@ -15,7 +15,7 @@
 
 ## 支持范围
 
-当前提供 **Mihomo / Clash.Meta 完整 YAML 配置**，包含 Trojan、VLESS、VMess 的 TCP + TLS，以及 Hysteria 2、TUIC v5 的 QUIC + TLS 节点。配置显式包含协议凭据、TLS 名称与服务端叶证书 SHA-256 指纹，不关闭证书校验，不导出服务端 TLS 私钥。证书更换后客户端需要更新订阅。
+当前提供 **Mihomo / Clash.Meta 完整 YAML 配置**，包含无域名、无证书的 Shadowsocks / Shadowsocks 2022，以及 Trojan、VLESS、VMess 的 TCP + TLS，以及 Hysteria 2、TUIC v5 的 QUIC + TLS 节点。配置显式包含协议凭据；TLS 协议另外包含 TLS 名称与服务端叶证书 SHA-256 指纹，不关闭证书校验，不导出服务端 TLS 私钥。证书更换后客户端需要更新订阅。
 
 这里的指纹是证书固定（pinning），客户端只接受订阅指定的服务端叶证书。导出前会检查证书有效期、域名和部署配置。实现依据 [Mihomo TLS 文档](https://wiki.metacubex.one/en/config/proxies/tls/)、[协议字段](https://wiki.metacubex.one/en/config/proxies/)和[规则文档](https://wiki.metacubex.one/en/config/rules/)。旧版 Clash 和不同 App 的字段支持不同；Surge、Loon 和分享链接的明确范围见下方适配矩阵，Shadowrocket 尚待验收。
 
@@ -31,7 +31,7 @@
 
 ## 验证
 
-导出器测试覆盖五种协议字段、证书指纹、服务端私钥排除、IPv6、重复节点名、规则顺序与注入拒绝。生成的五协议配置已通过官方 Mihomo v1.19.31（macOS arm64）的 `-t` 配置校验；这仅证明该内核版本接受配置，并不等同于所有客户端 App 的导入及联网验收。
+导出器测试覆盖七种协议字段、证书指纹、服务端私钥排除、IPv6、重复节点名、规则顺序与注入拒绝。生成的七协议配置已通过官方 Mihomo v1.19.31（macOS arm64）的 `-t` 配置校验；这仅证明该内核版本接受配置，并不等同于所有客户端 App 的导入及联网验收。
 
 可选的真实内核校验：自行从 Mihomo 官方发布页下载并核验其 SHA-256 后，将 `XINGDU_TEST_MIHOMO_BINARY` 指向本地二进制，运行 `go test -v ./internal/subscription`。该测试只校验临时生成的配置，不启动监听或连接代理服务器。
 
@@ -46,20 +46,22 @@ With the disposable Agent Lab running and at least one successfully deployed lab
 
 新建订阅默认选择 Stash，可在创建或编辑时切换为 Mihomo。现有订阅迁移时保留 Mihomo；旧版链接显式 `format=mihomo` 或 `format=clash` 的输出不变。新生成的链接使用订阅保存的格式；旧链接需切换格式时可重置链接（旧令牌失效），或由链接持有者显式改为 `format=stash`。
 
-Stash 按[官方协议文档](https://stash.wiki/proxy-protocols/proxy-types)独立适配：Hysteria 2 使用 `auth`、TUIC 明确 `version: 5`、TLS 使用 `server-cert-fingerprint` 和 `sni`。支持当前五种 TLS 节点，保留有序规则与策略组，不关闭证书验证。未支持的客户端格式会返回 422，不会静默当作其他客户端输出。
+Stash 按[官方协议文档](https://stash.wiki/proxy-protocols/proxy-types)独立适配：Hysteria 2 使用 `auth`、TUIC 明确 `version: 5`、TLS 使用 `server-cert-fingerprint` 和 `sni`。支持 Shadowsocks / Shadowsocks 2022 和五种 TLS 节点，保留有序规则与策略组，不关闭证书验证。未支持的客户端格式会返回 422，不会静默当作其他客户端输出。
 
 Stash 字段映射、格式持久化和真实 HTTP 订阅已验证；尚未完成发布版 Stash App 的导入和实际转发验收。Mihomo 的解析测试不作为 Stash 验收证据。
 
-## 客户端适配矩阵（2026-09-28）
+## 客户端适配矩阵（2026-09-29）
 
-| 格式 | Trojan | VLESS | VMess | HY2 | TUIC v5 | TLS 信任 | 验证层级 |
-|---|---|---|---|---|---|---|---|
-| Stash | 输出 | 输出 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | 字段单测；App 联网待验收 |
-| Mihomo | 输出 | 输出 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | v1.19.31 解析；App 联网待验收 |
-| Surge | 输出 | 拒绝 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | 生成器单测；真实解析/联网待验收 |
-| Loon | 输出 | 输出 | 输出 | 输出 | 拒绝 | 明确选择系统 CA；完整受信任链 | 生成器/隔离 CA 测试；App 待验收 |
-| HY2 分享链接 | 拒绝 | 拒绝 | 拒绝 | 输出 | 拒绝 | `pinSHA256` + `insecure=0` | URI 解析单测；App 待验收 |
-| Shadowrocket | 待验收 | 待验收 | 待验收 | 待验收 | 待验收 | 尚未确认导入后证书固定语义 | 暂不提供专用输出 |
+| 格式 | SS / SS2022 | Trojan | VLESS | VMess | HY2 | TUIC v5 | TLS 信任 | 验证层级 |
+|---|---|---|---|---|---|---|---|---|
+| Stash | 输出 | 输出 | 输出 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | 字段单测；App 联网待验收 |
+| Mihomo | 输出 | 输出 | 输出 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | v1.19.31 解析；App 联网待验收 |
+| Surge | 输出 | 输出 | 拒绝 | 输出 | 输出 | 输出 | 固定叶证书 SHA-256 | 生成器单测；真实解析/联网待验收 |
+| Loon | 拒绝 | 输出 | 输出 | 输出 | 输出 | 拒绝 | 明确选择系统 CA；完整受信任链 | 生成器/隔离 CA 测试；App 待验收 |
+| HY2 分享链接 | 拒绝 | 拒绝 | 拒绝 | 拒绝 | 输出 | 拒绝 | `pinSHA256` + `insecure=0` | URI 解析单测；App 待验收 |
+| Shadowrocket | 待验收 | 待验收 | 待验收 | 待验收 | 待验收 | 待验收 | 尚未确认导入后证书固定语义 | 暂不提供专用输出 |
+
+Shadowsocks 系列当前仅提供 TCP，服务端与导出配置均关闭 UDP（运行时的 UDP 私有目标隔离尚待补齐）。不使用 TLS，因此不会生成 SNI、证书指纹或跳过证书验证字段。Stash / Mihomo 使用 `type: ss`、`cipher`、`password`、`udp: false`；Surge 使用 `ss`、`encrypt-method`、`password`、`udp-relay=false`，依据 [Surge 官方 Shadowsocks 文档](https://manual.nssurge.com/policies/shadowsocks.html)。2022 采用标准 Base64 编码的 32 字节 AES-256 密钥。当前 Loon 的 Shadowsocks 适配尚未实现，不代表 Loon 客户端不支持该协议。
 
 本表的“输出”只表示适配器已实现，不表示 App 端已经通过真实连接测试。Surge 的 HY2 要求至少 iOS 5.8.0 / Mac 5.4.0；其他协议应使用支持对应协议及证书固定字段的当前版本，最低版本尚未完成矩阵验收。Loon 不猜测未在官方文档中定义的 pinning 字段；选择该格式即明确采用系统 CA 验证，导出时校验证书域名、有效期、链和系统根。私有 CA、自签名、缺少中间证书的节点会明确报错。客户端与控制平面的根证书集可能不同，仍需 App 验收。
 
@@ -74,3 +76,9 @@ Surge 采用独立 INI 适配：VMess AEAD + TLS、TUIC v5 的 UUID/密码分别
 - [Hysteria 2 URI 标准](https://hysteria.network/docs/developers/URI-Scheme/)。
 
 待验收操作：使用一次性测试订阅和隔离网络，逐个记录客户端/OS 版本、导入结果、TLS 错误证书拒绝、认证失败、TCP/UDP 转发、订阅更新和撤销行为；不要覆盖用户日常代理配置。未完成这些步骤前，不对外宣称对应客户端全量兼容。
+
+## Stash 扩展兼容
+
+新增 AnyTLS 与 HTTPS 代理的托管部署及 Stash / Mihomo 导出，要求 Agent
+0.10.0-dev 或更新版本；TLS 证书必填，当前仅 TCP。完整协议矩阵、后续差距
+及验证边界见 [Stash 兼容说明](STASH-COMPATIBILITY.md)。

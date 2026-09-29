@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"xingdu.app/xingdu/internal/protocol"
 )
 
 // CompatibilityError is deliberately free of credentials, addresses and names.
@@ -27,16 +28,22 @@ func ValidFormat(format string) bool {
 	}
 	return false
 }
-func Supports(format, protocol string) bool {
+func Supports(format, kind string) bool {
+	if kind == "anytls" || kind == "http" {
+		return format == "stash" || format == "mihomo"
+	}
+	if protocol.IsShadowsocks(kind) {
+		return format == "stash" || format == "mihomo" || format == "surge"
+	}
 	switch format {
 	case "stash", "mihomo":
-		return protocol == "trojan" || protocol == "vless" || protocol == "vmess" || protocol == "hysteria2" || protocol == "tuic"
+		return kind == "trojan" || kind == "vless" || kind == "vmess" || kind == "hysteria2" || kind == "tuic"
 	case "surge":
-		return protocol == "trojan" || protocol == "vmess" || protocol == "hysteria2" || protocol == "tuic"
+		return kind == "trojan" || kind == "vmess" || kind == "hysteria2" || kind == "tuic"
 	case "loon":
-		return protocol == "trojan" || protocol == "vless" || protocol == "vmess" || protocol == "hysteria2"
+		return kind == "trojan" || kind == "vless" || kind == "vmess" || kind == "hysteria2"
 	case "hysteria2_uri":
-		return protocol == "hysteria2"
+		return kind == "hysteria2"
 	}
 	return false
 }
@@ -122,6 +129,10 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		s := n.Spec
 		label := iniLabel(n)
 		labels = append(labels, label)
+		if protocol.IsShadowsocks(s.Protocol) {
+			fmt.Fprintf(&out, "%s = ss, %s, %d, encrypt-method=%s, password=%s, udp-relay=false\n", label, n.Server, s.Port, protocol.Cipher(s.Protocol), s.Credential)
+			continue
+		}
 		kind := s.Protocol
 		if format == "surge" && kind == "tuic" {
 			kind = "tuic-v5"

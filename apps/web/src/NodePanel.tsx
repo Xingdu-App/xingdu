@@ -3,7 +3,7 @@ import { t, useLocale, localeTag } from "./i18n";
 import { useState } from "react";
 import type { ManagedNode } from "./api";
 import Select from "./Select";
-import { protocolNames } from "./api";
+import { isShadowsocks, protocolNames } from "./api";
 
 const status = (node: ManagedNode) =>
   node.action !== "remove"
@@ -148,7 +148,7 @@ export default function NodePanel({
                 </div>
                 <div>
                   <dt>{t("TLS 域名")}</dt>
-                  <dd>{node.server_name}</dd>
+                  <dd>{node.server_name || t("无需域名")}</dd>
                 </div>
                 <div>
                   <dt>{t("部署时间")}</dt>
@@ -162,7 +162,11 @@ export default function NodePanel({
                 </div>
                 <div>
                   <dt>{t("证书有效期")}</dt>
-                  <dd>{certificateLabel(node.certificate_expires_at)}</dd>
+                  <dd>
+                    {isShadowsocks(node.protocol)
+                      ? t("无需证书")
+                      : certificateLabel(node.certificate_expires_at)}
+                  </dd>
                 </div>
               </dl>
               <div className="node-card-footer">

@@ -13,7 +13,7 @@ import (
 )
 
 type DeploymentStore interface {
-	DeploymentPreflight(context.Context, string, int) error
+	DeploymentPreflight(context.Context, string, int, string) error
 	RestartDeployment(context.Context, string, string) error
 	ReportServices(context.Context, string, []protocol.ServiceStatus) error
 	ServiceInventory(context.Context, string) ([]string, error)
@@ -69,7 +69,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			failure(w, 503, "credential_key_required", "部署者尚未配置凭据加密密钥")
 			return
 		}
-		if err := a.store.DeploymentPreflight(r.Context(), r.PathValue("id"), in.Port); err != nil {
+		if err := a.store.DeploymentPreflight(r.Context(), r.PathValue("id"), in.Port, in.Protocol); err != nil {
 			storeError(w, err)
 			return
 		}
@@ -130,7 +130,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		if !a.openDeployment(w, d, storage.TenantOrg(r.Context()), &spec) {
 			return
 		}
-		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "certificate": spec.Certificate}})
+		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "username": protocol.Username(spec.Protocol), "cipher": protocol.Cipher(spec.Protocol), "certificate": spec.Certificate}})
 	}))
 	mux.HandleFunc("DELETE /api/v1/hosts/{id}/deployments/{deployment}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validDeploymentID(w, r) {

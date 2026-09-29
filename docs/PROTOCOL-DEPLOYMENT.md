@@ -1,23 +1,26 @@
 # 协议部署
 
-星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与基础 Stash / Mihomo 订阅；线路编排、其他客户端订阅格式、自动证书申请/续签、配置编辑与回滚尚未开放。
+星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；线路编排、自动证书申请/续签、配置编辑与回滚尚未开放。
 
 | 协议 | 当前传输方式 | 认证 | 需要放行 |
 | --- | --- | --- | --- |
+| Shadowsocks | TCP，无 TLS | 随机密码；`chacha20-ietf-poly1305` | 所选 TCP 端口 |
+| Shadowsocks 2022 | TCP，无 TLS | 随机 32 字节 Base64 密钥；`2022-blake3-aes-256-gcm` | 所选 TCP 端口 |
 | Trojan | TCP + TLS | 随机密码 | 所选 TCP 端口 |
 | VLESS | TCP + TLS | 随机 UUID | 所选 TCP 端口 |
 | VMess | TCP + TLS | 随机 UUID | 所选 TCP 端口 |
 | Hysteria 2 | QUIC + TLS | 随机密码 | 所选 UDP 端口 |
 | TUIC v5 | QUIC + TLS | 随机 UUID 与密码 | 所选 UDP 端口 |
 
-QUIC 是传输方式，当前由 Hysteria 2 和 TUIC 提供；没有单独名为 QUIC 的通用代理协议。当前不提供 Reality、WebSocket 或 gRPC 选项。
+QUIC 是传输方式，当前由 Hysteria 2 和 TUIC 提供；没有单独名为 QUIC 的通用代理协议。当前不提供 Reality、WebSocket 或 gRPC 选项。Shadowsocks 系列当前仅开放 TCP：固定运行时的 UDP 会话复用未能保证逐报文的私有目标拦截，因此服务端不监听 UDP，订阅也明确禁用 UDP。
 
 ## 安装前提
 
-- Linux amd64 / arm64 与 systemd；托管 Agent **0.7.0-dev 或更新版本** 已接入并在最近 90 秒内上报心跳。
+- Linux amd64 / arm64 与 systemd；托管 Agent 已接入并在最近 90 秒内上报心跳。现有 TLS 协议至少需要 **0.7.0-dev**；Shadowsocks 系列至少需要 **0.8.0-dev**。控制端按语义版本检查最低版本，较新版本可用；预检、任务创建和领取都会检查。
 - 操作者为该组织的所有者或管理员。成员与只读成员可查看部署记录，不能安装、卸载或读取连接凭据。
 - 控制端配置 `XINGDU_CREDENTIAL_KEY`，与现有凭据加密配置一致，密钥不得进入数据库或 Git。
-- 已有与 TLS 域名匹配、在有效期内、适合服务器用途的 PEM 证书及匹配私钥。客户端必须正常验证证书；私有 CA 的信任需由用户明确配置，不提供跳过验证默认值。
+- Shadowsocks 系列直接使用服务器 IP，不需要域名或证书；固定使用上表加密方式，不支持自定义插件或密码。
+- TLS 协议需要已有与 TLS 域名匹配、在有效期内、适合服务器用途的 PEM 证书及匹配私钥。客户端必须正常验证证书；私有 CA 的信任需由用户明确配置，不提供跳过验证默认值。
 - 选择未占用的监听端口，自行配置云安全组和机器防火墙。星渡不自动修改防火墙。
 
 已有只读探针不会自动升级为 root 托管模式。先核实并停止旧 Agent，按 [机器接入](MACHINE-ACCESS.md) 的卸载/重新安装流程处理已有服务与状态目录，再明确选择托管模式、授权 root 权限并重新注册。安装脚本不会覆盖未知的已有 Agent。已有 Agent 可在「接入 / 状态」点击升级；支持自更新后无需 SSH 凭据，旧版保留 SSH 升级入口，详见 [网页升级](MACHINE-ACCESS.md#网页升级-agent)。
@@ -40,7 +43,7 @@ make dev-api
 ## 控制台流程
 
 1. 打开服务器的「协议部署」，确认托管 Agent 就绪。
-2. 新建节点，填写名称、协议、端口、TLS 域名、证书和私钥。
+2. 新建节点，填写名称、协议和端口；仅 TLS 协议需要域名、证书和私钥。
 3. 明确确认安装运行时、创建系统服务并启动端口监听。
 4. 等待 Agent 领取任务，观察排队、执行、完成或失败状态。
 5. 管理员主动点击「连接信息」获取服务器、端口、TLS 域名、客户端凭据和公开证书。TLS 私钥不会回显。
@@ -59,7 +62,7 @@ make dev-api
 
 ## 验证边界
 
-`make check` 覆盖协议配置、输入验证、执行边界及数据库/API 权限测试；数据库用例需设置专用 `XINGDU_TEST_DATABASE_URL`。容器协议验收入口为 `make protocol-lab-test`；需先准备本地管理员、启动 Agent 实验室并至少运行一次 `make agent-lab-test` 创建实验机器。该命令会将三台可丢弃实验机器重新接入为 0.5.0-dev 托管 Agent，测试后卸载协议服务并保留 Agent 在线；internal 网络不向宿主发布协议端口。操作方法见 [Agent 实验室](AGENT-LAB.md)。
+`make check` 覆盖协议配置、输入验证、执行边界及数据库/API 权限测试；数据库用例需设置专用 `XINGDU_TEST_DATABASE_URL`。容器协议验收入口为 `make protocol-lab-test`；需先准备本地管理员、启动 Agent 实验室并至少运行一次 `make agent-lab-test` 创建实验机器。Cloud 模式下，实验组织需要能容纳三台机器的有效测试套餐。该命令会将三台可丢弃实验机器重新接入为当前版本的托管 Agent，测试后卸载协议服务并保留 Agent 在线；internal 网络不向宿主发布协议端口。操作方法见 [Agent 实验室](AGENT-LAB.md)。
 
 2026-09-28 的 arm64 Docker 验收已通过：
 
@@ -71,6 +74,14 @@ make dev-api
 
 十五个组合均验证真实 HTTP 转发、错误认证拒绝、私有 IP 及私有域名目标阻止和非 root 运行；三个系统均验证重启后再次转发、端口占用保护、卸载停止服务并删除配置。证据为 `.local/agent-lab/protocol-report.json`。测试客户端为 sing-box，不代表其他客户端应用的兼容性。容器测试不等于真实 VPS、EC2 网络、公网安全组或 amd64 的运行验收。生产发布前仍需验证证书生命周期、重启恢复、断网恢复、失联机器清理和实际公网客户端流量。
 
+2026-09-29 补充验证：Shadowsocks 与 Shadowsocks 2022 在以上三个 arm64 系统上均通过 TCP 转发、错误密钥拒绝、私有 IP/域名拦截、非 root 运行、API 重启、容器重启恢复和卸载。已确认 UDP 不可转发；固定运行时在复用 UDP 会话时存在后续报文绕过私有目标规则的问题，因此本轮仅开放 TCP。六个组合的记录位于 `.local/agent-lab/protocol-report.json`，仍不代表 Stash / Surge App 或公网 VPS 验收。
+
+可仅复验新协议：
+
+```sh
+python3 scripts/protocol-lab.py --protocol shadowsocks --protocol shadowsocks2022
+```
+
 ## 节点与部署记录
 
 成功安装的协议服务称为节点。控制台「节点」按当前组织汇总所有服务器上的节点，支持按名称、服务器、地址或 TLS 域名搜索，以及协议筛选。管理员可从节点详情主动查看连接信息或卸载；成员和只读成员仅能查看元数据。
@@ -80,3 +91,9 @@ make dev-api
 节点的「已部署」是任务结果，Agent 在线是机器心跳，均不代表协议服务当前健康或公网可达。实时协议健康探测尚未实现。
 
 升级迁移会将现有 `succeeded / deploy` 记录回填为节点。升级前已进入卸载流程的旧记录无法可靠证明先前安装成功，因此不会猜测回填；仍可在部署记录中查看和处理。
+
+## Stash 扩展兼容
+
+新增 AnyTLS 与 HTTPS 代理的托管部署及 Stash / Mihomo 导出，要求 Agent
+0.10.0-dev 或更新版本；TLS 证书必填，当前仅 TCP。完整协议矩阵、后续差距
+及验证边界见 [Stash 兼容说明](STASH-COMPATIBILITY.md)。

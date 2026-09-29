@@ -27,6 +27,13 @@ import (
 
 func fixture(t *testing.T, kind string, index int) Node {
 	t.Helper()
+	if protocol.IsShadowsocks(kind) {
+		spec, err := protocol.NewSpec(protocol.Input{Name: "Demo", Protocol: kind, Port: 8388})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return Node{ID: fmt.Sprintf("node_%032x", index), Name: "SS fixture", Server: "192.0.2.10", Spec: spec}
+	}
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +156,7 @@ func TestMihomoParser(t *testing.T) {
 		t.Skip("XINGDU_TEST_MIHOMO_BINARY not set")
 	}
 	var nodes []Node
-	for i, kind := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic"} {
+	for i, kind := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http"} {
 		nodes = append(nodes, fixture(t, kind, i))
 	}
 	b, err := RenderClash("Parser check", nodes, []Rule{{"domain", "example.com", "proxy"}, {"domain_suffix", "example.org", "direct"}, {"ip_cidr", "2001:db8::/32", "reject"}}, "proxy")

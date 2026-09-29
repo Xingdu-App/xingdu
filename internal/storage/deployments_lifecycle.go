@@ -12,7 +12,11 @@ func (s *Store) RestartDeployment(ctx context.Context, host, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	hash, err := managingAgent(ctx, tx, host)
+	var kind string
+	if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind); err != nil {
+		return mapError(err)
+	}
+	hash, err := managingAgent(ctx, tx, host, protocol.MinimumAgentVersion(kind))
 	if err != nil {
 		return err
 	}
@@ -90,13 +94,13 @@ func (s *Store) ServiceInventory(ctx context.Context, hash string) ([]string, er
 }
 
 // Preflight is advisory; QueueDeployment repeats all state checks atomically.
-func (s *Store) DeploymentPreflight(ctx context.Context, host string, port int) error {
+func (s *Store) DeploymentPreflight(ctx context.Context, host string, port int, kind string) error {
 	tx, _, err := s.tenantTx(ctx, false, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	if _, err = managingAgent(ctx, tx, host); err != nil {
+	if _, err = managingAgent(ctx, tx, host, protocol.MinimumAgentVersion(kind)); err != nil {
 		return err
 	}
 	var conflict bool

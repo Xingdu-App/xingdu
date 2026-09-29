@@ -16,6 +16,7 @@ import (
 	"time"
 	"unicode"
 	"xingdu.app/xingdu/internal/id"
+	"xingdu.app/xingdu/internal/machine"
 )
 
 type Input struct {
@@ -48,19 +49,51 @@ type Result struct {
 var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 var dnsPattern = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$`)
 
-func ValidID(s string) bool { return id.ValidID(s) }
-func IsQUIC(p string) bool  { return p == "hysteria2" || p == "tuic" }
+func ValidID(s string) bool       { return id.ValidID(s) }
+func IsQUIC(p string) bool        { return p == "hysteria2" || p == "tuic" }
+func IsShadowsocks(p string) bool { return p == "shadowsocks" || p == "shadowsocks2022" }
+func RequiresTLS(p string) bool   { return !IsShadowsocks(p) }
+func Username(p string) string {
+	if p == "http" {
+		return "xingdu"
+	}
+	return ""
+}
+func Cipher(p string) string {
+	switch p {
+	case "shadowsocks":
+		return "chacha20-ietf-poly1305"
+	case "shadowsocks2022":
+		return "2022-blake3-aes-256-gcm"
+	}
+	return ""
+}
+func MinimumAgentVersion(p string) string {
+	if p == "anytls" || p == "http" {
+		return "0.10.0-dev"
+	}
+	if IsShadowsocks(p) {
+		return "0.8.0-dev"
+	}
+	return machine.MinimumDeploymentVersion
+}
 func ValidateInput(in Input) error {
 	if strings.TrimSpace(in.Name) != in.Name || len([]rune(in.Name)) == 0 || len([]rune(in.Name)) > 80 || strings.ContainsFunc(in.Name, unicode.IsControl) {
 		return errors.New("name must contain 1-80 printable characters")
 	}
 	switch in.Protocol {
-	case "trojan", "vless", "vmess", "hysteria2", "tuic":
+	case "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http":
 	default:
 		return errors.New("unsupported protocol")
 	}
 	if in.Port < 1 || in.Port > 65535 {
 		return errors.New("port must be between 1 and 65535")
+	}
+	if IsShadowsocks(in.Protocol) {
+		if in.ServerName != "" || in.Certificate != "" || in.PrivateKey != "" {
+			return errors.New("Shadowsocks does not accept TLS configuration")
+		}
+		return nil
 	}
 	if len(in.ServerName) == 0 || len(in.ServerName) > 253 || !dnsPattern.MatchString(in.ServerName) {
 		return errors.New("invalid TLS server name")
@@ -124,6 +157,10 @@ func NewSpec(in Input) (Spec, error) {
 		return Spec{}, err
 	}
 	s := Spec{Input: in, Credential: randomPassword()}
+	if in.Protocol == "shadowsocks2022" {
+		raw, _ := base64.RawURLEncoding.DecodeString(s.Credential)
+		s.Credential = base64.StdEncoding.EncodeToString(raw)
+	}
 	if in.Protocol == "vless" || in.Protocol == "vmess" || in.Protocol == "tuic" {
 		s.Credential = randomUUID()
 	}
@@ -139,6 +176,11 @@ func ValidateSpec(s Spec) error {
 	if s.Protocol == "vless" || s.Protocol == "vmess" || s.Protocol == "tuic" {
 		if !uuidPattern.MatchString(s.Credential) {
 			return errors.New("invalid UUID credential")
+		}
+	} else if s.Protocol == "shadowsocks2022" {
+		raw, err := base64.StdEncoding.DecodeString(s.Credential)
+		if err != nil || len(raw) != 32 || base64.StdEncoding.EncodeToString(raw) != s.Credential {
+			return errors.New("invalid Shadowsocks 2022 key")
 		}
 	} else if !validPassword(s.Credential) {
 		return errors.New("invalid password credential")
@@ -172,12 +214,26 @@ func Render(s Spec) ([]byte, error) {
 	if s.Protocol == "tuic" {
 		user["password"] = s.Password
 	}
+	if s.Protocol == "http" {
+		delete(user, "name")
+		user["username"] = "xingdu"
+	}
 	tlsConfig := map[string]any{"enabled": true, "server_name": s.ServerName, "min_version": "1.2", "certificate": strings.Split(strings.TrimSpace(s.Certificate), "\n"), "key": strings.Split(strings.TrimSpace(s.PrivateKey), "\n")}
 	if IsQUIC(s.Protocol) {
 		tlsConfig["min_version"] = "1.3"
 		tlsConfig["alpn"] = []string{"h3"}
 	}
 	inbound := map[string]any{"type": s.Protocol, "tag": "xingdu-in", "listen": "::", "listen_port": s.Port, "users": []any{user}, "tls": tlsConfig}
+	if IsShadowsocks(s.Protocol) {
+		inbound["type"] = "shadowsocks"
+		// The pinned runtime routes a reused UDP session only once. Keep SS
+		// TCP-only until per-packet private-destination enforcement is available.
+		inbound["network"] = "tcp"
+		inbound["method"] = Cipher(s.Protocol)
+		inbound["password"] = s.Credential
+		delete(inbound, "users")
+		delete(inbound, "tls")
+	}
 	if s.Protocol == "tuic" {
 		inbound["congestion_control"] = "bbr"
 	}
@@ -193,6 +249,10 @@ func Render(s Spec) ([]byte, error) {
 			map[string]any{"ip_is_private": true, "action": "reject"},
 			map[string]any{"ip_cidr": []string{"0.0.0.0/8", "100.64.0.0/10", "168.63.129.16/32", "224.0.0.0/4", "240.0.0.0/4", "::/128", "ff00::/8"}, "action": "reject"},
 		}, "final": "direct"},
+	}
+	if s.Protocol == "anytls" {
+		route := cfg["route"].(map[string]any)
+		route["rules"] = append([]any{map[string]any{"network": "udp", "action": "reject"}}, route["rules"].([]any)...)
 	}
 	return json.MarshalIndent(cfg, "", "  ")
 }

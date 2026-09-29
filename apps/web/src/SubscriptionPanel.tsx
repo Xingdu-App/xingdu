@@ -16,7 +16,7 @@ import type {
   SubscriptionRule,
 } from "./api";
 import Select from "./Select";
-import { protocolNames } from "./api";
+import { isShadowsocks, protocolNames } from "./api";
 
 const formatLabels: Record<string, string> = {
   stash: "Stash",
@@ -26,6 +26,9 @@ const formatLabels: Record<string, string> = {
   hysteria2_uri: "Hysteria 2 · 分享链接",
 };
 function supportsFormat(format: string, protocol: string) {
+  if (["anytls", "http"].includes(protocol)) return ["stash", "mihomo"].includes(format);
+  if (isShadowsocks(protocol))
+    return ["stash", "mihomo", "surge"].includes(format);
   if (format === "surge") return protocol !== "vless";
   if (format === "loon") return protocol !== "tuic";
   if (format === "hysteria2_uri") return protocol === "hysteria2";

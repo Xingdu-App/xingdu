@@ -377,6 +377,7 @@
   "正在读取机器状态…": "Reading machine status…",
   "请先通过「接入 / 状态」安装并注册托管模式 Agent。": "Install and enroll a managed Agent via Connect / Status first.",
   "当前为只读探针。请在「接入 / 状态」中明确授权并重新接入托管模式 Agent。": "This is a read-only monitor. Explicitly authorize and enroll a managed Agent via Connect / Status.",
+  "当前 Agent 版本为 {0}，部署至少需要 {1}。请更新机器上的 Agent 后再部署。": "Current Agent version: {0}. Deployment requires {1} or newer. Update the Agent before deploying.",
   "控制端未提供 Agent 版本要求，请更新控制端后重试。": "The control plane did not provide an Agent version requirement. Update the control plane and try again.",
   "机器暂未在线，请恢复 Agent 心跳后再操作。": "Machine offline. Restore Agent heartbeats before continuing.",
   "这台机器已有任务等待完成，请稍后再创建或卸载。": "This machine has a pending job. Wait before creating or uninstalling another service.",
@@ -805,6 +806,16 @@
   "{0} 天": "{0} days",
   "免费版可管理 1 台服务器，付费套餐可管理 10 台。": "Manage 1 server for free, or 10 with a paid plan.",
   "当前服务器额度：{0} 台": "Current server allowance: {0}",
+  "无需域名": "No domain required",
+  "无需证书": "No certificate required",
+  "加密方式": "Cipher",
+  "配置检查通过，无需证书": "Configuration valid; no certificate required",
+  "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。": "TLS protocols require a valid matching certificate and private key. Issuance and renewal are manual. Private keys are never returned; credentials are generated automatically.",
+  "由托管 Agent 安装并管理独立服务。Shadowsocks 系列无需域名或证书；Hysteria 2 和 TUIC 使用 QUIC / UDP。": "Managed Agents install independent services. Shadowsocks needs no domain or certificate; Hysteria 2 and TUIC use QUIC / UDP.",
+  "还没有节点。选择 Shadowsocks 即可使用服务器 IP 创建，无需准备域名和证书。": "No nodes yet. Choose Shadowsocks to connect using your server IP, without a domain or certificate.",
+  "无需域名或证书 · ChaCha20-Poly1305 · TCP": "No domain or certificate · ChaCha20-Poly1305 · TCP",
+  "无需域名或证书 · 2022 AES-256-GCM · TCP": "No domain or certificate · 2022 AES-256-GCM · TCP",
+  "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。": "Use your server IP without a domain or certificate. Credentials are generated automatically. Allow the TCP port; UDP forwarding is not available yet.",
   "Agent 升级": "Agent upgrade",
   "当前版本": "Current version",
   "可用版本": "Available version",
@@ -830,6 +841,5 @@
   "升级服务尚未连接。旧版 Agent 需先通过 SSH 升级一次；已有升级服务时请检查其运行状态。": "The updater is not connected. Older Agents need one SSH upgrade first; if already installed, check the updater service.",
   "使用 SSH 升级": "Upgrade via SSH",
   "Agent 自更新失败，请检查升级服务或使用 SSH 重试。": "Agent self-update failed. Check the updater service or retry via SSH.",
-  "新版本已启动，正在等待心跳确认。": "The new version has started. Waiting for heartbeat confirmation.",
-  "当前 Agent 版本为 {0}，部署至少需要 {1}。请更新机器上的 Agent 后再部署。": "Current Agent version: {0}. Deployment requires {1} or newer. Update the Agent before deploying."
+  "新版本已启动，正在等待心跳确认。": "The new version has started. Waiting for heartbeat confirmation."
 }

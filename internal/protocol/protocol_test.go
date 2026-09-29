@@ -32,7 +32,7 @@ func inputFixture(t *testing.T) Input {
 	return Input{Name: "Example", Protocol: "trojan", Port: 443, ServerName: "proxy.example.com", Certificate: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})), PrivateKey: string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: kb}))}
 }
 func TestRenderProtocols(t *testing.T) {
-	for _, p := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic"} {
+	for _, p := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic", "anytls", "http"} {
 		t.Run(p, func(t *testing.T) {
 			in := inputFixture(t)
 			in.Protocol = p

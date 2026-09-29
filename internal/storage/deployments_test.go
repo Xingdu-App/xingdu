@@ -96,7 +96,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.QueueDeployment(ca, d); !errors.Is(e, ErrConflict) {
 		t.Fatal("old agent accepted", e)
 	}
-	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.8.0-dev", CPUs: 1})
 	if e := s.QueueDeployment(ca, d); e != nil {
 		t.Fatal(e)
 	}
@@ -346,4 +346,64 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if x, e := s.ClaimDeployment(ctx, hash); e != nil || x != nil {
 		t.Fatal("demoted initiator claimed", e)
 	}
+	// New protocols require a capable Agent at both queue and claim time.
+	for i, kind := range []string{"shadowsocks", "shadowsocks2022"} {
+		candidate := next(24440 + i)
+		candidate.Protocol, candidate.ServerName = kind, ""
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
+		if e := s.DeploymentPreflight(ca, h.ID, candidate.Port, kind); !errors.Is(e, ErrConflict) {
+			t.Fatal("old agent preflight accepted", kind, e)
+		}
+		if e := s.QueueDeployment(ca, candidate); !errors.Is(e, ErrConflict) {
+			t.Fatal("old agent accepted new protocol", kind, e)
+		}
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.8.0-dev", CPUs: 1})
+		if e := s.DeploymentPreflight(ca, h.ID, candidate.Port, kind); e != nil {
+			t.Fatal("capable agent preflight", e)
+		}
+		if e := s.QueueDeployment(ca, candidate); e != nil {
+			t.Fatal("new protocol queue", e)
+		}
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
+		if _, e := s.ClaimDeployment(ctx, hash); !errors.Is(e, ErrConflict) {
+			t.Fatal("downgraded agent claimed new protocol", e)
+		}
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.9.0", CPUs: 1})
+		claimed, e := s.ClaimDeployment(ctx, hash)
+		if e != nil || claimed == nil || claimed.Protocol != kind {
+			t.Fatal("newer agent claim", e)
+		}
+		if e = s.FinishDeployment(ctx, hash, claimed.OperationID, claimed.Lease, true, "deployed"); e != nil {
+			t.Fatal(e)
+		}
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
+		if e = s.RestartDeployment(ca, h.ID, candidate.ID); !errors.Is(e, ErrConflict) {
+			t.Fatal("old Agent restarted SS", e)
+		}
+		if e = s.RemoveDeployment(ca, h.ID, candidate.ID); !errors.Is(e, ErrConflict) {
+			t.Fatal("old Agent removed SS", e)
+		}
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.9.0", CPUs: 1})
+		if e = s.RestartDeployment(ca, h.ID, candidate.ID); e != nil {
+			t.Fatal("newer Agent restart", e)
+		}
+		restarted, e := s.ClaimDeployment(ctx, hash)
+		if e != nil || restarted == nil {
+			t.Fatal("restart claim", e)
+		}
+		if e = s.FinishDeployment(ctx, hash, restarted.OperationID, restarted.Lease, true, "restarted"); e != nil {
+			t.Fatal(e)
+		}
+		if e = s.RemoveDeployment(ca, h.ID, candidate.ID); e != nil {
+			t.Fatal(e)
+		}
+		removal, e := s.ClaimDeployment(ctx, hash)
+		if e != nil || removal == nil {
+			t.Fatal("SS removal", e)
+		}
+		if e = s.FinishDeployment(ctx, hash, removal.OperationID, removal.Lease, true, "removed"); e != nil {
+			t.Fatal(e)
+		}
+	}
+
 }

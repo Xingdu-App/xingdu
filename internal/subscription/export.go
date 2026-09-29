@@ -136,16 +136,32 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			return nil, errors.New("invalid node configuration")
 		}
 		s := node.Spec
-		cert, _ := pem.Decode([]byte(s.Certificate))
-		if cert == nil || cert.Type != "CERTIFICATE" {
-			return nil, errors.New("invalid node certificate")
-		}
-		digest := sha256.Sum256(cert.Bytes)
-		// A full ID suffix keeps duplicate/reserved display names distinct, stable
-		// across reorderings and unable to shadow a built-in policy/group.
+		// Stable node identity is retained independently of the transport.
 		label := node.Name + " [" + node.ID + "]"
-		p := map[string]any{"name": label, "type": s.Protocol, "server": node.Server, "port": s.Port, "udp": true, "skip-cert-verify": false, "fingerprint": hex.EncodeToString(digest[:])}
+		p := map[string]any{"name": label, "type": s.Protocol, "server": node.Server, "port": s.Port, "udp": true}
+		if protocol.RequiresTLS(s.Protocol) {
+			cert, _ := pem.Decode([]byte(s.Certificate))
+			if cert == nil || cert.Type != "CERTIFICATE" {
+				return nil, errors.New("invalid node certificate")
+			}
+			digest := sha256.Sum256(cert.Bytes)
+			p["skip-cert-verify"] = false
+			p["fingerprint"] = hex.EncodeToString(digest[:])
+		}
 		switch s.Protocol {
+		case "shadowsocks", "shadowsocks2022":
+			p["type"] = "ss"
+			p["udp"] = false
+			p["cipher"] = protocol.Cipher(s.Protocol)
+			p["password"] = s.Credential
+		case "anytls", "http":
+			p["password"] = s.Credential
+			p["sni"] = s.ServerName
+			p["udp"] = false
+			if s.Protocol == "http" {
+				p["username"] = "xingdu"
+				p["tls"] = true
+			}
 		case "trojan":
 			p["password"] = s.Credential
 			p["sni"] = s.ServerName
@@ -171,10 +187,12 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			p["udp-relay-mode"] = "native"
 		}
 		if format == "stash" {
-			p["server-cert-fingerprint"] = p["fingerprint"]
-			delete(p, "fingerprint")
-			p["sni"] = s.ServerName
-			delete(p, "servername")
+			if protocol.RequiresTLS(s.Protocol) {
+				p["server-cert-fingerprint"] = p["fingerprint"]
+				delete(p, "fingerprint")
+				p["sni"] = s.ServerName
+				delete(p, "servername")
+			}
 			if s.Protocol == "vmess" {
 				delete(p, "network")
 			} // Plain TCP is the default.

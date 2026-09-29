@@ -7,14 +7,16 @@ import (
 	"github.com/jackc/pgx/v5"
 	"time"
 	"xingdu.app/xingdu/internal/machine"
+	"xingdu.app/xingdu/internal/protocol"
 )
 
 type MachineState struct {
-	LatestAgentVersion   string                   `json:"latest_agent_version,omitempty"`
-	RequiredAgentVersion string                   `json:"required_agent_version"`
-	Agent                *machine.AgentInfo       `json:"agent"`
-	Credential           *machine.SavedCredential `json:"credential"`
-	Jobs                 []machine.Job            `json:"jobs"`
+	LatestAgentVersion    string                   `json:"latest_agent_version,omitempty"`
+	RequiredAgentVersions map[string]string        `json:"required_agent_versions"`
+	RequiredAgentVersion  string                   `json:"required_agent_version"`
+	Agent                 *machine.AgentInfo       `json:"agent"`
+	Credential            *machine.SavedCredential `json:"credential"`
+	Jobs                  []machine.Job            `json:"jobs"`
 }
 
 func audit(ctx context.Context, tx pgx.Tx, host, event string) error {
@@ -32,7 +34,7 @@ func (s *Store) MachineTarget(ctx context.Context, id string) (machine.Target, e
 	return t, mapError(err)
 }
 func (s *Store) MachineState(ctx context.Context, id string) (MachineState, error) {
-	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.MinimumDeploymentVersion}
+	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.MinimumDeploymentVersion, RequiredAgentVersions: map[string]string{"anytls": protocol.MinimumAgentVersion("anytls"), "http": protocol.MinimumAgentVersion("http"), "shadowsocks": protocol.MinimumAgentVersion("shadowsocks"), "shadowsocks2022": protocol.MinimumAgentVersion("shadowsocks2022")}}
 	tx, role, err := s.tenantTx(ctx, false, false)
 	if err != nil {
 		return out, err

@@ -221,6 +221,7 @@ export type MachineMetrics = {
 export type MachineState = {
   latest_agent_version?: string;
   required_agent_version: string;
+  required_agent_versions?: Record<string, string>;
   agent: null | {
     self_update?: boolean;
     mode: "monitor" | "manage";
@@ -307,7 +308,18 @@ export const upgradeSSH = (id: string, input: Record<string, unknown>) =>
     { ...input, confirm_upgrade: true },
   );
 
-export type Protocol = "trojan" | "vless" | "vmess" | "hysteria2" | "tuic";
+export type Protocol =
+  | "trojan"
+  | "vless"
+  | "vmess"
+  | "hysteria2"
+  | "tuic"
+  | "shadowsocks"
+  | "shadowsocks2022"
+  | "anytls"
+  | "http";
+export const isShadowsocks = (p: string) =>
+  p === "shadowsocks" || p === "shadowsocks2022";
 export type Deployment = {
   id: string;
   host_id: string;
@@ -332,6 +344,7 @@ export type Deployment = {
   finished_at: string | null;
 };
 export type DeploymentConnection = {
+  cipher?: string;
   protocol: Protocol;
   server: string;
   port: number;
@@ -441,6 +454,10 @@ export const rotateSubscription = (id: string, signal: AbortSignal) =>
   );
 
 export const protocolNames: Record<Protocol, string> = {
+  shadowsocks: "Shadowsocks",
+  shadowsocks2022: "Shadowsocks 2022",
+  anytls: "AnyTLS",
+  http: "HTTPS",
   trojan: "Trojan",
   vless: "VLESS",
   vmess: "VMess",

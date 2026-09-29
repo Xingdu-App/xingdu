@@ -81,7 +81,7 @@ func TestAgentUpgradeQueue(t *testing.T) {
 	if e = s.QueueInstall(scope, duplicate, "", nil, target); !errors.Is(e, ErrConflict) {
 		t.Fatal("duplicate queue allowed", e)
 	}
-	if e = s.DeploymentPreflight(scope, host.ID, 443); !errors.Is(e, ErrConflict) {
+	if e = s.DeploymentPreflight(scope, host.ID, 443, "trojan"); !errors.Is(e, ErrConflict) {
 		t.Fatal("protocol operation permitted during upgrade", e)
 	}
 	state, e := s.MachineState(scope, host.ID)

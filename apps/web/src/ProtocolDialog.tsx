@@ -1,3 +1,4 @@
+import { isShadowsocks } from "./api";
 import { agentVersionAtLeast } from "./agent-version";
 import {
   restartNode,
@@ -26,6 +27,22 @@ import type {
 } from "./api";
 
 const protocols = [
+  { value: "anytls", label: "AnyTLS", get description() { return t("TCP + TLS · 密码认证"); } },
+  { value: "http", label: "HTTPS", get description() { return t("TCP + TLS · 密码认证"); } },
+  {
+    value: "shadowsocks",
+    label: "Shadowsocks",
+    get description() {
+      return t("无需域名或证书 · ChaCha20-Poly1305 · TCP");
+    },
+  },
+  {
+    value: "shadowsocks2022",
+    label: "Shadowsocks 2022",
+    get description() {
+      return t("无需域名或证书 · 2022 AES-256-GCM · TCP");
+    },
+  },
   {
     value: "trojan",
     label: "Trojan",
@@ -181,7 +198,7 @@ export default function ProtocolDialog({
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
-  const [protocol, setProtocol] = useState<Protocol>("trojan");
+  const [protocol, setProtocol] = useState<Protocol>("shadowsocks2022");
   const [port, setPort] = useState("443");
   const [serverName, setServerName] = useState("");
   const [certificate, setCertificate] = useState("");
@@ -242,8 +259,17 @@ export default function ProtocolDialog({
   }, [host.id]);
 
   const agent = machine?.agent;
-  const requiredVersion = machine?.required_agent_version;
-  const versionCompatible = agentVersionAtLeast(agent?.metrics.version, requiredVersion);
+  const needsTLS = !isShadowsocks(protocol);
+  const selectedProtocol = creating
+    ? protocol
+    : rows.find((row) => row.id === nodeID)?.protocol;
+  const requiredVersionFor = (kind?: string) =>
+    (kind ? machine?.required_agent_versions?.[kind] : undefined) ?? machine?.required_agent_version;
+  const requiredVersion = requiredVersionFor(selectedProtocol);
+  const versionCompatible = agentVersionAtLeast(
+    agent?.metrics.version,
+    requiredVersion,
+  );
   const eligible =
     loaded &&
     host.status === "online" &&
@@ -306,9 +332,9 @@ export default function ProtocolDialog({
             name,
             protocol,
             port: Number(port),
-            server_name: serverName,
-            certificate,
-            private_key: privateKey,
+            server_name: needsTLS ? serverName : "",
+            certificate: needsTLS ? certificate : "",
+            private_key: needsTLS ? privateKey : "",
             confirm_install: confirmed,
           },
           signal,
@@ -358,7 +384,7 @@ export default function ProtocolDialog({
       <div className="machine-content">
         <p className="form-hint">
           {t(
-            "由托管 Agent 在机器上安装并管理独立服务。QUIC 是传输方式，Hysteria 2 和 TUIC 使用 UDP。",
+            "由托管 Agent 安装并管理独立服务。Shadowsocks 系列无需域名或证书；Hysteria 2 和 TUIC 使用 QUIC / UDP。",
           )}
         </p>
         {error && (
@@ -413,7 +439,9 @@ export default function ProtocolDialog({
         </div>
         {loaded && rows.length === 0 && (
           <div className="deployment-empty">
-            {t("还没有部署记录。准备好域名与 TLS 证书后，即可创建第一个节点。")}
+            {t(
+              "还没有节点。选择 Shadowsocks 即可使用服务器 IP 创建，无需准备域名和证书。",
+            )}
           </div>
         )}
         {rows
@@ -435,14 +463,17 @@ export default function ProtocolDialog({
                 {row.protocol === "hysteria2" || row.protocol === "tuic"
                   ? "UDP"
                   : "TCP"}{" "}
-                · {row.server_name}
+                · {row.server_name || t("无需域名")}
               </p>
               <small>
                 {new Date(row.created_at).toLocaleString(localeTag())}
               </small>
               <p>
                 {t("本机服务")}：{t(localServiceLabel(row))} · {t("证书有效期")}
-                ：{certificateLabel(row.certificate_expires_at)}
+                ：
+                {isShadowsocks(row.protocol)
+                  ? t("无需证书")
+                  : certificateLabel(row.certificate_expires_at)}
               </p>
               {row.result && (
                 <p className="deployment-result">
@@ -468,8 +499,11 @@ export default function ProtocolDialog({
                       disabled={
                         busy ||
                         !eligible ||
-                        pending ||
-                        agent?.metrics.version !== "0.6.0-dev"
+                        !agentVersionAtLeast(
+                          agent?.metrics.version,
+                          requiredVersionFor(row.protocol),
+                        ) ||
+                        pending
                       }
                       onClick={() => setRestarting(row.id)}
                     >
@@ -502,7 +536,15 @@ export default function ProtocolDialog({
                   ) && (
                     <button
                       className="text-danger"
-                      disabled={busy || !eligible || pending}
+                      disabled={
+                        busy ||
+                        !eligible ||
+                        !agentVersionAtLeast(
+                          agent?.metrics.version,
+                          requiredVersionFor(row.protocol),
+                        ) ||
+                        pending
+                      }
                       onClick={() => {
                         setRemoving(row.id);
                         setConnection(null);
@@ -556,7 +598,15 @@ export default function ProtocolDialog({
                   </p>
                   <button
                     className="danger"
-                    disabled={busy || !eligible || pending}
+                    disabled={
+                      busy ||
+                      !eligible ||
+                      !agentVersionAtLeast(
+                        agent?.metrics.version,
+                        requiredVersionFor(row.protocol),
+                      ) ||
+                      pending
+                    }
                     onClick={() =>
                       void act(async (signal) => {
                         await removeDeployment(host.id, row.id, signal);
@@ -600,8 +650,14 @@ export default function ProtocolDialog({
                   <p>
                     {connection.data.server}:{connection.data.port}
                     <br />
-                    {connection.data.server_name}
+                    {connection.data.server_name || t("无需域名")}
                   </p>
+                  {row.protocol === "http" && <p>{t("用户名")}：xingdu</p>}
+                  {connection.data.cipher && (
+                    <p>
+                      {t("加密方式")}：{connection.data.cipher}
+                    </p>
+                  )}
                   <label htmlFor={`credential-${row.id}`}>
                     {t("认证凭据")}
                   </label>
@@ -626,16 +682,20 @@ export default function ProtocolDialog({
                       />
                     </>
                   )}
-                  <label htmlFor={`certificate-${row.id}`}>
-                    {t("公开证书（用于核对信任，不含私钥）")}
-                  </label>
-                  <textarea
-                    id={`certificate-${row.id}`}
-                    readOnly
-                    rows={3}
-                    value={connection.data.certificate}
-                    onFocus={(e) => e.target.select()}
-                  />
+                  {connection.data.certificate && (
+                    <>
+                      <label htmlFor={`certificate-${row.id}`}>
+                        {t("公开证书（用于核对信任，不含私钥）")}
+                      </label>
+                      <textarea
+                        id={`certificate-${row.id}`}
+                        readOnly
+                        rows={3}
+                        value={connection.data.certificate}
+                        onFocus={(e) => e.target.select()}
+                      />
+                    </>
+                  )}
                   <button
                     className="secondary compact"
                     onClick={async () => {
@@ -696,50 +756,60 @@ export default function ProtocolDialog({
                     onChange={(e) => setPort(e.target.value)}
                   />
                 </label>
-                <label htmlFor="deployment-sni">
-                  {t("TLS 域名 / SNI")}
-                  <input
-                    id="deployment-sni"
-                    required
-                    maxLength={253}
-                    autoComplete="off"
-                    value={serverName}
-                    onChange={(e) => setServerName(e.target.value)}
-                    placeholder="node.example.com"
-                  />
-                </label>
-              </div>
-              <label htmlFor="deployment-cert">
-                {t("TLS 证书 / 完整证书链（PEM）")}
-              </label>
-              <textarea
-                id="deployment-cert"
-                required
-                rows={4}
-                maxLength={32768}
-                spellCheck={false}
-                value={certificate}
-                onChange={(e) => setCertificate(e.target.value)}
-                placeholder="-----BEGIN CERTIFICATE-----"
-              />
-              <label htmlFor="deployment-key">
-                {t("匹配的 TLS 私钥（PEM）")}
-              </label>
-              <textarea
-                id="deployment-key"
-                required
-                rows={4}
-                maxLength={16384}
-                autoComplete="off"
-                spellCheck={false}
-                value={privateKey}
-                onChange={(e) => setPrivateKey(e.target.value)}
-                placeholder="-----BEGIN PRIVATE KEY-----"
-              />
-              <p className="form-hint">
-                {t(
-                  "所有协议均启用 TLS。提供匹配域名、在有效期内的证书与私钥；不自动申请或续签证书，不关闭客户端证书验证。私钥提交后不再回显。认证凭据由服务端随机生成。",
+                {needsTLS && (
+                  <label htmlFor="deployment-sni">
+                    {t("TLS 域名 / SNI")}
+                    <input
+                      id="deployment-sni"
+                      required
+                      maxLength={253}
+                      autoComplete="off"
+                      value={serverName}
+                      onChange={(e) => setServerName(e.target.value)}
+                      placeholder="node.example.com"
+                    />
+                  </label>
                 )}
+              </div>
+              {needsTLS && (
+                <>
+                  <label htmlFor="deployment-cert">
+                    {t("TLS 证书 / 完整证书链（PEM）")}
+                  </label>
+                  <textarea
+                    id="deployment-cert"
+                    required
+                    rows={4}
+                    maxLength={32768}
+                    spellCheck={false}
+                    value={certificate}
+                    onChange={(e) => setCertificate(e.target.value)}
+                    placeholder="-----BEGIN CERTIFICATE-----"
+                  />
+                  <label htmlFor="deployment-key">
+                    {t("匹配的 TLS 私钥（PEM）")}
+                  </label>
+                  <textarea
+                    id="deployment-key"
+                    required
+                    rows={4}
+                    maxLength={16384}
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={privateKey}
+                    onChange={(e) => setPrivateKey(e.target.value)}
+                    placeholder="-----BEGIN PRIVATE KEY-----"
+                  />
+                </>
+              )}
+              <p className="form-hint">
+                {needsTLS
+                  ? t(
+                      "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                    )
+                  : t(
+                      "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
+                    )}
               </p>
               <p className="form-hint">
                 {t("请自行在云安全组和机器防火墙放行")}
@@ -773,16 +843,18 @@ export default function ProtocolDialog({
                         name,
                         protocol,
                         port: Number(port),
-                        server_name: serverName,
-                        certificate,
-                        private_key: privateKey,
+                        server_name: needsTLS ? serverName : "",
+                        certificate: needsTLS ? certificate : "",
+                        private_key: needsTLS ? privateKey : "",
                       },
                       signal,
                     );
                     if (!signal.aborted)
                       setNotice(
-                        t("证书与配置检查通过。证书有效期：") +
-                          certificateLabel(result.certificate_expires_at) +
+                        (needsTLS
+                          ? t("证书与配置检查通过。证书有效期：") +
+                            certificateLabel(result.certificate_expires_at)
+                          : t("配置检查通过，无需证书")) +
                           t(
                             "。实际端口占用在 Agent 安装时检查，公网 DNS 与防火墙仍需验证。",
                           ),

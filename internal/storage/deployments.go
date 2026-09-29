@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"time"
 	"xingdu.app/xingdu/internal/machine"
+	"xingdu.app/xingdu/internal/protocol"
 )
 
 type Deployment struct {
@@ -40,8 +41,11 @@ func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	_, err := tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,result='interrupted_or_expired',encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,finished_at=now() WHERE host_id=$1 AND ((state='running' AND lease_until<=now()) OR (state='queued' AND queued_at<now()-interval '30 minutes'))`, host)
 	return err
 }
-func managingAgent(ctx context.Context, tx pgx.Tx, host string) (string, error) {
+func managingAgent(ctx context.Context, tx pgx.Tx, host string, minimum ...string) (string, error) {
 	required := machine.MinimumDeploymentVersion
+	if len(minimum) > 0 {
+		required = minimum[0]
+	}
 	var pending bool
 	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM machine_jobs WHERE host_id=$1 AND action='upgrade' AND state IN ('queued','running'))`, host).Scan(&pending); err != nil {
 		return "", err
@@ -97,7 +101,7 @@ func (s *Store) QueueDeployment(ctx context.Context, d Deployment) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	hash, err := managingAgent(ctx, tx, d.HostID)
+	hash, err := managingAgent(ctx, tx, d.HostID, protocol.MinimumAgentVersion(d.Protocol))
 	if err != nil {
 		return err
 	}
@@ -135,7 +139,11 @@ func (s *Store) RemoveDeployment(ctx context.Context, host, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	hash, err := managingAgent(ctx, tx, host)
+	var kind string
+	if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind); err != nil {
+		return mapError(err)
+	}
+	hash, err := managingAgent(ctx, tx, host, protocol.MinimumAgentVersion(kind))
 	if err != nil {
 		return err
 	}
@@ -198,12 +206,15 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 	var d Deployment
 	d.OrgID = org
 	d.HostID = host
-	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,'') FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease)
+	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,''),protocol FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease, &d.Protocol)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, tx.Commit(ctx)
 	}
 	if err != nil {
 		return nil, err
+	}
+	if !machine.VersionAtLeast(version, protocol.MinimumAgentVersion(d.Protocol)) {
+		return nil, ErrConflict
 	}
 	if err = setScope(ctx, tx, d.UserID, org); err != nil {
 		return nil, err
