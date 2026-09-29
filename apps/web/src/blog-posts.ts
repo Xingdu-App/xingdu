@@ -13,7 +13,6 @@ export type BlogPost = {
   related: string[];
   references: { title: string; href: string }[];
 };
-const repository = "https://github.com/Xingdu-App/xingdu/blob/main/";
 export const blogPosts: BlogPost[] = [
   {
     slug: "manage-multiple-vps",
@@ -35,15 +34,23 @@ export const blogPosts: BlogPost[] = [
         id: "connect",
         title: "按使用目的选择 Agent 模式",
         paragraphs: [
-          "如果当前只需要查看系统信息与心跳，可以从低权限探针开始。准备通过控制台安装和管理协议服务时，再由管理员选择托管模式并明确授权。两种模式的权限范围不同，不应为了省一步操作给所有机器开通管理权限。",
+          "星渡的新安装默认选择托管模式，适合需要部署和维护协议节点的用户。若只查看机器状态，请主动选择低权限探针模式。两者是权限范围的选择，不是两种不同的安装渠道；提交前确认所选模式与用途一致。",
           "机器可以主动安装 Agent，也可以通过 SSH 完成安装。使用 SSH 前，应通过云控制台或已有可信连接核对主机指纹；扫描得到指纹并不能独立证明对方就是目标服务器。",
+        ],
+      },
+      {
+        id: "first-machine",
+        title: "第一次接入，按这个顺序操作",
+        paragraphs: [
+          "先选一台有独立登录方式、可以维护的 Linux VPS。在控制台确认当前组织，打开服务器列表添加资料，再选择主动安装或 SSH 安装。等待机器显示在线后，先检查系统、架构、Agent 版本和模式，不要立即在所有机器上重复安装。",
+          "部署一个测试节点后，在节点列表检查任务与服务状态，再创建只包含该节点的测试订阅。先验证这个最小流程，确认客户端能获取配置并完成实际连接，再增加其他服务器与规则。",
         ],
       },
       {
         id: "deploy",
         title: "让部署成为有记录的任务",
         paragraphs: [
-          "协议部署前，先准备可访问的地址、有效 TLS 证书、证书私钥和可用端口。星渡支持受管理 Agent 安装 Trojan、VLESS、VMess、Hysteria 2 和 TUIC v5，并提供提交前检查与任务结果。预检可以发现一部分配置问题，但不会替你完成公网 DNS、云防火墙或所有客户端版本检查。",
+          "先选择目标客户端，再选择它能够使用的协议。不同协议对域名、证书和端口的要求不同：Shadowsocks 不需要 TLS 证书，使用 TLS 的节点则应按部署表单准备证书或对应配置。提交前确认 Agent 在线、版本满足要求且处于托管模式，并检查监听端口与已有服务是否冲突。预检不会替你完成公网 DNS、云防火墙和客户端联网验收。",
           "节点与服务器不是同一个概念。一台服务器可以运行多个协议节点，节点的服务状态也可能与 Agent 在线状态不同。查看故障时，应先定位是哪一层出问题，避免反复重装 Agent。",
         ],
       },
@@ -54,9 +61,20 @@ export const blogPosts: BlogPost[] = [
           "控制台在线、服务部署成功、客户端能够转发，是三个不同的结果。把这三层分开记录，下次排查或交接时就能知道已经验收到了哪一步。",
         ],
         checklist: [
-          "接入层：Agent 最近一次心跳是什么时间，是否持续上报。",
+          "接入层：Agent 是否持续在线，版本和权限模式是否满足待执行任务。",
           "服务层：部署任务是否成功，协议服务状态是否正常，证书是否临近到期。",
           "客户端层：配置能否导入，证书校验是否成功，实际 TCP/UDP 转发是否符合预期。",
+        ],
+      },
+      {
+        id: "troubleshooting",
+        title: "遇到异常，先判断是哪一层",
+        paragraphs: [],
+        checklist: [
+          "机器离线：通过独立终端检查 Agent 服务、控制端域名解析和 HTTPS 出站连通性。",
+          "机器在线但不能部署：核对角色权限、托管模式、Agent 版本和是否有未结束的任务。",
+          "部署完成但客户端超时：检查实际监听、VPS 防火墙和云安全组；按协议分别检查 TCP 与 UDP。",
+          "出现证书错误：检查域名、系统时间、有效期和证书链；更换证书后更新客户端订阅，不要直接关闭校验。",
         ],
       },
       {
@@ -71,7 +89,11 @@ export const blogPosts: BlogPost[] = [
     references: [
       {
         title: "节点生命周期与验证范围",
-        href: repository + "docs/NODE-LIFECYCLE.md",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/NODE-LIFECYCLE.md",
+      },
+      {
+        title: "开始接入第一台服务器",
+        href: "/help",
       },
     ],
   },
@@ -103,8 +125,18 @@ export const blogPosts: BlogPost[] = [
         id: "cloud",
         title: "云端模式应重点核对服务范围",
         paragraphs: [
-          "如果希望减少控制端维护，把时间留给自己的 VPS 和应用，可以考虑云端控制端。星渡当前价格页列出按组织订阅的云端方案，具体金额、包含额度和购买是否开放，应在价格页与控制台再次核对。本文不固定复制价格，避免套餐调整后出现多个版本。",
+          "Xingdu Cloud 已正式上线，适合希望减少控制端维护的用户。套餐按组织订阅；先用当前可用额度验证完整流程，再根据机器规模选择方案。具体金额、资源上限和计费周期以价格页、控制台和结账页面为准，VPS 与带宽费用另计。",
           "购买前需要确认成员与机器额度、账单周期、续费与取消流程，以及数据处理说明。云端管理不会自动解决你自己服务器上的系统维护、网络故障或客户端兼容问题，仍应保留服务器的独立管理和恢复方式。",
+        ],
+      },
+      {
+        id: "scenarios",
+        title: "三种情况，如何选",
+        paragraphs: [],
+        checklist: [
+          "只有一台 VPS、主要想省维护时间：先试用 Cloud 的可用额度，确认接入与订阅流程适合自己。",
+          "需要控制数据位置、升级节奏和备份：选择自托管，并为数据库、加密密钥与邮件服务安排负责人。",
+          "多人协作或多个独立工作空间：先核对 Cloud 组织与角色功能。自托管为单组织模式，不能按多组织 SaaS 的使用方式规划。",
         ],
       },
       {
@@ -121,6 +153,13 @@ export const blogPosts: BlogPost[] = [
         ],
       },
       {
+        id: "exit-plan",
+        title: "开始使用时就想好退出方式",
+        paragraphs: [
+          "无论选择哪种方式，都应保留独立 SSH 登录和必要的配置备份。停止使用控制端前，先确认远端服务是否要保留；需要停止时先卸载并核查结果。删除组织、撤销 Agent 或停用订阅链接，不应被当作已经清除服务器上所有服务和客户端凭据。",
+        ],
+      },
+      {
         id: "preview",
         title: "先验证流程，再扩大使用范围",
         paragraphs: [
@@ -130,9 +169,18 @@ export const blogPosts: BlogPost[] = [
     ],
     related: ["manage-multiple-vps", "team-server-permissions"],
     references: [
-      { title: "星渡价格与部署方式", href: "/pricing" },
-      { title: "服务范围", href: "/service" },
-      { title: "隐私与数据处理", href: "/privacy" },
+      {
+        title: "星渡价格与部署方式",
+        href: "/pricing",
+      },
+      {
+        title: "服务范围",
+        href: "/service",
+      },
+      {
+        title: "隐私与数据处理",
+        href: "/privacy",
+      },
     ],
   },
   {
@@ -149,6 +197,19 @@ export const blogPosts: BlogPost[] = [
         paragraphs: [
           "Agent 接入与 SSH 安装并不是两套互斥的运行模式。在星渡中，可以在服务器上主动安装 Agent，也可以授权控制端通过 SSH 安装 Agent。安装之后，由 Agent 使用独立机器身份连接控制端，上报心跳并处理授权范围内的任务。",
           "主动安装适合已经有可信终端访问方式、希望自行执行安装步骤的用户，无需把 SSH 密码或私钥交给控制端。SSH 安装适合从管理界面发起接入，但需要提供目标地址、登录方式以及经过独立核对的主机指纹。",
+        ],
+      },
+      {
+        id: "installation-checklist",
+        title: "安装前检查：账号、系统和网络",
+        paragraphs: [
+          "标准安装使用 Linux systemd，目标架构为 amd64 或 arm64。非 root SSH 用户需要免密 sudo；安装器不会接收 sudo 密码，也不会替你修改 SSH 服务、防火墙或云安全组。请先确认系统依赖与当前安装说明一致。",
+        ],
+        checklist: [
+          "在可信终端确认用户名、SSH 端口和登录凭据确实可用，再发起控制台安装。",
+          "通过云控制台或已有可信连接核对 SSH 主机指纹；不因重装失败就直接接受不同指纹。",
+          "确认 VPS 能解析控制端域名并通过 HTTPS 访问。Agent 心跳是出站连接，不需要专门开放一个 Agent 入站端口。",
+          "若机器已有 Agent，先检查现有接入和版本，使用升级或恢复流程，避免重复覆盖安装。",
         ],
       },
       {
@@ -176,6 +237,13 @@ export const blogPosts: BlogPost[] = [
         ],
       },
       {
+        id: "updates",
+        title: "后续升级还需要 SSH 密码吗？",
+        paragraphs: [
+          "支持自更新的在线 Agent 可以领取控制端授权的升级任务，不需要再次提交 SSH 密码或私钥。较旧、不支持自更新的 Agent，或离线恢复场景，仍可能需要 SSH。升级是否完成以任务结果和目标版本的新心跳为准，不以点击按钮或下载结束为准。",
+        ],
+      },
+      {
         id: "offboarding",
         title: "停用前先安排远端服务的退出顺序",
         paragraphs: [
@@ -188,9 +256,12 @@ export const blogPosts: BlogPost[] = [
     references: [
       {
         title: "机器接入安全边界",
-        href: repository + "docs/MACHINE-ACCESS.md",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/MACHINE-ACCESS.md",
       },
-      { title: "星渡安全设计", href: "/security" },
+      {
+        title: "星渡安全设计",
+        href: "/security",
+      },
     ],
   },
   {
@@ -213,8 +284,20 @@ export const blogPosts: BlogPost[] = [
         id: "formats",
         title: "按实际客户端选择格式",
         paragraphs: [
-          "Stash 和 Mihomo 的字段映射分别实现，不能因为两个文件都是 YAML 就混用。当前导出覆盖受支持的 Trojan、VLESS、VMess、Hysteria 2 与 TUIC v5 TLS 节点。Surge 不导出 VLESS；Loon 不导出 TUIC，且采用系统 CA 验证，要求有效域名与完整受信任证书链。",
+          "先按实际 App 选择导出格式，再选择该格式支持的节点。Stash 和 Mihomo 的字段映射分别实现，不能因为两个文件都是 YAML 就混用；Surge、Loon 也有各自的协议和证书限制。若保存或下载时提示某个节点不兼容，应调整节点选择或格式，不要手工删除证书验证字段来绕过错误。",
           "Hysteria 2 分享链接只适用于该协议，没有分流规则且默认流量走节点时才能导出。Shadowrocket 暂无专用输出。具体客户端版本对字段的支持仍需实际验证，不应通过关闭证书校验来获得表面的兼容。",
+        ],
+      },
+      {
+        id: "create-subscription",
+        title: "从已部署节点创建第一条订阅",
+        paragraphs: [],
+        checklist: [
+          "在节点列表确认至少一个节点部署成功，记下它支持的客户端与协议范围。",
+          "进入订阅页面，填写容易识别的名称，选择客户端格式和需要包含的节点。",
+          "先使用简单规则或基础模板，确认策略组中的节点选择与默认出口，再保存。",
+          "复制订阅链接，或使用页面提供的二维码、导入按钮。按钮只表示尝试打开客户端，仍需在 App 中确认导入。",
+          "在客户端刷新配置并测试连接。之后调整节点或规则，再刷新一次确认变化，完成整个更新流程。",
         ],
       },
       {
@@ -222,7 +305,27 @@ export const blogPosts: BlogPost[] = [
         title: "规则顺序会影响流量去向",
         paragraphs: [
           "可以在单个订阅中配置精确域名、域名后缀或 IP CIDR 规则，按列表顺序匹配，选择代理、直连或拒绝，再指定未匹配流量的处理方式。域名规则使用普通 ASCII 域名，国际化域名需转为 Punycode；域名后缀本身包含对子域的匹配，不需要再加通配符。",
-          "配置前先写清楚意图：哪些目标必须经过节点，哪些允许直连，未命中规则时如何处理。当前没有共享规则库或线路编排，单个订阅的规则也不代表服务器端的网络访问控制。",
+          "规则模板可以在组织内复用，订阅保存应用时的规则副本。修改模板不会自动更新已经保存的订阅，需要重新应用并保存，再让客户端更新。模板、策略组和规则目标应一起检查：规则指向的组需要选入合适节点，未命中规则的流量也要有明确去向。客户端分流规则不等于服务器端访问控制。",
+        ],
+      },
+      {
+        id: "combined-groups",
+        title: "既开发又看电影，不必维护两份配置",
+        paragraphs: [
+          "需要同时覆盖开发与影音时，可以从综合模板开始，再分别给开发、影音和默认策略组选择节点。同一个节点可以分配到多个组；分组的意义是让不同服务有独立选择，而不是要求每组必须购买一台服务器。",
+          "例如开发流量选择一个稳定的节点，影音组选择另一个已验证可用的节点，未命中的流量交给默认组。保存后更新客户端，分别检查两个组的选择与实际规则命中。延迟测试只代表测试地址的可达性，不证明某个影音或 AI 服务一定可用。",
+          "完整配置模板可能引用由客户端下载的第三方规则源。规则更新与可用性也受上游和客户端网络影响，不能把模板名称理解为覆盖所有网站；遇到漏分流时，先检查具体域名、匹配顺序和规则源更新结果。",
+        ],
+      },
+      {
+        id: "subscription-errors",
+        title: "下载失败、更新没变化，分别怎么查",
+        paragraphs: [],
+        checklist: [
+          "下载失败：确认链接未停用或重置，所选节点仍可导出，客户端能访问订阅域名；不要把完整链接发到公开 Issue。",
+          "规则没变化：确认修改后保存了订阅；若只编辑了模板，需要重新应用；再确认客户端已更新正确的远程配置。",
+          "配置能导入但不能连接：回到节点的服务、端口与证书排查；配置语法正确并不能证明服务器可达。",
+          "重置链接后旧连接还在：这是链接授权与节点凭据的区别；需要终止节点访问时另行更换凭据或卸载服务。",
         ],
       },
       {
@@ -251,7 +354,11 @@ export const blogPosts: BlogPost[] = [
     references: [
       {
         title: "完整客户端适配矩阵与验证记录",
-        href: repository + "docs/SUBSCRIPTIONS.md",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/SUBSCRIPTIONS.md",
+      },
+      {
+        title: "规则模板与策略组使用说明",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/SUBSCRIPTION-TEMPLATES.md",
       },
     ],
   },
@@ -268,7 +375,7 @@ export const blogPosts: BlogPost[] = [
         title: "为每位成员保留独立账号",
         paragraphs: [
           "共享一个管理员账号看似方便，却很难回答谁发起了部署、离职成员是否仍能登录、谁应该接收维护通知。组织协作应从独立账号开始，再将角色分配给具体成员。",
-          "星渡通过组织管理服务器、节点、客户端订阅与成员关系。同一个人可以加入多个组织，切换后应先确认当前工作空间，再执行部署或凭据操作。组织名称也应清晰反映用途，避免测试环境与正式使用环境混淆。",
+          "星渡通过组织管理服务器、节点、客户端订阅与成员关系。Cloud 模式支持多个组织；自托管模式为单组织。Cloud 用户切换工作空间后，应先确认当前组织再执行部署或凭据操作。组织名称也应清晰反映用途，避免测试环境与正式环境混淆。",
         ],
       },
       {
@@ -277,6 +384,17 @@ export const blogPosts: BlogPost[] = [
         paragraphs: [
           "需要了解机器状态的成员，不一定需要看到连接凭据或执行协议卸载。组织所有者和管理员可以管理机器接入、部署与客户端订阅；其他角色的可操作范围受到限制。成员遇到禁用按钮时，应先确认角色，而不是直接分享管理员账号。",
           "组织访问由应用权限与数据库行级隔离共同约束。隔离降低了跨组织误访问的风险，但无法替代组织内部正确的授权选择：主动给某人管理员角色，就需要接受其在相应范围内执行管理操作的权限。",
+        ],
+      },
+      {
+        id: "first-invite",
+        title: "邀请第一位协作者的操作顺序",
+        paragraphs: [],
+        checklist: [
+          "所有者或管理员打开当前组织的成员管理，按职责选择角色；需要邀请管理员时由所有者操作。",
+          "通过私密渠道发送邀请，确认对方使用自己的账号接受，并核对加入的组织与角色。",
+          "先让对方完成查看机器与查找任务记录的操作，再根据职责检查管理操作是否可用。",
+          "约定谁负责服务器系统、节点配置、证书与账单，避免多人同时修改同一节点。",
         ],
       },
       {
@@ -312,10 +430,13 @@ export const blogPosts: BlogPost[] = [
     ],
     related: ["self-hosted-or-cloud", "agent-or-ssh"],
     references: [
-      { title: "多租户与组织权限说明", href: repository + "docs/SAAS.md" },
+      {
+        title: "多租户与组织权限说明",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/SAAS.md",
+      },
       {
         title: "账户与会话安全",
-        href: repository + "docs/ACCOUNT-SECURITY.md",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/ACCOUNT-SECURITY.md",
       },
     ],
   },
