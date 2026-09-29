@@ -194,11 +194,11 @@ export const removeMember = (id: string) =>
   request<void>(`/api/v1/members/${id}`, "DELETE");
 export const listInvitations = () =>
   request<Invitation[]>("/api/v1/invitations");
-export const createInvitation = (role: Role) =>
-  request<{ invitation: Invitation; url: string }>(
+export const createInvitation = (role: Role, email = "") =>
+  request<{ invitation: Invitation; url: string; email_delivery: string }>(
     "/api/v1/invitations",
     "POST",
-    { role },
+    { role, email },
   );
 export const revokeInvitation = (id: string) =>
   request<void>(`/api/v1/invitations/${id}`, "DELETE");

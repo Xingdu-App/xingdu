@@ -999,5 +999,11 @@
   "服务器额度按需求协商": "Server limits tailored to your needs",
   "适合更大规模与定制需求。": "For larger scale and custom requirements.",
   "付款结果正在确认，页面会自动更新。": "Your payment is being confirmed. This page will update automatically.",
-  "API 密钥与自动化管理": "API keys and automation"
+  "API 密钥与自动化管理": "API keys and automation",
+  "忘记密码？": "Forgot password?",
+  "收件邮箱（可选）": "Recipient email (optional)",
+  "留空则仅生成邀请链接": "Leave blank to create a link only",
+  "发送邮件邀请": "Send email invitation",
+  "邀请邮件已提交发送，请收件人检查收件箱。": "Invitation submitted for delivery. Ask the recipient to check their inbox.",
+  "邮件发送失败，邀请链接已生成，可复制后自行发送。": "Email delivery failed. Copy and share the created invitation link yourself."
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"net/http"
+	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/storage"
 )
@@ -42,6 +43,8 @@ func (a *api) tenantRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/auth/config", func(w http.ResponseWriter, r *http.Request) {
 		reply(w, 200, map[string]any{"data": map[string]any{"mode": a.mode, "multi_organization": a.mode != "self_hosted", "registration_enabled": a.registration, "email_verification_required": true, "email_delivery_configured": a.emailReady(), "oauth_providers": a.oauthConfig()}})
 	})
+	mux.HandleFunc("POST /api/v1/auth/password-recovery", a.requestPasswordRecovery)
+	mux.HandleFunc("POST /api/v1/auth/password-recovery/complete", a.completePasswordRecovery)
 	mux.HandleFunc("POST /api/v1/auth/register", a.register)
 	mux.HandleFunc("POST /api/v1/auth/register/verify", a.verifyRegistration)
 	mux.HandleFunc("GET /api/v1/organizations", a.require(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
@@ -119,22 +122,66 @@ func (a *api) tenantRoutes(mux *http.ServeMux) {
 		}
 		reply(w, 200, map[string]any{"data": out})
 	}))
-	mux.HandleFunc("POST /api/v1/invitations", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+	mux.HandleFunc("POST /api/v1/invitations", a.tenant(func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
 		var in struct {
-			Role string `json:"role"`
+			Role  string `json:"role"`
+			Email string `json:"email"`
 		}
 		if !decode(w, r, &in) {
 			return
 		}
+		var mailer emailverification.MessageSender
+		if in.Email != "" {
+			var valid bool
+			in.Email, valid = registrationEmail(in.Email)
+			if !valid {
+				failure(w, 422, "invalid_email", "请输入有效邮箱")
+				return
+			}
+			mailer, _ = a.emailSender.(emailverification.MessageSender)
+			if mailer == nil || !mailer.Configured() {
+				failure(w, 503, "email_unavailable", "邮件服务暂不可用")
+				return
+			}
+		}
+		if !a.attempts.allowLimit("invitation:"+u.ID, 10) {
+			failure(w, 429, "rate_limited", "邀请过于频繁，请稍后再试")
+			return
+		}
+		orgName := "Xingdu"
+		if in.Email != "" {
+			orgs, err := a.store.Organizations(r.Context(), u.ID)
+			if err != nil {
+				storeError(w, err)
+				return
+			}
+			for _, o := range orgs {
+				if o.ID == storage.TenantOrg(r.Context()) {
+					orgName = o.Name
+				}
+			}
+		}
 		b := make([]byte, 32)
-		_, _ = rand.Read(b)
+		if _, err := rand.Read(b); err != nil {
+			failure(w, 503, "unavailable", "服务暂不可用")
+			return
+		}
 		token := hex.EncodeToString(b)
 		out, err := a.store.CreateInvitation(r.Context(), in.Role, tokenHash(token))
 		if err != nil {
 			storeError(w, err)
 			return
 		}
-		reply(w, 201, map[string]any{"data": map[string]any{"invitation": out, "url": a.origin + "/app#invite=" + token}})
+		link := a.origin + "/app#invite=" + token
+		status := "not_requested"
+		if mailer != nil {
+			status = "accepted"
+			if err := mailer.SendMessage(r.Context(), in.Email, emailverification.Message{Kind: "invitation", URL: link, Organization: orgName, Role: in.Role}, "xingdu-invitation/"+out.ID); err != nil {
+				status = "failed"
+			}
+		}
+		// Preserve the created link even when delivery fails; never report creation as failed.
+		reply(w, 201, map[string]any{"data": map[string]any{"invitation": out, "url": link, "email_delivery": status}})
 	}))
 	mux.HandleFunc("DELETE /api/v1/invitations/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validID(w, r) {

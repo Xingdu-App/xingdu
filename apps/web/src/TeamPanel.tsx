@@ -19,6 +19,8 @@ export default function TeamPanel({
   organization: Organization;
 }) {
   useLocale();
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [emailStatus, setEmailStatus] = useState("");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 60000);
@@ -259,22 +261,52 @@ export default function TeamPanel({
                 options={roleOptions}
                 onChange={(value) => setRole(value as Role)}
               />
+              <label className="field-label" htmlFor="invite-email">
+                {t("收件邮箱（可选）")}
+              </label>
+              <input
+                id="invite-email"
+                type="email"
+                autoComplete="email"
+                value={inviteEmail}
+                disabled={busy}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder={t("留空则仅生成邀请链接")}
+              />
               <button
                 className="primary invite-submit"
                 disabled={busy}
                 onClick={() =>
                   void act(async () => {
-                    const value = await createInvitation(role);
+                    const value = await createInvitation(
+                      role,
+                      inviteEmail.trim(),
+                    );
+                    setEmailStatus(value.email_delivery);
                     setLink(value.url);
                   })
                 }
               >
-                {busy ? t("正在处理…") : t("生成邀请链接")}
+                {busy
+                  ? t("正在处理…")
+                  : inviteEmail.trim()
+                    ? t("发送邮件邀请")
+                    : t("生成邀请链接")}
                 <span aria-hidden="true">↗</span>
               </button>
               <p className="invite-help">
                 {t("链接 7 天内有效，仅可使用一次。请私下分享给目标成员。")}
               </p>
+              {emailStatus === "accepted" && (
+                <p role="status">
+                  {t("邀请邮件已提交发送，请收件人检查收件箱。")}
+                </p>
+              )}
+              {emailStatus === "failed" && (
+                <p role="alert" className="form-error">
+                  {t("邮件发送失败，邀请链接已生成，可复制后自行发送。")}
+                </p>
+              )}
               {link && (
                 <div className="invite-result">
                   <label htmlFor="invite-link">

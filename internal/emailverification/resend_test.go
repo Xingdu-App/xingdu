@@ -29,7 +29,7 @@ func TestResendPlaceholderAndSanitizedFailure(t *testing.T) {
 			t.Fatal("wrong endpoint/idem")
 		}
 		var body map[string]any
-		if json.NewDecoder(r.Body).Decode(&body) != nil || !strings.Contains(body["text"].(string), "12345678") {
+		if json.NewDecoder(r.Body).Decode(&body) != nil || !strings.Contains(body["text"].(string), "12345678") || !strings.Contains(body["html"].(string), "12345678") || body["reply_to"] != "info@xingdu.app" {
 			t.Fatal("message missing code")
 		}
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"id":"fixture-id"}`))}, nil

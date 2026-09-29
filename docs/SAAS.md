@@ -58,7 +58,7 @@ API 与 Worker 使用独立 `xingdu_app` 登录角色，无超级用户、BYPASS
 
 管理员生成 256-bit 随机邀请链接，数据库仅保存 SHA-256 摘要。链接固定角色、7 天有效、单次消费、可撤销；重复接受、过期和撤销均失败，已有成员不能借邀请升级角色。接受流程和成员写入在同一事务中完成。
 
-邀请是**持有链接即可接受**的邀请，不绑定邮箱。管理员需私下发送给目标成员；当前不会代发邮件。令牌放在 URL fragment 中，避免进入普通 HTTP 访问日志；用户登录后主动确认接受，成功后清除 fragment。链接只在创建时显示，列表不返回原始令牌或摘要。
+邀请是**持有链接即可接受**的邀请，不绑定邮箱。管理员可填写收件邮箱发送邀请邮件，也可复制链接私下发送给目标成员。邮件发送结果与邀请创建结果分别显示。令牌放在 URL fragment 中，避免进入普通 HTTP 访问日志；用户登录后主动确认接受，成功后清除 fragment。链接只在创建时显示，列表不返回原始令牌或摘要。
 
 `XINGDU_REGISTRATION_ENABLED=false` 默认关闭公开注册；部署者设为 `true` 后显示注册入口。新用户注册会创建个人组织，也可以随后接受邀请加入其他组织。关闭公开注册时，可用 `admin` CLI 创建多个用户，每个新用户有自己的初始组织。不要将 CLI 暴露为公开 API。
 
@@ -95,3 +95,7 @@ already contains multiple organizations. No organizations are deleted or merged.
 Apply migrations before starting the API. All API replicas sharing a database
 must use the same mode; stop them before changing modes. `MODE` takes precedence
 over the deprecated `XINGDU_BILLING_MODE` fallback for direct API startup.
+
+## 邮件服务边界
+
+账号与套餐通知使用受 RLS 保护的事务队列，由 API 进程发送。专用 NOLOGIN、NOBYPASSRLS 的 `xingdu_mail` 角色通过限定函数处理通知，运行账号无队列表直接访问权限。详见 [事务邮件](TRANSACTIONAL-EMAIL.md)。

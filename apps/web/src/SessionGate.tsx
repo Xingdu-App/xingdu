@@ -1,4 +1,5 @@
 import ConsoleSkeleton from "./LoadingSkeleton";
+import PasswordRecovery from "./PasswordRecovery";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -41,6 +42,7 @@ export default function SessionGate() {
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
   const [mailConfigured, setMailConfigured] = useState(false);
   const [configError, setConfigError] = useState(false);
+  const [recovering, setRecovering] = useState(false);
   const [registering, setRegistering] = useState(false);
   const [organization, setOrganization] = useState("");
   const [pending, setPending] = useState<Verification | null>(null);
@@ -254,6 +256,8 @@ export default function SessionGate() {
       </AvatarProvider>
     );
   if (checking) return <ConsoleSkeleton />;
+  if (recovering)
+    return <PasswordRecovery onBack={() => setRecovering(false)} />;
   return (
     <div className="auth-page">
       <a className="auth-home-link" href="/">
@@ -274,6 +278,19 @@ export default function SessionGate() {
               ? t("创建账号，开始管理你的服务器")
               : t("登录你的星渡控制台")}
         </p>
+        {!checking && !registering && !pending && mailConfigured && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => {
+              returnToLogin();
+              setRecovering(true);
+            }}
+          >
+            {t("忘记密码？")}
+          </button>
+        )}
         {window.location.hash.startsWith("#invite=") && (
           <p>{t("登录或注册后，可接受组织邀请。")}</p>
         )}

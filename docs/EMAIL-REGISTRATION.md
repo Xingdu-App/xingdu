@@ -16,7 +16,7 @@ The adapter follows the [Resend send-email API](https://resend.com/docs/api-refe
 
 To avoid registration enumeration, syntactically valid addresses receive the same challenge flow and generic email regardless of account existence. A challenge for an existing account cannot recreate it; verification returns the same invalid-verification error. Requests remain rate limited. Pending authentication data is retained for at most a rolling day during registration traffic; a later scheduled retention job can enforce cleanup during idle periods.
 
-Email recovery, email-address changes, MFA and migrating username-only administrators to verified email are separate features and are not implemented by this flow. Actual Resend domain verification, key provisioning and delivery acceptance must happen before claiming production email delivery works.
+Password recovery and account notifications are described in [transactional email](TRANSACTIONAL-EMAIL.md). Email-address changes, MFA and migrating username-only administrators to verified email remain separate features. Actual Resend domain verification, key provisioning and delivery acceptance must happen before claiming production email delivery works.
 
 ## Proxy rate-limit boundary
 
