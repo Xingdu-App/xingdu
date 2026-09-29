@@ -55,6 +55,9 @@ func (s *Store) UpdateHost(ctx context.Context, id string, in hosts.Input) (Host
 		return Host{}, err
 	}
 	defer tx.Rollback(ctx)
+	if err = checkHostRelayDependents(ctx, tx, id); err != nil {
+		return Host{}, err
+	}
 
 	h, err := scanHost(tx.QueryRow(ctx, "UPDATE hosts SET name=$2,address=$3,ssh_port=$4,ssh_user=$5,tags=$6,notes=$7 WHERE id=$1 RETURNING "+hostColumns, id, in.Name, in.Address, in.SSHPort, in.SSHUser, in.Tags, in.Notes))
 	if err != nil {
@@ -68,6 +71,9 @@ func (s *Store) DeleteHost(ctx context.Context, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err = checkHostRelayDependents(ctx, tx, id); err != nil {
+		return err
+	}
 
 	result, err := tx.Exec(ctx, "DELETE FROM hosts WHERE id=$1", id)
 	if err != nil {

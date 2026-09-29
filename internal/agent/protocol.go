@@ -219,11 +219,14 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if !resourceid.Valid("op", t.ID) || !resourceid.Valid("node", t.DeploymentID) || !resourceid.Valid("lease", t.Lease) {
 		return "invalid_task"
 	}
-	if t.Action != "deploy" && t.Action != "remove" && t.Action != "restart" {
+	if t.Action != "deploy" && t.Action != "remove" && t.Action != "restart" && t.Action != "update" {
 		return "invalid_task"
 	}
 	if err := secureDir(x.stateDir); err != nil {
 		return "unsafe_state"
+	}
+	if t.Action == "update" {
+		return x.update(ctx, c, t)
 	}
 	localID := x.localDeploymentID(t.DeploymentID)
 	dir := filepath.Join(x.stateDir, localID)
@@ -432,7 +435,7 @@ func (x *protocolExecutor) apply(ctx context.Context, c Config, t protocol.Task)
 		return result
 	}
 	result.Code = x.execute(ctx, c, t)
-	result.Success = result.Code == "deployed" || result.Code == "removed" || result.Code == "restarted"
+	result.Success = result.Code == "deployed" || result.Code == "removed" || result.Code == "restarted" || result.Code == "updated"
 	journal.Result = &result
 	b, _ = json.Marshal(journal)
 	if atomicProtocolFile(path, b, 0600) != nil {

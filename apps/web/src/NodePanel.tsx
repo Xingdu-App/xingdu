@@ -6,21 +6,29 @@ import Select from "./Select";
 import { isShadowsocks, protocolNames } from "./api";
 
 const status = (node: ManagedNode) =>
-  node.action !== "remove"
-    ? node.action === "restart"
-      ? t(
-          node.state === "failed"
-            ? "重启失败"
-            : node.state === "interrupted"
-              ? "待核实"
-              : "重启中",
-        )
-      : t("已部署")
-    : node.state === "queued" || node.state === "running"
-      ? t("卸载中")
-      : node.state === "failed"
-        ? t("卸载失败")
-        : t("待核实");
+  node.action === "update"
+    ? t(
+        node.state === "failed"
+          ? "更新失败"
+          : node.state === "interrupted"
+            ? "待核实"
+            : "更新中",
+      )
+    : node.action !== "remove"
+      ? node.action === "restart"
+        ? t(
+            node.state === "failed"
+              ? "重启失败"
+              : node.state === "interrupted"
+                ? "待核实"
+                : "重启中",
+          )
+        : t("已部署")
+      : node.state === "queued" || node.state === "running"
+        ? t("卸载中")
+        : node.state === "failed"
+          ? t("卸载失败")
+          : t("待核实");
 
 export default function NodePanel({
   nodes,
@@ -169,6 +177,15 @@ export default function NodePanel({
                   </dd>
                 </div>
               </dl>
+              <p>
+                {t("外部连接")}：
+                {!node.probe_at ||
+                Date.now() - Date.parse(node.probe_at) > 180000
+                  ? t("未探测或结果已过期")
+                  : node.probe_ok
+                    ? `${t("可连接")} · ${node.probe_latency_ms} ms · ${node.probe_exit_ip}`
+                    : t("连接失败")}
+              </p>
               <div className="node-card-footer">
                 <span className="node-agent">
                   <span

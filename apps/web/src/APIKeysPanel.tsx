@@ -19,6 +19,7 @@ const scopeNames: Record<string, string> = {
   "hosts:write": "管理服务器",
   "nodes:read": "查看节点",
   "nodes:write": "安装、重启和卸载节点",
+  "nodes:probe": "上报节点探测结果",
   "nodes:credentials": "读取节点连接凭据",
 };
 export default function APIKeysPanel({

@@ -56,10 +56,13 @@ func apiScope(method, path string) string {
 		if !id.Valid("node", p[3]) {
 			return ""
 		}
-		if len(p) == 4 && method == "DELETE" {
+		if len(p) == 4 && (method == "DELETE" || method == "PUT") {
 			return "nodes:write"
 		}
 		if len(p) == 5 && method == "POST" {
+			if p[4] == "probe" {
+				return "nodes:probe"
+			}
 			if p[4] == "restart" {
 				return "nodes:write"
 			}

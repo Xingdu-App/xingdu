@@ -1,3 +1,4 @@
+import RoutePanel from "./RoutePanel";
 import APIKeysPanel from "./APIKeysPanel";
 import { t, useLocale, localeTag } from "./i18n";
 import type { ReactNode } from "react";
@@ -35,18 +36,7 @@ const accountPages = new Set<string>([
   "members",
 ]);
 type LoadState = "loading" | "ready" | "error";
-const pendingCopy: Record<string, { title: string; description: string }> = {
-  routes: {
-    get title() {
-      return t("线路编排尚未开放");
-    },
-    get description() {
-      return t(
-        "当前可在客户端订阅中设置分流规则。多节点线路编排尚未开放，请先完成节点部署与客户端连接验证。",
-      );
-    },
-  },
-};
+const pendingCopy: Record<string, { title: string; description: string }> = {};
 
 function App({
   cloud,
@@ -588,6 +578,13 @@ function App({
               manage={manageMachines}
               refreshKey={attempt}
               onNodes={() => setPage("nodes")}
+            />
+          )}
+          {page === "routes" && (
+            <RoutePanel
+              nodes={nodes}
+              manage={manageMachines}
+              onChanged={refresh}
             />
           )}
           {page === "nodes" && (

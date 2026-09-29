@@ -10,6 +10,12 @@ import (
 )
 
 type Deployment struct {
+	ProbeOK              *bool      `json:"probe_ok"`
+	ProbeAt              *time.Time `json:"probe_at"`
+	ProbeLatencyMS       *int       `json:"probe_latency_ms"`
+	ProbeExitIP          *string    `json:"probe_exit_ip"`
+	RelayExitID          string     `json:"relay_exit_id,omitempty"`
+	ExitCipher           []byte     `json:"-"`
 	ID                   string     `json:"id"`
 	HostID               string     `json:"host_id"`
 	Name                 string     `json:"name"`
@@ -30,12 +36,14 @@ type Deployment struct {
 	CertificateExpiresAt *time.Time `json:"certificate_expires_at"`
 	ServiceStatus        string     `json:"service_status"`
 	ServiceCheckedAt     *time.Time `json:"service_checked_at"`
+	Revision             int        `json:"revision"`
+	PendingRevision      *int       `json:"pending_revision"`
 }
 
-const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at"
+const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at,revision,pending_revision,COALESCE(relay_exit_id,''),probe_ok,probe_at,probe_latency_ms,probe_exit_ip"
 
 func scanDeployment(row pgx.Row, d *Deployment) error {
-	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt)
+	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt, &d.Revision, &d.PendingRevision, &d.RelayExitID, &d.ProbeOK, &d.ProbeAt, &d.ProbeLatencyMS, &d.ProbeExitIP)
 }
 func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	_, err := tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,result='interrupted_or_expired',encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,finished_at=now() WHERE host_id=$1 AND ((state='running' AND lease_until<=now()) OR (state='queued' AND queued_at<now()-interval '30 minutes'))`, host)
@@ -139,6 +147,9 @@ func (s *Store) RemoveDeployment(ctx context.Context, host, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err = checkRelayDependents(ctx, tx, id); err != nil {
+		return err
+	}
 	var kind string
 	if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind); err != nil {
 		return mapError(err)
@@ -216,6 +227,14 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 	if !machine.VersionAtLeast(version, protocol.MinimumAgentVersion(d.Protocol)) {
 		return nil, ErrConflict
 	}
+	if d.Action == "update" {
+		if !machine.VersionAtLeast(version, "0.12.0-dev") {
+			return nil, ErrConflict
+		}
+		if err = tx.QueryRow(ctx, `SELECT r.encrypted FROM protocol_revisions r JOIN protocol_deployments d ON d.id=r.node_id AND d.organization_id=r.organization_id WHERE d.id=$1 AND r.revision=d.pending_revision`, d.ID).Scan(&d.Encrypted); err != nil {
+			return nil, err
+		}
+	}
 	if err = setScope(ctx, tx, d.UserID, org); err != nil {
 		return nil, err
 	}
@@ -261,7 +280,7 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 	if !live {
 		return ErrConflict
 	}
-	if success && ((d.Action == "deploy" && code != "deployed") || (d.Action == "remove" && code != "removed") || (d.Action == "restart" && code != "restarted")) || !success && (code == "deployed" || code == "removed" || code == "restarted") {
+	if success && ((d.Action == "deploy" && code != "deployed") || (d.Action == "remove" && code != "removed") || (d.Action == "restart" && code != "restarted") || (d.Action == "update" && code != "updated")) || !success && (code == "deployed" || code == "removed" || code == "restarted" || code == "updated") {
 		return ErrInvalid
 	}
 	if err = setScope(ctx, tx, d.UserID, org); err != nil {
@@ -281,7 +300,22 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 			state = "removed"
 		}
 	}
-	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,action=CASE WHEN action='restart' AND $2='succeeded' THEN 'deploy' ELSE action END,finished_at=now(),installed_at=CASE WHEN $2='succeeded' AND action='deploy' THEN COALESCE(installed_at,now()) ELSE installed_at END,encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END WHERE id=$1`, d.ID, state, code)
+	if d.Action == "update" && allowed {
+		if success {
+			_, err = tx.Exec(ctx, `UPDATE protocol_deployments d SET encrypted=r.encrypted,port=r.port,name=r.name,server_name=r.server_name,certificate_expires_at=r.certificate_expires_at,probe_ok=NULL,probe_at=NULL,revision=r.revision,relay_exit_id=r.relay_exit_id,pending_revision=NULL,action='deploy' FROM protocol_revisions r WHERE d.id=$1 AND r.node_id=d.id AND r.organization_id=d.organization_id AND r.revision=d.pending_revision`, d.ID)
+		} else if code != "rollback_failed" && code != "interrupted" && code != "journal_unavailable" {
+			_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET pending_revision=NULL WHERE id=$1`, d.ID)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	if state == "removed" {
+		if _, err = tx.Exec(ctx, `DELETE FROM protocol_revisions WHERE node_id=$1`, d.ID); err != nil {
+			return err
+		}
+	}
+	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,action=CASE WHEN action='restart' AND $2='succeeded' THEN 'deploy' ELSE action END,finished_at=now(),installed_at=CASE WHEN $2='succeeded' AND action='deploy' THEN COALESCE(installed_at,now()) ELSE installed_at END,encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END,relay_exit_id=CASE WHEN $2='removed' THEN NULL ELSE relay_exit_id END WHERE id=$1`, d.ID, state, code)
 	if err != nil {
 		return err
 	}

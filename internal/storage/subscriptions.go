@@ -136,7 +136,7 @@ func (s *Store) SaveSubscription(ctx context.Context, in Subscription, hash stri
 		return in, err
 	}
 	var count int
-	if err = tx.QueryRow(ctx, `SELECT count(*) FROM protocol_deployments d WHERE d.id::text=ANY($1::text[]) AND ((installed_at IS NOT NULL AND encrypted IS NOT NULL AND ((state='succeeded' AND action='deploy') OR (action='restart' AND state IN ('queued','running','failed','interrupted')))) OR (NOT $2::boolean AND EXISTS(SELECT 1 FROM subscription_nodes n WHERE n.subscription_id=$3 AND n.node_id=d.id)))`, in.NodeIDs, create, in.ID).Scan(&count); err != nil {
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM protocol_deployments d WHERE d.id::text=ANY($1::text[]) AND ((installed_at IS NOT NULL AND encrypted IS NOT NULL AND ((state='succeeded' AND action='deploy') OR (action='restart' AND state IN ('queued','running','failed','interrupted')) OR (action='update' AND state='failed' AND pending_revision IS NULL))) OR (NOT $2::boolean AND EXISTS(SELECT 1 FROM subscription_nodes n WHERE n.subscription_id=$3 AND n.node_id=d.id)))`, in.NodeIDs, create, in.ID).Scan(&count); err != nil {
 		return in, err
 	}
 	if count != len(in.NodeIDs) {
@@ -255,7 +255,7 @@ func (s *Store) SubscriptionContent(ctx context.Context, id, hash string) (Subsc
 	if err = scanSubscription(tx.QueryRow(ctx, "SELECT "+subscriptionColumns+" FROM subscriptions s WHERE s.id=$1 AND s.enabled AND s.token_hash=$2", id, hash), &sub); err != nil {
 		return sub, nodes, mapError(err)
 	}
-	rows, err := tx.Query(ctx, `SELECT d.id::text,d.host_id::text,d.name,d.protocol,d.encrypted,h.address FROM subscription_nodes n JOIN protocol_deployments d ON d.id=n.node_id AND d.organization_id=n.organization_id JOIN hosts h ON h.id=d.host_id AND h.organization_id=d.organization_id WHERE n.subscription_id=$1 AND d.installed_at IS NOT NULL AND d.encrypted IS NOT NULL AND ((d.state='succeeded' AND d.action='deploy') OR (d.action='restart' AND d.state IN ('queued','running','failed','interrupted'))) ORDER BY n.position`, id)
+	rows, err := tx.Query(ctx, `SELECT d.id::text,d.host_id::text,d.name,d.protocol,d.encrypted,h.address FROM subscription_nodes n JOIN protocol_deployments d ON d.id=n.node_id AND d.organization_id=n.organization_id JOIN hosts h ON h.id=d.host_id AND h.organization_id=d.organization_id WHERE n.subscription_id=$1 AND d.installed_at IS NOT NULL AND d.encrypted IS NOT NULL AND ((d.state='succeeded' AND d.action='deploy') OR (d.action='restart' AND d.state IN ('queued','running','failed','interrupted')) OR (d.action='update' AND d.state='failed' AND d.pending_revision IS NULL)) ORDER BY n.position`, id)
 	if err != nil {
 		return sub, nodes, err
 	}

@@ -28,6 +28,7 @@ type Input struct {
 	PrivateKey  string `json:"private_key"`
 }
 type Spec struct {
+	Relay *Peer `json:"relay,omitempty"`
 	Input
 	Credential string `json:"credential"`
 	Password   string `json:"password,omitempty"`
@@ -170,6 +171,11 @@ func NewSpec(in Input) (Spec, error) {
 	return s, nil
 }
 func ValidateSpec(s Spec) error {
+	if s.Relay != nil {
+		if err := s.Relay.Validate(); err != nil {
+			return err
+		}
+	}
 	if err := ValidateInput(s.Input); err != nil {
 		return err
 	}
@@ -250,7 +256,11 @@ func Render(s Spec) ([]byte, error) {
 			map[string]any{"ip_cidr": []string{"0.0.0.0/8", "100.64.0.0/10", "168.63.129.16/32", "224.0.0.0/4", "240.0.0.0/4", "::/128", "ff00::/8"}, "action": "reject"},
 		}, "final": "direct"},
 	}
-	if s.Protocol == "anytls" {
+	if s.Relay != nil {
+		cfg["outbounds"] = []any{s.Relay.Outbound()}
+		cfg["route"].(map[string]any)["final"] = "exit"
+	}
+	if s.Protocol == "anytls" || s.Relay != nil {
 		route := cfg["route"].(map[string]any)
 		route["rules"] = append([]any{map[string]any{"network": "udp", "action": "reject"}}, route["rules"].([]any)...)
 	}
@@ -260,7 +270,7 @@ func Render(s Spec) ([]byte, error) {
 // ValidResultCode bounds agent reports to non-sensitive, user-facing codes.
 func ValidResultCode(code string) bool {
 	switch code {
-	case "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
+	case "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
 		return true
 	default:
 		return false

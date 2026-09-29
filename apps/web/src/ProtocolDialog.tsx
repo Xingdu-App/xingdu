@@ -1,3 +1,4 @@
+import RevisionEditor from "./RevisionEditor";
 import { isShadowsocks } from "./api";
 import { agentVersionAtLeast } from "./agent-version";
 import {
@@ -27,8 +28,20 @@ import type {
 } from "./api";
 
 const protocols = [
-  { value: "anytls", label: "AnyTLS", get description() { return t("TCP + TLS · 密码认证"); } },
-  { value: "http", label: "HTTPS", get description() { return t("TCP + TLS · 密码认证"); } },
+  {
+    value: "anytls",
+    label: "AnyTLS",
+    get description() {
+      return t("TCP + TLS · 密码认证");
+    },
+  },
+  {
+    value: "http",
+    label: "HTTPS",
+    get description() {
+      return t("TCP + TLS · 密码认证");
+    },
+  },
   {
     value: "shadowsocks",
     label: "Shadowsocks",
@@ -97,6 +110,13 @@ const labels: Record<Deployment["state"], string> = {
   },
 };
 const resultLabels: Record<string, string> = {
+  get updated() {
+    return t("配置更新成功");
+  },
+  get update_rolled_back() {
+    return t("更新失败，已恢复原配置");
+  },
+
   get restarted() {
     return t("服务已重启，本机启动检查通过。仍需验证客户端连通性。");
   },
@@ -204,6 +224,7 @@ export default function ProtocolDialog({
   const [certificate, setCertificate] = useState("");
   const [privateKey, setPrivateKey] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   const [restarting, setRestarting] = useState<string | null>(null);
   const [removing, setRemoving] = useState<string | null>(null);
   const [connection, setConnection] = useState<{
@@ -264,7 +285,8 @@ export default function ProtocolDialog({
     ? protocol
     : rows.find((row) => row.id === nodeID)?.protocol;
   const requiredVersionFor = (kind?: string) =>
-    (kind ? machine?.required_agent_versions?.[kind] : undefined) ?? machine?.required_agent_version;
+    (kind ? machine?.required_agent_versions?.[kind] : undefined) ??
+    machine?.required_agent_version;
   const requiredVersion = requiredVersionFor(selectedProtocol);
   const versionCompatible = agentVersionAtLeast(
     agent?.metrics.version,
@@ -451,6 +473,7 @@ export default function ProtocolDialog({
               <div className="deployment-row-heading">
                 <strong>{row.name}</strong>
                 <span className={`deployment-state deployment-${row.state}`}>
+                  {row.action === "update" ? t("更新 · ") : ""}
                   {row.action === "restart" ? t("重启 · ") : ""}
                   {row.action === "remove" && row.state !== "removed"
                     ? t("卸载 · ")
@@ -491,6 +514,23 @@ export default function ProtocolDialog({
               )}
               {manage && (
                 <div className="deployment-actions">
+                  {row.action !== "remove" &&
+                    ["succeeded", "failed"].includes(row.state) && (
+                      <button
+                        className="secondary compact"
+                        disabled={
+                          busy ||
+                          pending ||
+                          !agentVersionAtLeast(
+                            agent?.metrics.version,
+                            "0.12.0-dev",
+                          )
+                        }
+                        onClick={() => setEditing(row.id)}
+                      >
+                        {t("编辑 / 版本恢复")}
+                      </button>
+                    )}
                   {((row.state === "succeeded" && row.action === "deploy") ||
                     (row.action === "restart" &&
                       ["failed", "interrupted"].includes(row.state))) && (
@@ -554,6 +594,16 @@ export default function ProtocolDialog({
                     </button>
                   )}
                 </div>
+              )}
+              {editing === row.id && (
+                <RevisionEditor
+                  host={host.id}
+                  node={row}
+                  onClose={() => setEditing(null)}
+                  onSaved={() => {
+                    void act(async () => {});
+                  }}
+                />
               )}
               {restarting === row.id && (
                 <div className="delete-confirm">

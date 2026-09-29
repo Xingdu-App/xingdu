@@ -13,6 +13,10 @@ import (
 )
 
 type DeploymentStore interface {
+	RecordProbe(context.Context, string, string, storage.ProbeReport) error
+	Revisions(context.Context, string, string) ([]storage.Revision, error)
+	RevisionSecret(context.Context, string, string, int) (storage.Deployment, error)
+	UpdateDeployment(context.Context, storage.Deployment, []byte) error
 	DeploymentPreflight(context.Context, string, int, string) error
 	RestartDeployment(context.Context, string, string) error
 	ReportServices(context.Context, string, []protocol.ServiceStatus) error
@@ -30,6 +34,22 @@ func deploymentAAD(org, host, id string) string {
 	return strings.Join([]string{"xingdu-protocol-v1", org, host, id}, ":")
 }
 func (a *api) deploymentRoutes(mux *http.ServeMux) {
+	a.revisionRoutes(mux)
+	mux.HandleFunc("POST /api/v1/hosts/{id}/deployments/{deployment}/probe", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		if !validDeploymentID(w, r) {
+			return
+		}
+		var in storage.ProbeReport
+		if !decode(w, r, &in) {
+			return
+		}
+		if err := a.store.RecordProbe(r.Context(), r.PathValue("id"), r.PathValue("deployment"), in); err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 200, map[string]bool{"ok": true})
+	}))
+
 	mux.HandleFunc("GET /api/v1/nodes", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		out, err := a.store.Nodes(r.Context())
 		if err != nil {
@@ -210,7 +230,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			return
 		}
 		var spec protocol.Spec
-		if d.Action == "deploy" && !a.openDeployment(w, *d, d.OrgID, &spec) {
+		if (d.Action == "deploy" || d.Action == "update") && !a.openDeployment(w, *d, d.OrgID, &spec) {
 			return
 		}
 		reply(w, 200, map[string]any{"data": protocol.Task{ID: d.OperationID, DeploymentID: d.ID, Lease: d.Lease, Action: d.Action, Spec: spec}})

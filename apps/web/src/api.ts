@@ -335,7 +335,14 @@ export type Deployment = {
     | "interrupted"
     | "cancelled"
     | "removed";
-  action: "deploy" | "remove" | "restart";
+  action: "deploy" | "remove" | "restart" | "update";
+  probe_ok?: boolean | null;
+  probe_at?: string | null;
+  probe_latency_ms?: number | null;
+  probe_exit_ip?: string | null;
+  relay_exit_id?: string;
+  revision?: number;
+  pending_revision?: number | null;
   certificate_expires_at?: string | null;
   service_status?: string;
   service_checked_at?: string | null;
