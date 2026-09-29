@@ -107,6 +107,7 @@ function App({
     });
   }, [page, locale]);
   const [hosts, setHosts] = useState<Host[]>([]);
+  const [pageActions, setPageActions] = useState<HTMLDivElement | null>(null);
   const detail = detailFromURL(routeURL);
   const nodeID = detail.node || undefined;
   const detailHostID = detail.node
@@ -255,6 +256,17 @@ function App({
                       : t("管理当前组织的服务器、节点与客户端配置。")}
               </p>
             </div>
+            <div className="page-actions" ref={setPageActions}>
+              {page === "hosts" && (
+                <button
+                  className="primary compact"
+                  disabled={state !== "ready" || !canWrite}
+                  onClick={() => setEditing(null)}
+                >
+                  {t("＋ 添加服务器")}
+                </button>
+              )}
+            </div>
           </div>
           {notice && (
             <div className="notice" role="status">
@@ -337,13 +349,15 @@ function App({
                     </p>
                   </div>
                   <div className="inventory-actions">
-                    <button
-                      className="primary compact"
-                      disabled={state !== "ready" || !canWrite}
-                      onClick={() => setEditing(null)}
-                    >
-                      {t("＋ 添加服务器")}
-                    </button>
+                    {page === "overview" && (
+                      <button
+                        className="primary compact"
+                        disabled={state !== "ready" || !canWrite}
+                        onClick={() => setEditing(null)}
+                      >
+                        {t("＋ 添加服务器")}
+                      </button>
+                    )}
                     <span className="badge">
                       {state === "ready"
                         ? t("{0} 台服务器", { 0: hosts.length })
@@ -535,13 +549,15 @@ function App({
                           )
                         : t("连接恢复后，这里会显示真实的服务器状态。")}
                     </p>
-                    <button
-                      className="primary"
-                      disabled={state !== "ready" || !canWrite}
-                      onClick={() => setEditing(null)}
-                    >
-                      {t("＋ 添加服务器")}
-                    </button>
+                    {page === "overview" && (
+                      <button
+                        className="primary"
+                        disabled={state !== "ready" || !canWrite}
+                        onClick={() => setEditing(null)}
+                      >
+                        {t("＋ 添加服务器")}
+                      </button>
+                    )}
                   </div>
                 )}
               </section>
@@ -582,6 +598,7 @@ function App({
           )}
           {page === "subscriptions" && (
             <SubscriptionPanel
+              actionTarget={pageActions}
               key={organization.id + organization.role}
               nodes={nodes}
               manage={manageMachines}
@@ -599,6 +616,7 @@ function App({
           )}
           {page === "nodes" && (
             <NodePanel
+              actionTarget={pageActions}
               nodes={nodes}
               ready={state === "ready"}
               loading={state === "loading"}

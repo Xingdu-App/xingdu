@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { RoutingPresetPicker, RoutingEditor } from "./SubscriptionRouting";
 import {
   selectSubscriptionNodes,
@@ -55,11 +56,13 @@ const emptyInput = (): SubscriptionInput => ({
   enabled: true,
 });
 export default function SubscriptionPanel({
+  actionTarget,
   nodes,
   manage,
   refreshKey,
   onNodes,
 }: {
+  actionTarget: HTMLElement | null;
   nodes: ManagedNode[];
   manage: boolean;
   refreshKey: number;
@@ -179,17 +182,18 @@ export default function SubscriptionPanel({
   }
   return (
     <section className="panel node-panel subscription-panel">
-      {manage && (
-        <div className="subscription-toolbar">
+      {manage &&
+        actionTarget &&
+        createPortal(
           <button
             className="primary compact"
             disabled={busy || !loaded}
             onClick={() => edit(null)}
           >
             {t("＋ 创建订阅")}
-          </button>
-        </div>
-      )}
+          </button>,
+          actionTarget,
+        )}
       {error && editor === undefined && (
         <p className="form-error" role="alert">
           {t(error)}

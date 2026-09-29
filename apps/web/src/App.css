@@ -2729,3 +2729,40 @@ html[lang="en"] .subscription-rule {
     color: #506d67;
   }
 }
+
+.page-heading > div:first-child {
+  min-width: 0;
+}
+.page-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+.page-actions:empty {
+  display: none;
+}
+.page-actions > button {
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .page-heading:has(.page-actions > button) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .page-actions > button {
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 760px) {
+  .host-card-heading {
+    flex-wrap: wrap;
+  }
+  .host-card-heading h3 {
+    flex-basis: 100%;
+    overflow-wrap: anywhere;
+  }
+}

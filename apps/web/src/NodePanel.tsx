@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { CardSkeleton } from "./LoadingSkeleton";
 import { localServiceLabel, certificateLabel } from "./runtime-api";
 import { t, useLocale, localeTag } from "./i18n";
@@ -32,6 +33,7 @@ const status = (node: ManagedNode) =>
           : t("待核实");
 
 export default function NodePanel({
+  actionTarget,
   nodes,
   ready,
   loading,
@@ -39,6 +41,7 @@ export default function NodePanel({
   onCreate,
   onOpen,
 }: {
+  actionTarget: HTMLElement | null;
   nodes: ManagedNode[];
   ready: boolean;
   loading: boolean;
@@ -59,6 +62,18 @@ export default function NodePanel({
   );
   return (
     <section className="panel node-panel">
+      {manage &&
+        actionTarget &&
+        createPortal(
+          <button
+            className="primary compact"
+            disabled={!ready}
+            onClick={onCreate}
+          >
+            {t("＋ 新建节点")}
+          </button>,
+          actionTarget,
+        )}
       <div className="node-toolbar">
         <label className="node-search">
           <input
@@ -81,15 +96,6 @@ export default function NodePanel({
             })),
           ]}
         />
-        {manage && (
-          <button
-            className="primary compact"
-            disabled={!ready}
-            onClick={onCreate}
-          >
-            {t("＋ 新建节点")}
-          </button>
-        )}
       </div>
       {loading ? (
         <CardSkeleton />
