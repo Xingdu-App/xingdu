@@ -9,6 +9,7 @@ export type HostInput = {
   notes: string;
 };
 export type Host = HostInput & {
+  country_code?: string;
   id: string;
   status: "pending" | "online" | "offline";
   last_seen_at: string | null;

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"xingdu.app/xingdu/internal/geoip"
 	"xingdu.app/xingdu/internal/hosts"
 )
 
@@ -12,6 +13,9 @@ type scanner interface{ Scan(...any) error }
 func scanHost(row scanner) (Host, error) {
 	var h Host
 	err := row.Scan(&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.Tags, &h.Notes, &h.Status, &h.LastSeenAt, &h.AgentVersion)
+	if err == nil {
+		h.CountryCode = geoip.Country(h.Address)
+	}
 	return h, mapError(err)
 }
 func (s *Store) Hosts(ctx context.Context) ([]Host, error) {

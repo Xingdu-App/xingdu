@@ -22,6 +22,7 @@ type Host struct {
 	Input
 	Status       string     `json:"status"`
 	LastSeenAt   *time.Time `json:"last_seen_at"`
+	CountryCode  string     `json:"country_code,omitempty"`
 	AgentVersion *string    `json:"agent_version"`
 }
 

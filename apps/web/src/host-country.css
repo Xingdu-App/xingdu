@@ -1,0 +1,27 @@
+.host-country {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  color: #536d67;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.host-country-flag {
+  font-family:
+    "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 18px;
+  line-height: 1;
+}
+.host-country.is-unknown {
+  color: #7d8c87;
+}
+.geoip-attribution {
+  margin: 16px 0 0;
+  font-size: 11px;
+  color: #7d8c87;
+}
+.geoip-attribution a {
+  color: inherit;
+  text-underline-offset: 3px;
+}

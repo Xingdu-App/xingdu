@@ -1,3 +1,4 @@
+import HostCountry from "./HostCountry";
 import { TableSkeleton } from "./LoadingSkeleton";
 import RoutePanel from "./RoutePanel";
 import APIDocsPage from "./APIDocsPage";
@@ -390,6 +391,7 @@ function App({
                                 <span className="host-address">
                                   {host.address}
                                 </span>
+                                <HostCountry code={host.country_code} />
                                 <small className="host-note">
                                   {host.ssh_user} · {host.ssh_port}
                                 </small>
@@ -475,6 +477,7 @@ function App({
                             </button>
                           </div>
                           <p className="host-card-address">{host.address}</p>
+                          <HostCountry code={host.country_code} />
                           {host.last_seen_at && (
                             <p className="host-card-ssh">
                               {t("最近心跳：")}
@@ -513,6 +516,16 @@ function App({
                         </article>
                       ))}
                     </div>
+                    <p className="geoip-attribution">
+                      {t("IP 位置仅供参考")} ·{" "}
+                      <a
+                        href="https://db-ip.com"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        IP Geolocation by DB-IP
+                      </a>
+                    </p>
                   </>
                 ) : (
                   <div className="empty-state">

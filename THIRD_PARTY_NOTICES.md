@@ -35,3 +35,16 @@ PERFORMANCE OF THIS SOFTWARE.
 
 This product bundles QR Code Generator, which is available under a
 "MIT" license. For details, see src/third-party/qrcodegen.
+
+## Offline IP country data
+
+IP Geolocation by [DB-IP](https://db-ip.com). The unmodified September 2026
+IP to Country Lite database is bundled in `internal/geoip/country.mmdb`
+and embedded in the server. This data is licensed under
+[Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/),
+not Xingdu's MIT license. Retain attribution and the license link when
+redistributing it. See `internal/geoip/README.md` for provenance and checksums.
+The server performs lookups locally; it does not transmit host IPs to DB-IP.
+
+The MaxMind DB reader is `github.com/oschwald/maxminddb-golang/v2`, licensed
+under ISC. Its license is included in `internal/geoip/READER-LICENSE`.

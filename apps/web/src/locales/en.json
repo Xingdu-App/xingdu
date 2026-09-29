@@ -1010,5 +1010,7 @@
   "未上报": "Not reported",
   "升级 Agent 后自动上报，无需重新部署节点。": "Reported automatically after upgrading the Agent. No node redeployment is needed.",
   "推荐": "Recommended",
-  "选择或更换模板": "Choose or change template"
+  "选择或更换模板": "Choose or change template",
+  "位置未知": "Location unknown",
+  "IP 位置仅供参考": "IP location is approximate"
 }
