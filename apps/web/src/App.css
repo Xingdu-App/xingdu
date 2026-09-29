@@ -2532,3 +2532,12 @@ html[lang="en"] .subscription-rule {
     min-width: 180px;
   }
 }
+
+.subscription-access { margin: 0 0 16px; min-width: 0; }
+.subscription-access label > span { font-size: 12px; color: var(--muted, #6a7c89); }
+.subscription-access input { width: 100%; min-width: 0; box-sizing: border-box; margin-top: 6px; padding: 10px; border: 1px solid #d2e0df; border-radius: 8px; background: #f7faf9; font-size: 12px; }
+.subscription-card .subscription-access .subscription-actions { border: 0; margin-top: 8px; padding-top: 0; }
+.subscription-access a { display: inline-flex; align-items: center; text-decoration: none; }
+.subscription-qr { margin-top: 12px; text-align: center; }
+.subscription-qr svg { max-width: 100%; height: auto; border-radius: 8px; background: white; }
+.subscription-qr p { font-size: 12px; color: #6a7c89; }

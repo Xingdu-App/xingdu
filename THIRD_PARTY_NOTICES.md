@@ -12,3 +12,26 @@ Xingdu's original source code is licensed under [MIT](LICENSE). Protocol deploym
 The selected protocols do not use the optional Naive/Chromium library included in the upstream archives; Xingdu does not copy or distribute that library. Client applications such as Stash, Surge, Loon and Shadowrocket are separate products; their names do not imply endorsement or verified compatibility with every protocol.
 
 When redistributing runtime binaries, retain the upstream notices and meet their source-distribution obligations. This repository does not claim that an upstream download link alone fulfills every redistribution scenario. Release packaging and corresponding-source delivery must be reviewed before publishing distributable binary releases.
+
+## Browser QR code rendering
+
+Subscription QR codes are generated locally with qrcode.react 4.2.0.
+
+ISC License
+
+Copyright (c) 2015, Paul O’Shannessy
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+
+This product bundles QR Code Generator, which is available under a
+"MIT" license. For details, see src/third-party/qrcodegen.

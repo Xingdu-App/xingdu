@@ -75,10 +75,17 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	in := Subscription{ID: NewID("sub"), Name: "Personal", NodeIDs: []string{node}, Rules: []subscription.Rule{{Type: "domain_suffix", Value: "example.com", Target: "direct"}}, FinalAction: "proxy", Enabled: true}
+	in.EncryptedToken = []byte("encrypted-subscription-token")
 	hash := machine.Hash(machine.Token())
 	out, err := s.SaveSubscription(ca, in, hash, true)
 	if err != nil {
 		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		persisted, e := s.Subscriptions(ca)
+		if e != nil || len(persisted) != 1 || string(persisted[0].EncryptedToken) != "encrypted-subscription-token" || persisted[0].TokenHash != hash || persisted[0].LinkState != "available" {
+			t.Fatal("recoverable token not persisted", e)
+		}
 	}
 	if out.ID != in.ID {
 		t.Fatal(out)
@@ -159,6 +166,9 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 	if err != nil || len(meta) != 1 {
 		t.Fatal(meta, err)
 	}
+	if len(meta[0].EncryptedToken) > 0 || meta[0].TokenHash != "" || meta[0].LinkState != "" {
+		t.Fatal("viewer received token material")
+	}
 	serialized, _ := json.Marshal(meta)
 	if strings.Contains(string(serialized), hash) || strings.Contains(string(serialized), "encrypted") {
 		t.Fatal("metadata leaks")
@@ -185,8 +195,12 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 		t.Fatal("content", content, deps, err)
 	}
 	hash2 := machine.Hash(machine.Token())
-	if err = s.RotateSubscription(ca, in.ID, hash2); err != nil {
+	if err = s.RotateSubscription(ca, in.ID, hash2, []byte("rotated-encrypted-token")); err != nil {
 		t.Fatal(err)
+	}
+	persisted, e := s.Subscriptions(ca)
+	if e != nil || len(persisted) != 1 || string(persisted[0].EncryptedToken) != "rotated-encrypted-token" || persisted[0].TokenHash != hash2 {
+		t.Fatal("rotation did not replace recoverable token", e)
 	}
 	if _, _, err = s.SubscriptionContent(ctx, in.ID, hash); !errors.Is(err, ErrNotFound) {
 		t.Fatal("old token", err)

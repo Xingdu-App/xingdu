@@ -15,7 +15,7 @@ import (
 type SubscriptionStore interface {
 	Subscriptions(context.Context) ([]storage.Subscription, error)
 	SaveSubscription(context.Context, storage.Subscription, string, bool) (storage.Subscription, error)
-	RotateSubscription(context.Context, string, string) error
+	RotateSubscription(context.Context, string, string, ...[]byte) error
 	DeleteSubscription(context.Context, string) error
 	SubscriptionContent(context.Context, string, string) (storage.Subscription, []storage.Deployment, error)
 }
@@ -29,6 +29,10 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 		if err != nil {
 			storeError(w, err)
 			return
+		}
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		for i := range out {
+			a.revealSubscriptionLink(storage.TenantOrg(r.Context()), &out[i])
 		}
 		reply(w, 200, map[string]any{"data": out})
 	}))
@@ -45,13 +49,19 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			if !decodeLimit(w, r, &in, 64*1024) {
 				return
 			}
+			in.SubscriptionPath, in.LinkState = "", ""
 			in.ID = r.PathValue("id")
 			token := ""
 			hash := ""
 			if create {
+				if a.vault == nil {
+					failure(w, 503, "credential_key_required", "订阅链接加密不可用")
+					return
+				}
 				in.ID = storage.NewID("sub")
 				token = machine.Token()
 				hash = machine.Hash(token)
+				in.EncryptedToken = a.vault.Seal([]byte(token), subscriptionTokenAAD(storage.TenantOrg(r.Context()), in.ID))
 			}
 			out, err := a.store.SaveSubscription(r.Context(), in, hash, create)
 			if err != nil {
@@ -71,8 +81,13 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 		if !validID(w, r) {
 			return
 		}
+		if a.vault == nil {
+			failure(w, 503, "credential_key_required", "订阅链接加密不可用")
+			return
+		}
 		token := machine.Token()
-		if err := a.store.RotateSubscription(r.Context(), r.PathValue("id"), machine.Hash(token)); err != nil {
+		encrypted := a.vault.Seal([]byte(token), subscriptionTokenAAD(storage.TenantOrg(r.Context()), r.PathValue("id")))
+		if err := a.store.RotateSubscription(r.Context(), r.PathValue("id"), machine.Hash(token), encrypted); err != nil {
 			storeError(w, err)
 			return
 		}
@@ -165,4 +180,28 @@ func remoteIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return ip
+}
+
+func subscriptionTokenAAD(org, id string) string {
+	return "xingdu-subscription-token-v1:" + org + ":" + id
+}
+func (a *api) revealSubscriptionLink(org string, sub *storage.Subscription) {
+	if len(sub.EncryptedToken) == 0 {
+		return
+	}
+	defer func() { sub.EncryptedToken = nil; sub.TokenHash = "" }()
+	sub.LinkState = "unavailable"
+	if a.vault == nil {
+		return
+	}
+	token, err := a.vault.Open(sub.EncryptedToken, subscriptionTokenAAD(org, sub.ID))
+	if err != nil {
+		return
+	}
+	defer clear(token)
+	if !machine.ValidToken(string(token)) || machine.Hash(string(token)) != sub.TokenHash {
+		return
+	}
+	sub.SubscriptionPath = subscriptionPath(sub.ID, string(token))
+	sub.LinkState = "available"
 }

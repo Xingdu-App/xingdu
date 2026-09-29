@@ -422,6 +422,8 @@ export type SubscriptionInput = {
   enabled: boolean;
 };
 export type Subscription = SubscriptionInput & {
+  subscription_path?: string;
+  link_state?: "available" | "legacy" | "unavailable";
   id: string;
   created_at: string;
   updated_at: string;

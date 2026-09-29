@@ -13,15 +13,19 @@ import (
 )
 
 type Subscription struct {
-	Format      string              `json:"format"`
-	ID          string              `json:"id"`
-	Name        string              `json:"name"`
-	NodeIDs     []string            `json:"node_ids"`
-	Rules       []subscription.Rule `json:"rules"`
-	FinalAction string              `json:"final_action"`
-	Enabled     bool                `json:"enabled"`
-	CreatedAt   time.Time           `json:"created_at"`
-	UpdatedAt   time.Time           `json:"updated_at"`
+	EncryptedToken   []byte              `json:"-"`
+	TokenHash        string              `json:"-"`
+	SubscriptionPath string              `json:"subscription_path,omitempty"`
+	LinkState        string              `json:"link_state,omitempty"`
+	Format           string              `json:"format"`
+	ID               string              `json:"id"`
+	Name             string              `json:"name"`
+	NodeIDs          []string            `json:"node_ids"`
+	Rules            []subscription.Rule `json:"rules"`
+	FinalAction      string              `json:"final_action"`
+	Enabled          bool                `json:"enabled"`
+	CreatedAt        time.Time           `json:"created_at"`
+	UpdatedAt        time.Time           `json:"updated_at"`
 }
 
 func (s Subscription) Validate() error {
@@ -58,7 +62,7 @@ func scanSubscription(row pgx.Row, out *Subscription) error {
 }
 func (s *Store) Subscriptions(ctx context.Context) ([]Subscription, error) {
 	out := []Subscription{}
-	tx, _, err := s.tenantTx(ctx, false, false)
+	tx, role, err := s.tenantTx(ctx, false, false)
 	if err != nil {
 		return out, err
 	}
@@ -79,6 +83,24 @@ func (s *Store) Subscriptions(ctx context.Context) ([]Subscription, error) {
 	rows.Close()
 	if err != nil {
 		return out, err
+	}
+	// Ordinary members and API-key metadata reads never receive bearer links.
+	_, apiKey := ctx.Value(apiKeyContext{}).(string)
+	if (role == "owner" || role == "admin") && !apiKey {
+		for i := range out {
+			if err = tx.QueryRow(ctx, "SELECT encrypted_token,token_hash FROM subscriptions WHERE id=$1", out[i].ID).Scan(&out[i].EncryptedToken, &out[i].TokenHash); err != nil {
+				return nil, err
+			}
+			out[i].LinkState = "legacy"
+			if len(out[i].EncryptedToken) > 0 {
+				out[i].LinkState = "available"
+			}
+		}
+		if len(out) > 0 {
+			if err = subscriptionAudit(ctx, tx, out[0].ID, "subscription_links_viewed"); err != nil {
+				return nil, err
+			}
+		}
 	}
 	return out, tx.Commit(ctx)
 }
@@ -145,7 +167,7 @@ func (s *Store) SaveSubscription(ctx context.Context, in Subscription, hash stri
 	event := "subscription_updated"
 	if create {
 		event = "subscription_created"
-		_, err = tx.Exec(ctx, `INSERT INTO subscriptions(id,organization_id,name,rules,final_action,enabled,token_hash,format) VALUES($1,request_org_id(),$2,$3,$4,$5,$6,$7)`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, hash, in.Format)
+		_, err = tx.Exec(ctx, `INSERT INTO subscriptions(id,organization_id,name,rules,final_action,enabled,token_hash,format,encrypted_token) VALUES($1,request_org_id(),$2,$3,$4,$5,$6,$7,$8)`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, hash, in.Format, in.EncryptedToken)
 	} else {
 		var found string
 		err = tx.QueryRow(ctx, `UPDATE subscriptions SET name=$2,rules=$3,final_action=$4,enabled=$5,format=$6,updated_at=now() WHERE id=$1 RETURNING id::text`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, in.Format).Scan(&found)
@@ -169,13 +191,17 @@ func (s *Store) SaveSubscription(ctx context.Context, in Subscription, hash stri
 	}
 	return in, tx.Commit(ctx)
 }
-func (s *Store) RotateSubscription(ctx context.Context, id, hash string) error {
+func (s *Store) RotateSubscription(ctx context.Context, id, hash string, encrypted ...[]byte) error {
 	tx, _, err := s.tenantTx(ctx, true, true)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	tag, err := tx.Exec(ctx, "UPDATE subscriptions SET token_hash=$2,updated_at=now() WHERE id=$1", id, hash)
+	var ciphertext []byte
+	if len(encrypted) > 0 {
+		ciphertext = encrypted[0]
+	}
+	tag, err := tx.Exec(ctx, "UPDATE subscriptions SET token_hash=$2,encrypted_token=$3,updated_at=now() WHERE id=$1", id, hash, ciphertext)
 	if err != nil {
 		return mapError(err)
 	}

@@ -1,3 +1,4 @@
+import SubscriptionAccess from "./SubscriptionAccess";
 import { t, useLocale, localeTag } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
@@ -26,7 +27,8 @@ const formatLabels: Record<string, string> = {
   hysteria2_uri: "Hysteria 2 · 分享链接",
 };
 function supportsFormat(format: string, protocol: string) {
-  if (["anytls", "http"].includes(protocol)) return ["stash", "mihomo"].includes(format);
+  if (["anytls", "http"].includes(protocol))
+    return ["stash", "mihomo"].includes(format);
   if (isShadowsocks(protocol))
     return ["stash", "mihomo", "surge"].includes(format);
   if (format === "surge") return protocol !== "vless";
@@ -108,7 +110,6 @@ export default function SubscriptionPanel({
     row: Subscription;
     action: "delete" | "rotate";
   } | null>(null);
-  const [link, setLink] = useState<{ name: string; url: string } | null>(null);
   const lifecycle = useRef<AbortController | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const available = nodes.filter(
@@ -134,7 +135,6 @@ export default function SubscriptionPanel({
       .catch((e: unknown) => {
         if (!controller.signal.aborted) {
           setLoaded(false);
-          setLink(null);
           setError(errorMessage(e));
         }
       });
@@ -180,19 +180,14 @@ export default function SubscriptionPanel({
     void act(async (signal) => {
       if (editor) await updateSubscription(editor.id, input, signal);
       else {
-        const result = await createSubscription(input, signal);
-        if (!signal.aborted)
-          setLink({
-            name: result.subscription.name,
-            url: new URL(result.subscription_path, window.location.origin).href,
-          });
+        await createSubscription(input, signal);
       }
       if (!signal.aborted) {
         setEditor(undefined);
         setNotice(
           editor
             ? t("订阅已更新，原链接会输出最新配置。")
-            : t("订阅已创建，请复制并妥善保存链接。"),
+            : t("订阅已创建，可随时查看和复制链接。"),
         );
       }
     });
@@ -227,47 +222,6 @@ export default function SubscriptionPanel({
         <p className="notice" role="status">
           {t(notice)}
         </p>
-      )}
-      {link && (
-        <div className="subscription-link">
-          <div className="deployment-row-heading">
-            <strong>
-              {link.name}
-              {t("· 订阅链接")}
-            </strong>
-            <button className="secondary compact" onClick={() => setLink(null)}>
-              {t("隐藏链接")}
-            </button>
-          </div>
-          <p>
-            {t(
-              "持有链接的人可以获取节点凭据。链接仅在创建或重置后显示，请妥善保存。",
-            )}
-          </p>
-          <label htmlFor="subscription-url">{t("私密订阅链接")}</label>
-          <input
-            id="subscription-url"
-            type="password"
-            readOnly
-            autoComplete="off"
-            value={link.url}
-            onFocus={(e) => e.target.select()}
-          />
-          <button
-            className="primary compact"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(link.url);
-                if (!lifecycle.current?.signal.aborted)
-                  setNotice(t("订阅链接已复制。"));
-              } catch {
-                setError(t("无法访问剪贴板，请选中链接手动复制。"));
-              }
-            }}
-          >
-            {t("复制订阅链接")}
-          </button>
-        </div>
       )}
       {!loaded ? (
         <div className="deployment-empty">
@@ -319,6 +273,24 @@ export default function SubscriptionPanel({
                 {t("更新于")}
                 {new Date(row.updated_at).toLocaleString(localeTag())}
               </p>
+              {manage &&
+                (row.subscription_path ? (
+                  <SubscriptionAccess
+                    key={row.subscription_path + row.format}
+                    path={row.subscription_path}
+                    name={row.name}
+                    format={row.format}
+                    enabled={row.enabled}
+                  />
+                ) : (
+                  <p className="form-hint">
+                    {row.link_state === "legacy"
+                      ? t(
+                          "旧订阅未保存可恢复链接。请重置一次链接，之后可随时查看；重置会使旧链接失效。",
+                        )
+                      : t("订阅链接暂时不可读取，请检查控制端加密配置。")}
+                  </p>
+                ))}
               {manage && (
                 <div className="subscription-actions">
                   <button
@@ -335,11 +307,17 @@ export default function SubscriptionPanel({
                       void act(async (signal) => {
                         await updateSubscription(
                           row.id,
-                          { ...row, enabled: !row.enabled },
+                          {
+                            name: row.name,
+                            format: row.format,
+                            node_ids: row.node_ids,
+                            rules: row.rules,
+                            final_action: row.final_action,
+                            enabled: !row.enabled,
+                          },
                           signal,
                         );
                         if (!signal.aborted) {
-                          setLink(null);
                           setNotice(
                             row.enabled
                               ? t("订阅已停用，链接不再输出配置。")
@@ -382,22 +360,11 @@ export default function SubscriptionPanel({
                         if (confirmation.action === "delete") {
                           await deleteSubscription(row.id, signal);
                           if (!signal.aborted) {
-                            setLink(null);
                             setNotice(t("订阅已删除。"));
                           }
                         } else {
-                          const result = await rotateSubscription(
-                            row.id,
-                            signal,
-                          );
+                          await rotateSubscription(row.id, signal);
                           if (!signal.aborted) {
-                            setLink({
-                              name: row.name,
-                              url: new URL(
-                                result.subscription_path,
-                                window.location.origin,
-                              ).href,
-                            });
                             setNotice(t("新链接已生成，旧链接已失效。"));
                           }
                         }

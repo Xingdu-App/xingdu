@@ -841,5 +841,18 @@
   "升级服务尚未连接。旧版 Agent 需先通过 SSH 升级一次；已有升级服务时请检查其运行状态。": "The updater is not connected. Older Agents need one SSH upgrade first; if already installed, check the updater service.",
   "使用 SSH 升级": "Upgrade via SSH",
   "Agent 自更新失败，请检查升级服务或使用 SSH 重试。": "Agent self-update failed. Check the updater service or retry via SSH.",
-  "新版本已启动，正在等待心跳确认。": "The new version has started. Waiting for heartbeat confirmation."
+  "新版本已启动，正在等待心跳确认。": "The new version has started. Waiting for heartbeat confirmation.",
+  "订阅地址": "Subscription URL",
+  "复制受限，请选中上方地址手动复制。": "Copy is restricted. Select the URL above and copy it manually.",
+  "收起二维码": "Hide QR code",
+  "二维码": "QR code",
+  "导入 {0}": "Import to {0}",
+  "已尝试打开客户端；若没有响应，请先安装客户端，或复制地址手动添加。": "Opening the client. If nothing happens, install it first or copy the URL to add it manually.",
+  "订阅已停用，此地址暂时无法获取配置。": "This subscription is disabled. Its URL cannot fetch a configuration.",
+  "{0} 的订阅二维码": "Subscription QR code for {0}",
+  "请使用客户端扫描订阅二维码，或复制地址手动添加。": "Scan this QR code with your client, or copy the URL to add it manually.",
+  "旧订阅未保存可恢复链接。请重置一次链接，之后可随时查看；重置会使旧链接失效。": "This older subscription has no recoverable URL. Reset it once to make it available here. Resetting invalidates the previous URL.",
+  "订阅链接暂时不可读取，请检查控制端加密配置。": "The subscription URL is unavailable. Check the control plane encryption configuration.",
+  "订阅已创建，可随时查看和复制链接。": "Subscription created. You can view and copy its URL at any time.",
+  "订阅链接加密不可用": "Subscription link encryption is unavailable."
 }
