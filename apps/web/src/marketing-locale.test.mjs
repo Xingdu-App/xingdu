@@ -14,6 +14,7 @@ test("public-page copy, blog bodies and metadata have complete English translati
   const missing = [];
   for (const name of [
     "Marketing.tsx",
+    "DiscoveryPages.tsx",
     "Blog.tsx",
     "blog-posts.ts",
     "public-pages.ts",

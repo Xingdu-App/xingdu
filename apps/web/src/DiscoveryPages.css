@@ -1,0 +1,58 @@
+.discovery-page {
+  padding-top: 42px;
+  padding-bottom: 80px;
+}
+.discovery-page > .site-document {
+  max-width: 900px;
+  margin: 0 auto;
+}
+.discovery-page .site-document section {
+  margin-bottom: 44px;
+}
+.discovery-page h3 {
+  margin-top: 28px;
+}
+.discovery-page li {
+  margin: 12px 0;
+  line-height: 1.8;
+}
+.discovery-page > .document-note {
+  margin-top: 40px;
+}
+.discovery-table {
+  overflow-x: auto;
+  margin: 24px 0;
+  border: 1px solid #d8e2de;
+  border-radius: 12px;
+}
+.discovery-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 690px;
+  font-size: 14px;
+}
+.discovery-table th,
+.discovery-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #d8e2de;
+}
+.discovery-table thead {
+  background: #f1f5f3;
+}
+.discovery-table caption {
+  caption-side: bottom;
+  text-align: left;
+  padding: 16px;
+  line-height: 1.7;
+  color: #52645e;
+}
+.discovery-page .api-docs {
+  margin-top: 32px;
+}
+.discovery-page .api-docs .panel {
+  background: #fff;
+  color: #243b33;
+  border: 1px solid #d8e2de;
+  border-radius: 12px;
+}

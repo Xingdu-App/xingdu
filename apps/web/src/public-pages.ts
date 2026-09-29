@@ -1,6 +1,9 @@
 import { blogPosts, blogPath } from "./blog-posts";
 
 export type PublicPage =
+  | "personal-vps"
+  | "protocols"
+  | "api-docs"
   | "home"
   | "pricing"
   | "privacy"
@@ -19,6 +22,24 @@ export const publicPages: Record<
     updated?: string;
   }
 > = {
+  "personal-vps": {
+    path: "/personal-vps",
+    title: "个人 VPS 管理：服务器、节点与订阅一处管理 · 星渡 Xingdu",
+    description:
+      "一台 VPS 也可以使用星渡。了解服务器登记、Agent 接入、协议部署和订阅管理的个人使用流程、前提与费用边界。",
+  },
+  protocols: {
+    path: "/protocols",
+    title: "协议与客户端兼容表：Stash、Mihomo、Surge、Loon · 星渡 Xingdu",
+    description:
+      "查看星渡的服务端协议、最低 Agent 版本、客户端订阅格式、TLS 信任要求与验证范围，区分版本能力和开发中的扩展。",
+  },
+  "api-docs": {
+    path: "/docs/api",
+    title: "公开 API 文档：VPS 与节点管理自动化 · 星渡 Xingdu",
+    description:
+      "无需登录查看星渡 REST API 文档：API Key 权限、服务器与节点接口、Python 示例、部署任务状态和错误处理。",
+  },
   blog: {
     path: "/blog",
     title: "服务器管理博客：VPS、Agent 与客户端订阅指南 · 星渡 Xingdu",

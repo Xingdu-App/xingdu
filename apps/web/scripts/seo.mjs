@@ -29,6 +29,7 @@ export function seoHead(meta, origin, post) {
     name: "星渡 Xingdu",
     url: origin + "/",
     logo: image,
+    sameAs: ["https://github.com/Xingdu-App/xingdu"],
     email: "info@xingdu.app",
   };
   const website = {
@@ -122,4 +123,16 @@ export function sitemap(pages, origin) {
 }
 export function rss(posts, origin) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>星渡博客</title><link>${escapeXML(origin)}/blog</link><description>个人 VPS 管理、Agent 接入与客户端配置指南</description><language>zh-CN</language><atom:link href="${escapeXML(origin)}/blog/feed.xml" rel="self" type="application/rss+xml"/>${posts.map((post) => `<item><title>${escapeXML(post.title)}</title><link>${escapeXML(origin)}/blog/${post.slug}</link><guid isPermaLink="true">${escapeXML(origin)}/blog/${post.slug}</guid><description>${escapeXML(post.description)}</description><category>${escapeXML(post.category)}</category></item>`).join("")}</channel></rss>\n`;
+}
+
+// Specific bot groups must retain the same private-path exclusions as *.
+export function robots(origin) {
+  return (
+    ["*", "OAI-SearchBot"]
+      .map(
+        (agent) =>
+          `User-agent: ${agent}\nAllow: /\nDisallow: /app\nDisallow: /login\nDisallow: /api/\n`,
+      )
+      .join("\n") + `\nSitemap: ${origin}/sitemap.xml\n`
+  );
 }

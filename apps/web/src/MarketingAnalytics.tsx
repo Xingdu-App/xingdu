@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { MarketingLocale } from "./marketing-locale";
 import { publicPages } from "./public-pages";
 import {
+  analyticsAISource,
   analyticsID,
   analyticsPage,
   analyticsReferrer,
@@ -50,7 +51,8 @@ function start() {
         ) as keyof typeof publicPages
       ].title,
   });
-  send("event", "page_view");
+  const aiSource = analyticsAISource(window.location.href, document.referrer);
+  send("event", "page_view", aiSource ? { ai_source: aiSource } : {});
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
@@ -61,7 +63,11 @@ function start() {
       event.target instanceof Element ? event.target.closest("a") : null;
     const target =
       anchor && analyticsTarget(anchor.href, window.location.origin);
-    if (target) send("event", "marketing_cta_click", { destination: target });
+    if (target)
+      send("event", "marketing_cta_click", {
+        destination: target,
+        ...(aiSource ? { ai_source: aiSource } : {}),
+      });
   });
 }
 export default function MarketingAnalytics() {

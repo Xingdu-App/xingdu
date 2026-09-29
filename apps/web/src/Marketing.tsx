@@ -1,3 +1,4 @@
+import DiscoveryPages from "./DiscoveryPages";
 import MarketingAnalytics from "./MarketingAnalytics";
 import { paidPlans, enterpriseContact } from "./plans";
 import { useContext, useEffect } from "react";
@@ -672,7 +673,7 @@ function Privacy() {
           </p>
           <p>
             {t(
-              "官网配置 Google Analytics 后，仅在你同意后加载访问统计并使用 Cookie，记录公开页面访问及控制台、价格、GitHub 入口点击。不会在控制台或带查询参数、片段的页面加载统计，也不主动上报账号、组织、服务器或订阅信息。Google 会接收统计请求及其网络信息；你可在页脚更改偏好并停止后续统计。Web 服务器或部署平台仍可能记录访问日志。",
+              "官网配置 Google Analytics 后，仅在你同意后加载访问统计并使用 Cookie，记录公开页面访问及控制台、价格、GitHub 入口点击。不会在控制台或带未知查询参数、片段的页面加载统计。公开页面仅允许已知 AI 来源的 utm_source 标记，查询参数在上报前移除，只记录固定的来源名称，也不主动上报账号、组织、服务器或订阅信息。Google 会接收统计请求及其网络信息；你可在页脚更改偏好并停止后续统计。Web 服务器或部署平台仍可能记录访问日志。",
             )}
           </p>
           <p>
@@ -1110,7 +1111,11 @@ function MarketingContent({ page }: { page: PublicPage }) {
         </div>
       </header>
       <main id="site-content" className="site-main">
-        {page === "blog" || page.startsWith("blog/") ? (
+        {page === "personal-vps" ||
+        page === "protocols" ||
+        page === "api-docs" ? (
+          <DiscoveryPages page={page} />
+        ) : page === "blog" || page.startsWith("blog/") ? (
           <Blog slug={page === "blog" ? undefined : page.slice(5)} />
         ) : page === "home" ? (
           <Home />
@@ -1142,6 +1147,9 @@ function MarketingContent({ page }: { page: PublicPage }) {
               </div>
               <div>
                 <strong>{t("了解更多")}</strong>
+                <a href="/personal-vps">{t("个人 VPS 管理")}</a>
+                <a href="/protocols">{t("协议兼容")}</a>
+                <a href="/docs/api">API {t("文档")}</a>
                 <a href="/blog">{t("博客与指南")}</a>
                 <a href="/help">{t("帮助中心")}</a>
                 <a href="mailto:info@xingdu.app">{t("联系我们")}</a>

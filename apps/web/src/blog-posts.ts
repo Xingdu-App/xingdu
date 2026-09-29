@@ -15,6 +15,202 @@ export type BlogPost = {
 };
 export const blogPosts: BlogPost[] = [
   {
+    slug: "first-vps-checklist",
+    title: "第一台 VPS 接入星渡：从登记服务器到客户端验证",
+    description:
+      "按顺序完成服务器登记、Agent 接入、节点部署和订阅导入。每一步给出完成条件与失败时的排查方向，适合个人 VPS 管理。",
+    category: "操作清单",
+    updated: "2026-09-29",
+    sections: [
+      {
+        id: "prepare",
+        title: "开始前：保留独立登录与恢复方式",
+        paragraphs: [
+          "准备一台你有权管理的 Linux VPS，确认架构为 amd64 或 arm64、系统使用 systemd，并保留云厂商控制台或已有 SSH 登录方式。先选择非关键机器；不要把是否能进入星渡作为唯一的服务器恢复手段。",
+          "登录星渡后创建自己的工作空间，无需邀请其他成员。在服务器页面登记名称、地址、SSH 端口与用户，使用标签区分测试和日常用途。不要把密码放入名称、标签或备注。",
+        ],
+        checklist: [
+          "完成条件：能在服务器列表中找到记录，名称和地址正确。",
+          "此时还没有 Agent 心跳，不能把台账记录视为机器已经接入。",
+        ],
+      },
+      {
+        id: "agent",
+        title: "接入 Agent：先确定要授予的权限",
+        paragraphs: [
+          "只查看机器状态时选择探针模式；计划通过星渡安装节点时选择托管模式，并阅读授权范围。可以复制控制台提供的当前安装指引到机器执行，也可以使用 SSH 安装入口。不要从非官方文章复制旧版本令牌或安装命令。",
+          "使用 SSH 安装前，通过云控制台或原有可信连接确认主机指纹，再填入凭据。接入令牌和机器身份用于不同阶段；安装完成后，应观察连续心跳和实际 Agent 版本。",
+        ],
+        checklist: [
+          "完成条件：服务器显示在线，并持续上报心跳。",
+          "如果未上线，先检查机器到控制端的 HTTPS 连通性、系统时间和安装日志；不要重复创建未知状态的安装任务。",
+        ],
+      },
+      {
+        id: "node",
+        title: "部署节点：按协议准备证书和端口",
+        paragraphs: [
+          "打开节点创建入口，选择服务器、协议和未占用的监听端口。Shadowsocks 系列不要求 TLS 证书；TLS 协议应提供覆盖所填域名、仍在有效期内的证书与匹配私钥。最低 Agent 版本可在协议兼容页核对。",
+          "先检查配置，再确认安装。星渡不会代替你开放云安全组或机器防火墙。任务排队时等待 Agent 回报；若安装中断，先核对远端服务状态，避免把重复安装当作通用重试。",
+        ],
+        checklist: [
+          "完成条件：部署任务成功，节点服务状态正常。",
+          "任务完成不证明公网线路可用；TCP 和 UDP 放行规则应分别检查。",
+        ],
+      },
+      {
+        id: "client",
+        title: "导入订阅：用真实流量完成最后一步",
+        paragraphs: [
+          "在订阅页面选择客户端格式和已部署节点，保存后把订阅导入对应客户端。先确认节点类型、地址、端口和证书设置，再测试自己有权访问的目标。不同客户端的同名协议可能要求不同字段或版本。",
+          "记录客户端名称与版本、使用的网络、测试时间，以及 TCP 和所需 UDP 功能的结果。控制台在线、服务启动与客户端转发应分别记录。准备停止使用时，先卸载节点并确认完成，再撤销机器接入。",
+        ],
+        checklist: [
+          "完成条件：客户端能够导入配置，并且实际访问符合预期。",
+          "订阅链接和节点凭据都应按密码保管；分享截图前隐藏链接、地址与认证信息。",
+        ],
+      },
+    ],
+    related: ["agent-or-ssh", "client-subscription-guide"],
+    references: [
+      {
+        title: "个人 VPS 管理场景",
+        href: "/personal-vps",
+      },
+      {
+        title: "协议与客户端兼容范围",
+        href: "/protocols",
+      },
+      {
+        title: "机器接入与升级说明",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/MACHINE-ACCESS.md",
+      },
+    ],
+  },
+  {
+    slug: "hysteria2-deployment-checklist",
+    title: "Hysteria 2 部署清单：证书、UDP 端口与客户端排查",
+    description:
+      "通过星渡部署 Hysteria 2 前需要准备什么？按证书、UDP 放行、Agent 任务和客户端配置逐层检查，避免关闭证书验证来掩盖配置问题。",
+    category: "协议部署",
+    updated: "2026-09-29",
+    sections: [
+      {
+        id: "requirements",
+        title: "确认 Hysteria 2 与网络条件匹配",
+        paragraphs: [
+          "Hysteria 2 使用 QUIC，服务端需要可达的 UDP 监听端口。开放同号码的 TCP 端口不能替代 UDP 放行。先确认 VPS 服务商和客户端所在网络允许所需 UDP 通信，再决定是否选择此协议。",
+          "星渡的托管部署要求支持该协议的 Agent。本文介绍星渡管理流程，不要求另行执行上游一键安装脚本；在同一端口安装第二套服务会造成冲突。",
+        ],
+      },
+      {
+        id: "certificate",
+        title: "准备域名和有效的 TLS 证书",
+        paragraphs: [
+          "在创建节点时填写客户端应校验的 TLS 域名，并上传与该域名匹配的有效证书链和私钥。客户端可连接服务器 IP，同时通过 SNI 与证书校验确认身份；域名、连接地址和证书应分别核对。",
+          "证书过期、域名不匹配或缺少必要的中间证书，都应修正配置本身。不要把跳过证书验证作为默认解决办法。订阅格式的信任方式不同，例如 Loon 导出要求系统信任的完整证书链。",
+        ],
+      },
+      {
+        id: "install",
+        title: "安装并检查服务端",
+        paragraphs: [
+          "选择未占用的端口，运行配置预检，再确认安装。随后分别在云安全组和机器防火墙放行对应 UDP 端口，限制无关端口的暴露。预检不会替你修改这些规则。",
+          "如果任务失败，先看 Agent 版本、执行结果和端口占用。若任务成功但无法连接，检查域名解析、客户端地址、UDP 放行和服务状态；此时反复重装 Agent 通常不能解决网络规则问题。",
+        ],
+        checklist: [
+          "控制端：托管 Agent 在线且版本满足要求。",
+          "服务端：安装成功，监听端口没有与其他服务冲突。",
+          "网络：对应 UDP 端口在两层防火墙都允许访问。",
+        ],
+      },
+      {
+        id: "verify",
+        title: "验证订阅与实际访问",
+        paragraphs: [
+          "选择支持 Hysteria 2 的订阅格式。Stash 与 Mihomo 的认证字段不同，应使用星渡对应的导出器，不要仅修改 YAML 中的客户端名字。分享链接不包含完整分流规则，需要在客户端另行配置。",
+          "先验证普通 HTTPS 访问，再按自己的需求验证 UDP 应用。QUIC 握手成功、TCP 请求通过和 UDP 应用可用是不同证据。若只有某个网络失败，可在另一条有权使用的网络重复同一配置，帮助区分节点问题与网络限制。",
+        ],
+        checklist: [
+          "记录客户端版本、测试时间与网络环境，不发布完整订阅链接。",
+          "更换证书或轮换凭据后更新客户端订阅，并重新测试。",
+        ],
+      },
+    ],
+    related: ["first-vps-checklist", "client-subscription-guide"],
+    references: [
+      {
+        title: "星渡协议兼容表",
+        href: "/protocols",
+      },
+      {
+        title: "Hysteria 2 官方服务端指南",
+        href: "https://v2.hysteria.network/docs/getting-started/Server/",
+      },
+      {
+        title: "星渡协议部署与验证边界",
+        href: "https://github.com/Xingdu-App/xingdu/blob/main/docs/PROTOCOL-DEPLOYMENT.md",
+      },
+    ],
+  },
+  {
+    slug: "api-inventory-automation",
+    title: "用星渡 API 整理 VPS 和节点：从只读脚本开始",
+    description:
+      "用最小权限 API Key 读取当前组织的服务器与节点，再逐步接入部署任务。包含密钥保存、请求状态、超时重试和自动化边界。",
+    category: "API 自动化",
+    updated: "2026-09-29",
+    sections: [
+      {
+        id: "scope",
+        title: "先创建只读 API Key",
+        paragraphs: [
+          "在控制台的 API 密钥页面，由组织所有者或管理员创建密钥。首次自动化只授予 hosts:read 与 nodes:read，用于读取服务器和节点清单；不需要一开始就授予安装、删除或读取节点凭据的权限。",
+          "密钥绑定组织范围。切换组织时应重新核对使用的密钥与预期资源，不要根据服务器名称猜测所属组织。需要机器注册时使用独立的 Agent 接入流程，不能把浏览器 API Key 当作机器身份。",
+        ],
+      },
+      {
+        id: "run",
+        title: "运行公开文档里的 Python 示例",
+        paragraphs: [
+          "打开公开 API 文档，复制使用 Python 标准库的只读示例。云端接口前缀为 https://xingdu.app/api/v1；自托管替换为自己的 HTTPS 控制端地址。示例使用隐藏输入读取密钥，不把密钥写进脚本或终端参数。",
+          "先请求 GET /hosts，再请求 GET /nodes，检查 data 中的 ID 和名称是否对应自己的工作空间。脚本不要为了调试而完整打印请求头、连接凭据或订阅内容。计划导出清单时，也应限制生成文件的权限和保留时间。",
+        ],
+      },
+      {
+        id: "tasks",
+        title: "再把部署接入自动化",
+        paragraphs: [
+          "需要自动安装时，再创建或调整具有 nodes:write 权限的密钥。提交 POST /hosts/{srv_id}/deployments，HTTP 202 只表示任务已排队，之后轮询部署列表中的 state；只有 Agent 回报结果才能判断任务是否完成。",
+          "网络超时可能发生在服务端已经接受请求之后。先读取任务列表核对状态，再决定是否重试，避免重复安装。401 应检查密钥，403 检查角色与范围，409 检查当前资源或 Agent 状态，429 应退避重试。",
+        ],
+      },
+      {
+        id: "operate",
+        title: "让脚本可以停用和审计",
+        paragraphs: [
+          "为不同用途使用独立密钥，并保留不含秘密的操作记录，例如时间、资源 ID、动作与结果。脚本需要停止时撤销对应 API Key；这不会自动卸载已经运行的节点，也不会撤回客户端已经下载的连接凭据。",
+          "本文提供的是接口使用步骤，不代表某个第三方自动化平台已经集成星渡。先在一台非关键服务器验证读取、安装、状态查询与卸载，再扩大自动化范围。",
+        ],
+      },
+    ],
+    related: ["first-vps-checklist", "agent-or-ssh"],
+    references: [
+      {
+        title: "公开 API 文档与 Python 示例",
+        href: "/docs/api",
+      },
+      {
+        title: "安全设计与权限边界",
+        href: "/security",
+      },
+      {
+        title: "协议版本要求",
+        href: "/protocols",
+      },
+    ],
+  },
+  {
     slug: "manage-multiple-vps",
     title: "多台 VPS 怎么管理？从服务器台账到节点部署的完整流程",
     description:

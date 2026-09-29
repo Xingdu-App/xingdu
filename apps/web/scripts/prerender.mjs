@@ -4,6 +4,7 @@ import {
   seoHead,
   sitemap,
   rss,
+  robots,
 } from "./seo.mjs";
 import { build } from "vite";
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
@@ -65,10 +66,7 @@ await writeFile(
     '<meta name="robots" content="noindex,nofollow" /></head>',
   ),
 );
-await writeFile(
-  "dist/robots.txt",
-  `User-agent: *\nAllow: /\nDisallow: /app\nDisallow: /login\nDisallow: /api/\nSitemap: ${origin}/sitemap.xml\n`,
-);
+await writeFile("dist/robots.txt", robots(origin));
 await writeFile("dist/sitemap.xml", sitemap(publicPages, origin));
 await writeFile("dist/blog/feed.xml", rss(blogPosts, origin));
 await rm(generated, { recursive: true, force: true });

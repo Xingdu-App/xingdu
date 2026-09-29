@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  analyticsAISource,
   analyticsID,
   analyticsPage,
   analyticsReferrer,
@@ -40,6 +41,40 @@ test("only measurement IDs, referrer origins and fixed CTA labels are accepted",
   );
   assert.equal(
     analyticsTarget("https://other.example/app", "https://example.com"),
+    null,
+  );
+});
+
+test("AI source tags are allowlisted and removed from page URLs", () => {
+  const href = "https://example.com/docs/api?utm_source=chatgpt.com";
+  assert.equal(
+    analyticsPage(href, ["/docs/api"]),
+    "https://example.com/docs/api",
+  );
+  assert.equal(analyticsAISource(href, ""), "chatgpt.com");
+  assert.equal(
+    analyticsAISource(
+      "https://example.com/",
+      "https://www.perplexity.ai/search/private?token=secret",
+    ),
+    "perplexity.ai",
+  );
+  assert.equal(
+    analyticsAISource("https://example.com/", "https://chatgpt.com.evil.test/"),
+    undefined,
+  );
+  for (const suffix of [
+    "&token=secret",
+    "&utm_source=secret",
+    "#invite=secret",
+  ]) {
+    assert.equal(analyticsPage(href + suffix, ["/docs/api"]), null);
+    assert.equal(analyticsAISource(href + suffix, ""), undefined);
+  }
+  assert.equal(
+    analyticsPage("https://example.com/app?utm_source=chatgpt.com", [
+      "/docs/api",
+    ]),
     null,
   );
 });

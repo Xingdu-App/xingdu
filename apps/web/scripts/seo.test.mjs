@@ -107,3 +107,23 @@ test("RSS contains article URLs; console and not-found shells stay noindex", asy
     (await read("robots.txt")).includes(`Sitemap: ${origin}/sitemap.xml`),
   );
 });
+
+test("discovery pages expose full public content and protect private routes from search bots", async () => {
+  const api = await read("docs/api/index.html");
+  assert.match(api, /Authorization/);
+  assert.match(api, /getpass/);
+  assert.match(api, /hosts:read/);
+  assert.doesNotMatch(api, /Sign in to your Xingdu console/);
+  const matrix = await read("protocols/index.html");
+  assert.match(matrix, /<table>/);
+  assert.match(matrix, /开发中的扩展协议/);
+  assert.match(matrix, /不表示所有客户端版本已完成联网验收/);
+  assert.match(await read("personal-vps/index.html"), /只有一台 VPS 可以用吗/);
+  for (const group of (await read("robots.txt"))
+    .split(/\n\n/)
+    .filter((x) => x.startsWith("User-agent:"))) {
+    for (const path of ["/app", "/login", "/api/"])
+      assert.ok(group.includes(`Disallow: ${path}`));
+    assert.ok(group.includes("Allow: /"));
+  }
+});

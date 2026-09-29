@@ -1,4 +1,5 @@
-import { useMarketingText } from "./marketing-locale";
+import { useContext } from "react";
+import { MarketingLocale, useMarketingText } from "./marketing-locale";
 import { blogPath, blogPosts } from "./blog-posts";
 import type { BlogPost } from "./blog-posts";
 import "./Blog.css";
@@ -27,6 +28,7 @@ export function BlogCards({ posts = blogPosts }: { posts?: BlogPost[] }) {
   );
 }
 export default function Blog({ slug }: { slug?: string }) {
+  const locale = useContext(MarketingLocale);
   const t = useMarketingText();
   const post = blogPosts.find((item) => item.slug === slug);
   if (!post)
@@ -51,7 +53,7 @@ export default function Blog({ slug }: { slug?: string }) {
       </div>
     );
   return (
-    <article className="site-container blog-article">
+    <article className="site-container blog-article" lang={locale}>
       <nav className="blog-breadcrumbs" aria-label={t("面包屑")}>
         <a href="/">{t("首页")}</a>
         <span aria-hidden="true">/</span>

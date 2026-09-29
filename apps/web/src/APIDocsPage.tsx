@@ -1,10 +1,19 @@
 import { useLocale } from "./i18n";
 import "./api-docs.css";
 
-export default function APIDocsPage({ onKeys }: { onKeys: () => void }) {
+export default function APIDocsPage({
+  onKeys,
+  publicView = false,
+}: {
+  onKeys?: () => void;
+  publicView?: boolean;
+}) {
   const locale = useLocale();
   const copy = (zh: string, en: string) => (locale === "en" ? en : zh);
-  const base = window.location.origin;
+  const base =
+    publicView || typeof window === "undefined"
+      ? "https://xingdu.app"
+      : window.location.origin;
   const endpoints = [
     ["GET", "/hosts", "hosts:read", copy("列出服务器", "List servers")],
     [
@@ -95,6 +104,14 @@ export default function APIDocsPage({ onKeys }: { onKeys: () => void }) {
   const example = `import getpass\nimport json\nimport urllib.request\n\nbase = ${JSON.stringify(base)}\nkey = getpass.getpass("Xingdu API key: ")\n\ndef request(method, path, payload=None):\n    body = None if method == "GET" else json.dumps(payload or {}).encode()\n    req = urllib.request.Request(\n        base + "/api/v1" + path, data=body, method=method,\n        headers={\n            "Authorization": "Bearer " + key,\n            "Content-Type": "application/json",\n        },\n    )\n    with urllib.request.urlopen(req, timeout=30) as response:\n        return None if response.status == 204 else json.load(response)\n\nfor host in request("GET", "/hosts")["data"]:\n    print(host["id"], host["name"])\nfor node in request("GET", "/nodes")["data"]:\n    print(node["id"], node["name"])`;
   return (
     <article className="api-docs">
+      {publicView && (
+        <p>
+          {copy(
+            "版本提示：Agent 0.14.0-dev 的扩展协议仍需随对应版本发布。本文记录接口契约，云端可用性请以控制台和发布说明为准。",
+            "Version note: Agent 0.14.0-dev protocol extensions require the corresponding release. These docs describe the API contract; check the console and release notes for Cloud availability.",
+          )}
+        </p>
+      )}
       <section className="panel">
         <h2>{copy("开始使用", "Getting started")}</h2>
         <p>
@@ -106,9 +123,15 @@ export default function APIDocsPage({ onKeys }: { onKeys: () => void }) {
         <p>
           {copy("接口地址", "Base URL")}：<code>{base}/api/v1</code>
         </p>
-        <button className="secondary" onClick={onKeys}>
-          {copy("管理 API 密钥 →", "Manage API keys →")}
-        </button>
+        {publicView ? (
+          <a href="/app/api-keys">
+            {copy("管理 API 密钥 →", "Manage API keys →")}
+          </a>
+        ) : (
+          <button className="secondary" onClick={onKeys}>
+            {copy("管理 API 密钥 →", "Manage API keys →")}
+          </button>
+        )}
         <nav aria-label={copy("API 文档目录", "API documentation sections")}>
           <a href="#api-auth">{copy("认证", "Authentication")}</a>
           <a href="#api-example">{copy("快速开始", "Quick start")}</a>
