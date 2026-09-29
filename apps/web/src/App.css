@@ -2542,7 +2542,9 @@ html[lang="en"] .subscription-rule {
 .subscription-qr svg { max-width: 100%; height: auto; border-radius: 8px; background: white; }
 .subscription-qr p { font-size: 12px; color: #6a7c89; }
 
-.rule-template-panel { margin-top: 28px; border-top: 1px solid #d2e0df; padding-top: 16px; }
+.rule-template-panel { margin-top: 28px; border-top: 1px solid #d2e0df; padding: 16px 26px; }
+.rule-template-panel > .subscription-step { margin-top: 0; flex-wrap: wrap; }
+.rule-template-panel .node-grid { margin-left: 0; margin-right: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
 .template-picker { margin-top: 20px; padding: 16px; border: 1px solid #d2e0df; border-radius: 12px; }
 
 .routes-panel { padding: 26px; }
@@ -2580,8 +2582,12 @@ html[lang="en"] .subscription-rule {
   .routes-heading { gap: 12px; }
 }
 
-.preset-section { margin: 20px 26px; }
+.preset-section { margin: 20px 0; }
 .preset-section h4 { margin-bottom: 8px; }
 .preset-grid { margin: 16px 0; }
 .preset-section details { margin-bottom: 20px; font-size: 13px; }
 .preset-section summary { cursor: pointer; color: #3b716b; }
+
+@media (max-width: 760px) {
+  .rule-template-panel { padding-left: 20px; padding-right: 20px; }
+}
