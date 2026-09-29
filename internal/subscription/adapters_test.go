@@ -54,7 +54,7 @@ func TestHysteriaURI(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Scheme != "hysteria2" || u.Hostname() != n.Server || u.Port() != "443" || u.User.Username() != n.Spec.Credential || u.Fragment != n.Name+" ["+n.ID+"]" {
+	if u.Scheme != "hysteria2" || u.Hostname() != n.Server || u.Port() != "443" || u.User.Username() != n.Spec.Credential || u.Fragment != n.Name {
 		t.Fatal("URI escaping corrupted connection identity")
 	}
 	if u.Query().Get("insecure") != "0" || u.Query().Get("pinSHA256") != certificatePin(n) || u.Query().Get("sni") != n.Spec.ServerName {

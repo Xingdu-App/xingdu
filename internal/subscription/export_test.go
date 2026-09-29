@@ -91,7 +91,7 @@ func TestMihomoExport(t *testing.T) {
 		if p["fingerprint"] != hex.EncodeToString(digest[:]) || p["skip-cert-verify"] != false {
 			t.Fatal("TLS pin missing")
 		}
-		if p["server"] != "2001:db8::1" || p["name"] != node.Name+" ["+node.ID+"]" || p["type"] != kinds[i] {
+		if p["server"] != "2001:db8::1" || p["name"] != nodeLabels(nodes, false)[i] || p["type"] != kinds[i] {
 			t.Fatal("escaped name or IPv6 address corrupted")
 		}
 		if cfg.Groups[0].Proxies[i] != p["name"] {

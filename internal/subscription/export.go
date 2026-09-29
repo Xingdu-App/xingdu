@@ -117,7 +117,8 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 	proxies := make([]map[string]any, 0, len(nodes))
 	names := make([]string, 0, len(nodes))
 	seen := map[string]bool{}
-	for _, node := range nodes {
+	exportNames := nodeLabels(nodes, false)
+	for i, node := range nodes {
 		if !id.Valid("node", node.ID) || seen[node.ID] {
 			return nil, errors.New("invalid or duplicate node ID")
 		}
@@ -136,8 +137,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			return nil, errors.New("invalid node configuration")
 		}
 		s := node.Spec
-		// Stable node identity is retained independently of the transport.
-		label := node.Name + " [" + node.ID + "]"
+		label := exportNames[i]
 		p := map[string]any{"name": label, "type": s.Protocol, "server": node.Server, "port": s.Port, "udp": true}
 		if protocol.RequiresTLS(s.Protocol) {
 			cert, _ := pem.Decode([]byte(s.Certificate))
