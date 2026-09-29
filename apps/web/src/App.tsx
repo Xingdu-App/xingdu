@@ -3,7 +3,7 @@ import { TableSkeleton } from "./LoadingSkeleton";
 import RoutePanel from "./RoutePanel";
 import APIDocsPage from "./APIDocsPage";
 import APIKeysPanel from "./APIKeysPanel";
-import { t, useLocale, localeTag } from "./i18n";
+import { t, useLocale } from "./i18n";
 import type { ReactNode } from "react";
 import LanguageSwitch from "./LanguageSwitch";
 import TeamPanel from "./TeamPanel";
@@ -414,36 +414,31 @@ function App({
                                     pending: t("待接入"),
                                   }[host.status]
                                 }
-                                {host.last_seen_at && (
-                                  <small className="heartbeat-time">
-                                    {new Date(host.last_seen_at).toLocaleString(
-                                      localeTag(),
-                                    )}
-                                  </small>
-                                )}
                               </td>
                               <td>{host.agent_version || "—"}</td>
                               <td>
-                                <button
-                                  className="secondary compact"
-                                  onClick={() => setMachineHost(host)}
-                                >
-                                  {t("接入 / 状态")}
-                                </button>
-                                <button
-                                  className="secondary compact"
-                                  onClick={() => setProtocolHost(host)}
-                                >
-                                  {t("协议部署")}
-                                </button>
-                                <button
-                                  className="secondary"
-                                  aria-label={t("编辑 {0}", { 0: host.name })}
-                                  disabled={!manageMachines}
-                                  onClick={() => setEditing(host)}
-                                >
-                                  {t("编辑")}
-                                </button>
+                                <div className="host-row-actions">
+                                  <button
+                                    className="secondary compact"
+                                    onClick={() => setMachineHost(host)}
+                                  >
+                                    {t("接入 / 状态")}
+                                  </button>
+                                  <button
+                                    className="secondary compact"
+                                    onClick={() => setProtocolHost(host)}
+                                  >
+                                    {t("协议部署")}
+                                  </button>
+                                  <button
+                                    className="secondary"
+                                    aria-label={t("编辑 {0}", { 0: host.name })}
+                                    disabled={!manageMachines}
+                                    onClick={() => setEditing(host)}
+                                  >
+                                    {t("编辑")}
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -478,14 +473,6 @@ function App({
                           </div>
                           <p className="host-card-address">{host.address}</p>
                           <HostCountry code={host.country_code} />
-                          {host.last_seen_at && (
-                            <p className="host-card-ssh">
-                              {t("最近心跳：")}
-                              {new Date(host.last_seen_at).toLocaleString(
-                                localeTag(),
-                              )}
-                            </p>
-                          )}
                           <p className="host-card-ssh">
                             {t("Agent 版本")} · {host.agent_version || "—"}
                           </p>

@@ -875,6 +875,16 @@ th {
   }
 }
 
+.host-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.host-row-actions > button {
+  flex: none;
+  white-space: nowrap;
+}
 .inventory-table table {
   min-width: 700px;
 }
