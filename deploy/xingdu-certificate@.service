@@ -1,0 +1,17 @@
+[Unit]
+Description=Xingdu certificate renewal %i
+After=network-online.target
+Wants=network-online.target
+[Service]
+Type=oneshot
+DynamicUser=yes
+StateDirectory=xingdu-certificates/%i
+StateDirectoryMode=0700
+Environment=XINGDU_ACME_STATE=/var/lib/xingdu-certificates/%i
+EnvironmentFile=/etc/xingdu/certificate-%i.env
+ExecStart=/usr/local/bin/xingdu-certificates
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+UMask=0077
