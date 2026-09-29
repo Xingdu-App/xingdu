@@ -134,25 +134,25 @@ func TestCheckoutAmountIdempotencyAndReuse(t *testing.T) {
 	s := New(testConfig())
 	s.base = server.URL
 	r := Record{OrganizationID: "org_1", CustomerID: "cus_1", Attempt: "attempt_1", Status: "none"}
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != nil {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != nil || creates != 1 {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != nil || creates != 1 {
 		t.Fatal("open session not reused", err)
 	}
 	// A lost local commit retries the same external mutation with the same key.
 	r.CheckoutID = ""
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != nil || len(keys) != 2 || keys[0] == "" || keys[0] != keys[1] {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != nil || len(keys) != 2 || keys[0] == "" || keys[0] != keys[1] {
 		t.Fatal("unstable idempotency key", err)
 	}
 	active = true
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != ErrConflict {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != ErrConflict {
 		t.Fatal("duplicate subscription allowed", err)
 	}
 	active = false
 	amount = 5000
 	r.CheckoutID = ""
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != ErrUnavailable {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != ErrUnavailable {
 		t.Fatal("incorrect price allowed", err)
 	}
 	amount = 4000
@@ -160,7 +160,7 @@ func TestCheckoutAmountIdempotencyAndReuse(t *testing.T) {
 	r.SubscriptionID = "sub_old"
 	r.Status = "canceled"
 	sessionStatus = "complete"
-	if _, err := s.Checkout(context.Background(), &r, "year", "https://xingdu.app"); err != nil {
+	if _, err := s.Checkout(context.Background(), &r, "start", "year", "https://xingdu.app"); err != nil {
 		t.Fatal("resubscribe after cancellation blocked", err)
 	}
 }
@@ -206,5 +206,101 @@ func TestConfigurationFailsClosed(t *testing.T) {
 	c = Config{}
 	if c.Validate() != nil || c.Cloud() {
 		t.Fatal("self hosting requires no Stripe")
+	}
+}
+
+func TestPremiumPricesAndEntitlement(t *testing.T) {
+	for _, interval := range []string{"month", "year"} {
+		t.Run(interval, func(t *testing.T) {
+			c := testConfig()
+			c.PremiumMonthlyPrice = "price_premium_month"
+			c.PremiumYearlyPrice = "price_premium_year"
+			priceID := c.PremiumMonthlyPrice
+			amount := 2000
+			if interval == "year" {
+				priceID = c.PremiumYearlyPrice
+				amount = 20000
+			}
+			if err := c.Validate(); err != nil {
+				t.Fatal(err)
+			}
+			state := subscription("active")
+			item := state["items"].(map[string]any)["data"].([]any)[0].(map[string]any)
+			price := item["price"].(map[string]any)
+			price["id"] = priceID
+			price["unit_amount"] = amount
+			price["recurring"].(map[string]any)["interval"] = interval
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case "/prices/" + priceID:
+					json.NewEncoder(w).Encode(map[string]any{"active": true, "livemode": false, "currency": "usd", "unit_amount": amount, "recurring": map[string]any{"interval": interval, "interval_count": 1, "usage_type": "licensed"}})
+				case "/subscriptions":
+					json.NewEncoder(w).Encode(map[string]any{"data": []any{state}, "has_more": false})
+				default:
+					t.Errorf("unexpected path %s", r.URL.Path)
+					w.WriteHeader(500)
+				}
+			}))
+			defer server.Close()
+			stripe := New(c)
+			stripe.base = server.URL
+			if got, e := stripe.price(context.Background(), "premium", interval); e != nil || got != priceID {
+				t.Fatalf("price=%s err=%v", got, e)
+			}
+			record := Record{CustomerID: "cus_1"}
+			if e := stripe.Sync(context.Background(), &record); e != nil || record.Plan != "premium" || record.Interval != interval || record.ServerLimit(time.Now()) != 50 {
+				t.Fatalf("record=%+v err=%v", record, e)
+			}
+			price["unit_amount"] = 500
+			if e := stripe.Sync(context.Background(), &record); e != nil || record.Entitled(time.Now()) {
+				t.Fatal("incorrect Premium amount granted", e)
+			}
+		})
+	}
+	c := testConfig()
+	c.PremiumMonthlyPrice = "price_month"
+	if c.Validate() == nil {
+		t.Fatal("partial or duplicate Premium prices accepted")
+	}
+	if _, err := New(testConfig()).price(context.Background(), "premium", "month"); err != ErrUnavailable {
+		t.Fatal("unconfigured Premium accepted", err)
+	}
+}
+
+func TestCheckoutDoesNotReuseAnotherPlansSession(t *testing.T) {
+	c := testConfig()
+	c.PremiumMonthlyPrice = "price_premium_month"
+	c.PremiumYearlyPrice = "price_premium_year"
+	expired := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/subscriptions":
+			fmt.Fprint(w, `{"data":[],"has_more":false}`)
+		case "/checkout/sessions/cs_start":
+			fmt.Fprint(w, `{"status":"open","url":"https://checkout.stripe.com/start"}`)
+		case "/checkout/sessions/cs_start/expire":
+			expired = true
+			fmt.Fprint(w, `{"status":"expired"}`)
+		case "/prices/price_premium_month":
+			fmt.Fprint(w, `{"active":true,"livemode":false,"currency":"usd","unit_amount":2000,"recurring":{"interval":"month","interval_count":1,"usage_type":"licensed"}}`)
+		case "/checkout/sessions":
+			r.ParseForm()
+			expectedKey := sha256.Sum256([]byte("xingdu/checkout/attempt/cs_start/premium/month"))
+			if !expired || r.Form.Get("line_items[0][price]") != "price_premium_month" || r.Header.Get("Idempotency-Key") != hex.EncodeToString(expectedKey[:]) {
+				t.Error("wrong plan or checkout reuse")
+			}
+			fmt.Fprint(w, `{"id":"cs_premium","url":"https://checkout.stripe.com/premium"}`)
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+			w.WriteHeader(500)
+		}
+	}))
+	defer server.Close()
+	s := New(c)
+	s.base = server.URL
+	record := Record{OrganizationID: "org_test", CustomerID: "cus_1", Attempt: "attempt", CheckoutID: "cs_start", CheckoutPlan: "start", CheckoutInterval: "month"}
+	result, err := s.Checkout(context.Background(), &record, "premium", "month", "https://xingdu.app")
+	if err != nil || result != "https://checkout.stripe.com/premium" || record.CheckoutPlan != "premium" {
+		t.Fatalf("result=%s record=%+v err=%v", result, record, err)
 	}
 }

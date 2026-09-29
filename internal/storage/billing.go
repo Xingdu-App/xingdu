@@ -7,11 +7,11 @@ import (
 	"xingdu.app/xingdu/internal/billing"
 )
 
-const billingColumns = "organization_id::text,coalesce(customer_id,''),attempt,checkout_id,checkout_interval,subscription_id,status,interval,period_end,cancel_at_period_end"
+const billingColumns = "organization_id::text,coalesce(customer_id,''),attempt,checkout_id,checkout_interval,subscription_id,status,interval,period_end,cancel_at_period_end,plan,checkout_plan"
 
 func scanBilling(row scanner) (billing.Record, error) {
 	var r billing.Record
-	err := row.Scan(&r.OrganizationID, &r.CustomerID, &r.Attempt, &r.CheckoutID, &r.CheckoutInterval, &r.SubscriptionID, &r.Status, &r.Interval, &r.PeriodEnd, &r.CancelAtPeriodEnd)
+	err := row.Scan(&r.OrganizationID, &r.CustomerID, &r.Attempt, &r.CheckoutID, &r.CheckoutInterval, &r.SubscriptionID, &r.Status, &r.Interval, &r.PeriodEnd, &r.CancelAtPeriodEnd, &r.Plan, &r.CheckoutPlan)
 	return r, mapError(err)
 }
 func (s *Store) Billing(ctx context.Context) (billing.Record, error) {
@@ -96,7 +96,7 @@ func (s *Store) MutateBilling(ctx context.Context, customer, event string, fn fu
 	if err = fn(&r); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `UPDATE organization_billing SET customer_id=nullif($2,''),checkout_id=$3,checkout_interval=$4,subscription_id=$5,status=$6,interval=$7,period_end=$8,cancel_at_period_end=$9,updated_at=now() WHERE organization_id=$1`, org, r.CustomerID, r.CheckoutID, r.CheckoutInterval, r.SubscriptionID, r.Status, r.Interval, r.PeriodEnd, r.CancelAtPeriodEnd)
+	_, err = tx.Exec(ctx, `UPDATE organization_billing SET customer_id=nullif($2,''),checkout_id=$3,checkout_interval=$4,subscription_id=$5,status=$6,interval=$7,period_end=$8,cancel_at_period_end=$9,plan=$10,checkout_plan=$11,updated_at=now() WHERE organization_id=$1`, org, r.CustomerID, r.CheckoutID, r.CheckoutInterval, r.SubscriptionID, r.Status, r.Interval, r.PeriodEnd, r.CancelAtPeriodEnd, billingPlan(r.Plan), billingPlan(r.CheckoutPlan))
 	if err != nil {
 		return mapError(err)
 	}
@@ -106,4 +106,11 @@ func (s *Store) MutateBilling(ctx context.Context, customer, event string, fn fu
 		}
 	}
 	return tx.Commit(ctx)
+}
+
+func billingPlan(plan string) string {
+	if plan == "premium" {
+		return plan
+	}
+	return "start"
 }

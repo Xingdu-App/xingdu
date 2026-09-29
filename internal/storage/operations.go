@@ -28,7 +28,7 @@ func (s *Store) OrganizationOperations(ctx context.Context) (Operations, error) 
 		return out, err
 	}
 	defer tx.Rollback(ctx)
-	rows, err := tx.Query(ctx, `SELECT 'hosts', (SELECT count(*) FROM hosts WHERE organization_id=request_org_id()),coalesce((SELECT hosts FROM organization_limits WHERE organization_id=request_org_id()),25)
+	rows, err := tx.Query(ctx, `SELECT 'hosts', (SELECT count(*) FROM hosts WHERE organization_id=request_org_id()),coalesce((SELECT hosts FROM organization_limits WHERE organization_id=request_org_id()),CASE WHEN current_setting('app.billing_mode',true)='cloud' THEN cloud_server_limit(request_org_id()) ELSE 25 END)
  UNION ALL SELECT 'deployments',(SELECT count(*) FROM protocol_deployments WHERE organization_id=request_org_id() AND state NOT IN ('removed','cancelled')),coalesce((SELECT deployments FROM organization_limits WHERE organization_id=request_org_id()),100)
  UNION ALL SELECT 'subscriptions',(SELECT count(*) FROM subscriptions WHERE organization_id=request_org_id()),coalesce((SELECT subscriptions FROM organization_limits WHERE organization_id=request_org_id()),100)
  UNION ALL SELECT 'members',(SELECT count(*) FROM memberships WHERE organization_id=request_org_id()),coalesce((SELECT members FROM organization_limits WHERE organization_id=request_org_id()),20)`)
@@ -51,7 +51,7 @@ func (s *Store) OrganizationOperations(ctx context.Context) (Operations, error) 
 	}
 	if s.CloudBilling {
 		limit := 1
-		if err := tx.QueryRow(ctx, `SELECT CASE WHEN EXISTS(SELECT 1 FROM organization_billing WHERE organization_id=request_org_id() AND status='active' AND period_end>extract(epoch FROM now())) THEN 10 ELSE 1 END`).Scan(&limit); err != nil {
+		if err := tx.QueryRow(ctx, `SELECT cloud_server_limit(request_org_id())`).Scan(&limit); err != nil {
 			return out, err
 		}
 		hosts := out.Usage["hosts"]

@@ -1,3 +1,4 @@
+import { paidPlans, enterpriseContact } from "./plans";
 import { useContext, useEffect } from "react";
 import { useLocale } from "./i18n";
 import MarketingLanguage from "./MarketingLanguage";
@@ -188,59 +189,100 @@ function Plans({ compact = false }: { compact?: boolean }) {
   const docs = useDocumentationLink();
   const t = useMarketingText();
   return (
-    <div className="site-plans">
-      <article className="site-plan">
-        <span className="plan-type">SELF-HOSTED</span>
-        <h3>{t("自托管，掌握自己的数据。")}</h3>
-        <p>{t("适合希望自主运行和管理数据的个人与团队。")}</p>
-        <div className="plan-price">
-          {t("免费")}
-          <span>{t("MIT 开源版本")}</span>
-        </div>
-        <a className="site-button site-button-outline" href={docs}>
-          {t("开始自托管 ")}
-          <Arrow />
+    <>
+      <div className="site-plans">
+        {paidPlans.map((plan) => (
+          <article
+            className={
+              plan.id === "premium" ? "site-plan plan-hosted" : "site-plan"
+            }
+            key={plan.id}
+          >
+            {plan.id === "premium" && (
+              <span className="plan-ribbon">{t("更多服务器，更大空间")}</span>
+            )}
+            <span className="plan-type">XINGDU CLOUD</span>
+            <h3>{plan.name}</h3>
+            <p>
+              {t(
+                plan.id === "start"
+                  ? "适合个人与小型工作空间。"
+                  : "适合更多服务器与团队协作。",
+              )}
+            </p>
+            <div className="plan-price">
+              ${plan.monthly}
+              <span>{t("/ 月")}</span>
+            </div>
+            <p>
+              {t(
+                plan.id === "start"
+                  ? "或 $40/年，年付省 $20。"
+                  : "或 $200/年，年付省 $40。",
+              )}
+            </p>
+            <a
+              className={
+                plan.id === "premium"
+                  ? "site-button site-button-dark"
+                  : "site-button site-button-outline"
+              }
+              href={"/app/billing?plan=" + plan.id}
+            >
+              {t("选择套餐")} <Arrow />
+            </a>
+            <ul>
+              <li>
+                {t(
+                  plan.id === "start"
+                    ? "每个组织 10 台服务器"
+                    : "每个组织 50 台服务器",
+                )}
+              </li>
+              <li>{t("机器状态监控与协议部署")}</li>
+              <li>{t("节点订阅与组织成员协作")}</li>
+              <li>{t("API 密钥与自动化管理")}</li>
+              {!compact && <li>{t("月付或年付自动续费，可取消下次续费")}</li>}
+            </ul>
+            <p className="plan-footnote">
+              {t(
+                "用户自备 VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。",
+              )}
+            </p>
+          </article>
+        ))}
+        <article className="site-plan">
+          <span className="plan-type">CUSTOM</span>
+          <h3>Enterprise</h3>
+          <p>{t("适合更大规模与定制需求。")}</p>
+          <div className="plan-price">{t("定制报价")}</div>
+          <p>{t("与我们沟通规模、部署方式和服务需求。")}</p>
+          <a
+            className="site-button site-button-outline"
+            href={enterpriseContact}
+          >
+            {t("联系客服")} <Arrow />
+          </a>
+          <ul>
+            <li>{t("服务器额度按需求协商")}</li>
+            <li>{t("部署与接入方案咨询")}</li>
+            <li>{t("服务范围与支持方式单独约定")}</li>
+          </ul>
+          <p className="plan-footnote">
+            {t("定制报价与交付范围以双方确认的方案为准。")}
+          </p>
+        </article>
+      </div>
+      <p className="site-plans-free">
+        {t("先免费管理 1 台服务器，或使用 MIT 开源版本自行部署。")}{" "}
+        <a href={docs}>
+          {t("自部署指南")} <Arrow />
         </a>
-        <ul>
-          <li>{t("服务器资料与 Agent 接入")}</li>
-          <li>{t("运行状态、心跳与离线判断")}</li>
-          <li>{t("组织、成员与访问权限")}</li>
-          <li>{t("SSH 安装与可选凭据加密保存")}</li>
-          {!compact && <li>{t("源代码可查看、修改和分发")}</li>}
-        </ul>
-        <p className="plan-footnote">
-          {t("软件免费；服务器、域名、存储与运维成本由你承担。")}
-        </p>
-      </article>
-      <article className="site-plan plan-hosted">
-        <span className="plan-ribbon">{t("年付省 33%")}</span>
-        <span className="plan-type">XINGDU CLOUD</span>
-        <h3>{t("更少维护，更多专注。")}</h3>
-        <p>{t("按组织订阅，为个人和小团队管理服务器。")}</p>
-        <div className="plan-price">
-          $5<span>{t("/ 月，或 $40 / 年")}</span>
-        </div>
-        <p>{t("年付约 $3.33/月，比连续月付节省 $20。")}</p>
-        <a className="site-button site-button-dark" href="/app/billing">
-          {t("查看套餐与账单 ")}
-          <Arrow />
-        </a>
-        <ul>
-          <li>{t("免费版可管理 1 台服务器，付费套餐可管理 10 台。")}</li>
-          <li>{t("机器状态监控与协议部署")}</li>
-          <li>{t("节点订阅与组织成员协作")}</li>
-          <li>{t("Stripe 安全支付与账单管理")}</li>
-          {!compact && <li>{t("月付或年付自动续费，可取消下次续费")}</li>}
-        </ul>
-        <p className="plan-footnote">
-          {t(
-            "用户自备 VPS，价格不含服务器及网络流量。购买入口以实例控制台的开放状态为准。",
-          )}
-        </p>
-      </article>
-    </div>
+      </p>
+    </>
   );
 }
+
 function Home() {
   const t = useMarketingText();
   return (
@@ -402,7 +444,7 @@ function Home() {
             eyebrow="YOUR INFRASTRUCTURE. YOUR CHOICE."
             title={t("选择你的运行方式。")}
           >
-            {t("自部署版免费，云端版 $5/月或 $40/年。")}
+            {t("Starter $5/月起，Premium $20/月，Enterprise 按需定制。")}
           </SectionTitle>
           <a className="site-text-link" href="/pricing">
             {t("查看价格说明 ")}
@@ -465,7 +507,9 @@ function Pricing() {
           <em>{t("按需选择。")}</em>
         </h1>
         <p>
-          {t("自部署版免费。云端版每个组织 $5/月，年付 $40，包含 10 台服务器。")}
+          {t(
+            "Starter：10 台服务器，$5/月或 $40/年。Premium：50 台服务器，$20/月或 $200/年。Enterprise 联系客服定制。",
+          )}
         </p>
       </section>
       <Plans />
