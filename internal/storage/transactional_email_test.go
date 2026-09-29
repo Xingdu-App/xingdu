@@ -33,6 +33,29 @@ func TestTransactionalEmailRecoveryAndQueue(t *testing.T) {
 		t.Skip("requires dedicated database")
 	}
 	ctx := context.Background()
+	// Delivery claims the oldest message across all tenants. Other integration
+	// tests enqueue account notices in the shared CI database, so a recipient-
+	// scoped assertion alone does not isolate this worker test.
+	cluster, err := Open(ctx, raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cluster.Close()
+	database := "xingdu_mail_" + NewID("obj")[4:]
+	if _, err = cluster.Pool.Exec(ctx, "CREATE DATABASE "+database); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if _, err := cluster.Pool.Exec(ctx, "DROP DATABASE "+database+" WITH (FORCE)"); err != nil {
+			t.Errorf("remove isolated mail test database: %v", err)
+		}
+	}()
+	isolated, err := url.Parse(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	isolated.Path = "/" + database
+	raw = isolated.String()
 	admin, err := Open(ctx, raw)
 	if err != nil {
 		t.Fatal(err)
