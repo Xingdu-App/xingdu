@@ -48,6 +48,7 @@ type Options struct {
 	Billing             billing.Gateway
 	Mode                string
 	BillingCloud        bool
+	BillingPremium      bool
 	BillingTest         bool
 	OAuthProviders      map[string]socialauth.Provider
 	EmailSender         emailverification.Sender
@@ -62,6 +63,7 @@ type Options struct {
 type api struct {
 	billing         billing.Gateway
 	billingCloud    bool
+	billingPremium  bool
 	billingTest     bool
 	oauthProviders  map[string]socialauth.Provider
 	emailSender     emailverification.Sender
@@ -96,6 +98,7 @@ func New(store Store, opts Options) http.Handler {
 	a.connectionSlots = make(chan struct{}, 4)
 	a.billing = opts.Billing
 	a.billingCloud = opts.BillingCloud
+	a.billingPremium = opts.BillingPremium
 	a.billingTest = opts.BillingTest
 	mux := http.NewServeMux()
 	a.billingRoutes(mux)

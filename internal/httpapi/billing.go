@@ -40,7 +40,7 @@ func (a *api) billingRoutes(mux *http.ServeMux) {
 		if a.billingCloud {
 			mode = "cloud"
 		}
-		reply(w, 200, map[string]any{"data": map[string]any{"mode": mode, "test_mode": a.billingCloud && a.billingTest, "configured": a.billingCloud && a.billing != nil, "subscription": record, "active": record.Entitled(time.Now()), "has_customer": record.CustomerID != "", "server_limit": record.ServerLimit(time.Now())}})
+		reply(w, 200, map[string]any{"data": map[string]any{"mode": mode, "test_mode": a.billingCloud && a.billingTest, "configured": a.billingCloud && a.billing != nil, "premium_available": a.billingCloud && a.billing != nil && a.billingPremium, "subscription": record, "active": record.Entitled(time.Now()), "has_customer": record.CustomerID != "", "server_limit": record.ServerLimit(time.Now())}})
 	}))
 	for _, action := range []string{"checkout", "portal", "sync"} {
 		mux.HandleFunc("POST /api/v1/billing/"+action, a.tenant(func(w http.ResponseWriter, r *http.Request, user storage.User, _ string) {
@@ -54,12 +54,20 @@ func (a *api) billingRoutes(mux *http.ServeMux) {
 			}
 			var in struct {
 				Interval string `json:"interval"`
+				Plan     string `json:"plan"`
 			}
 			if !decode(w, r, &in) {
 				return
 			}
 			if action == "checkout" && in.Interval != "month" && in.Interval != "year" {
 				failure(w, 422, "invalid_interval", "请选择月付或年付")
+				return
+			}
+			if in.Plan == "" {
+				in.Plan = "start"
+			}
+			if action == "checkout" && (in.Plan != "start" && in.Plan != "premium" || in.Plan == "premium" && !a.billingPremium) {
+				failure(w, 422, "invalid_plan", "此套餐暂不可购买")
 				return
 			}
 			if err := a.store.EnsureBilling(r.Context()); err != nil {
@@ -92,7 +100,7 @@ func (a *api) billingRoutes(mux *http.ServeMux) {
 							return err
 						}
 					}
-					redirect, err = a.billing.Checkout(r.Context(), record, in.Interval, a.origin)
+					redirect, err = a.billing.Checkout(r.Context(), record, in.Plan, in.Interval, a.origin)
 				case "portal":
 					if record.CustomerID == "" {
 						return billing.ErrConflict

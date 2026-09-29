@@ -37,7 +37,7 @@ type gatewayFake struct {
 }
 
 func (g gatewayFake) Customer(context.Context, string) (string, error) { return "cus_test", nil }
-func (g gatewayFake) Checkout(ctx context.Context, _ *billing.Record, _ string, _ string) (string, error) {
+func (g gatewayFake) Checkout(ctx context.Context, _ *billing.Record, _ string, _ string, _ string) (string, error) {
 	if end, ok := ctx.Deadline(); !ok || time.Until(end) < 20*time.Second {
 		return "", errors.New("billing timeout too short for provider round trips")
 	}
@@ -92,6 +92,8 @@ func TestBillingRoutesAuthAndWebhookBoundary(t *testing.T) {
 		{"/api/v1/billing/checkout", "POST", `{"interval":"year"}`, true, false, "", 403},
 		{"/api/v1/billing/checkout", "POST", `{"interval":"year","price":"price_attacker"}`, true, true, "", 400},
 		{"/api/v1/billing/checkout", "POST", `{"interval":"day"}`, true, true, "", 422},
+		{"/api/v1/billing/checkout", "POST", `{"plan":"enterprise","interval":"month"}`, true, true, "", 422},
+		{"/api/v1/billing/checkout", "POST", `{"plan":"premium","interval":"year"}`, true, true, "", 422},
 		{"/api/v1/billing/checkout", "POST", `{"interval":"year"}`, true, true, "", 200},
 		{stripeWebhookPath, "POST", `{}`, false, false, "", 400},
 		{stripeWebhookPath, "POST", `{}`, false, false, "test_signature", 204},

@@ -13,6 +13,8 @@ func TestServerLimitFollowsPaidPeriod(t *testing.T) {
 		want   int
 	}{
 		{"free", Record{}, 1},
+		{"premium", Record{Plan: "premium", Status: "active", PeriodEnd: now.Unix() + 1}, 50},
+		{"premium_expired", Record{Plan: "premium", Status: "active", PeriodEnd: now.Unix()}, 1},
 		{"paid", Record{Status: "active", PeriodEnd: now.Unix() + 1}, 10},
 		{"cancel_at_end", Record{Status: "active", PeriodEnd: now.Unix() + 1, CancelAtPeriodEnd: true}, 10},
 		{"expired", Record{Status: "active", PeriodEnd: now.Unix()}, 1},
