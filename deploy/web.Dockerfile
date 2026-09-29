@@ -3,6 +3,7 @@ WORKDIR /src
 COPY apps/web/package*.json ./
 RUN npm ci
 COPY apps/web/ ./
+ARG VITE_GA_MEASUREMENT_ID
 ARG XINGDU_SITE_URL=https://xingdu.app
 RUN XINGDU_SITE_URL="$XINGDU_SITE_URL" npm run build
 

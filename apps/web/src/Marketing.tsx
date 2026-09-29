@@ -1,3 +1,4 @@
+import MarketingAnalytics from "./MarketingAnalytics";
 import { paidPlans, enterpriseContact } from "./plans";
 import { useContext, useEffect } from "react";
 import { useLocale } from "./i18n";
@@ -192,7 +193,7 @@ function Plans({ compact = false }: { compact?: boolean }) {
     <>
       <p className="site-plans-free">
         {t(
-          "公开测试期间，支付使用测试模式，不收取真实费用。以下为套餐定价，正式收费开放时间另行公告。",
+          "Xingdu Cloud 已正式上线。付费套餐通过 Stripe 结算，将产生真实扣款；金额与计费周期请以结账页面为准。",
         )}
       </p>
       <div className="site-plans">
@@ -293,7 +294,7 @@ function Home() {
       <section className="site-hero site-container">
         <div className="hero-copy">
           <span className="site-release">
-            <span className="site-live-dot" /> {t(" 公开测试版 ")}
+            <span className="site-live-dot" /> {t(" 正式上线 ")}
             <span>·</span> {t(" 从一台 VPS 开始")}
           </span>
           <h1>
@@ -537,7 +538,7 @@ function Pricing() {
           <summary>{t("如何购买和取消云端套餐？")}</summary>
           <p>
             {t(
-              "Xingdu Cloud 当前为公开测试版，支付使用 Stripe 测试模式，不收取真实费用。正式收款开放前会公布税费、退款及服务规则。组织所有者可在「套餐与账单」查看套餐和测试支付流程。",
+              "Xingdu Cloud 已正式上线，付费套餐通过 Stripe 结算并产生真实扣款。组织所有者可在「套餐与账单」选择套餐、查看账单和管理续费；请在付款前核对金额与计费周期。",
             )}
           </p>
         </details>
@@ -588,12 +589,12 @@ function Privacy() {
         <>
           <p>
             {t(
-              "本页说明 Xingdu Cloud 公开测试版、官网及开源软件涉及的数据处理，更新于 2026 年 9 月 29 日。Cloud 的数据问题请联系 info@xingdu.app；自托管实例由各自部署者负责，部署位置、日志、备份和保留期限可能不同。",
+              "本页说明 Xingdu Cloud、官网及开源软件涉及的数据处理，更新于 2026 年 9 月 29 日。Cloud 的数据问题请联系 info@xingdu.app；自托管实例由各自部署者负责，部署位置、日志、备份和保留期限可能不同。",
             )}
           </p>
           <p>
             {t(
-              "Xingdu Cloud 当前处于公开测试阶段。正式收费前，仍需补齐运营主体、数据处理地区、服务商清单及保留和删除期限；本页尚不是正式收费服务的完整隐私政策。自托管实例的邮件与第三方登录由部署者配置，数据请求也应联系该实例部署者。",
+              "如需了解 Cloud 的数据处理地区、服务商、数据保留或删除安排，请联系 info@xingdu.app。自托管实例的邮件与第三方登录由部署者配置，数据请求也应联系该实例部署者。",
             )}
           </p>
         </>
@@ -671,7 +672,7 @@ function Privacy() {
           </p>
           <p>
             {t(
-              "当前官网未接入广告或第三方行为分析脚本，也不加载第三方字体。Web 服务器或部署平台可能记录 IP 地址、访问时间、浏览器信息与请求路径，具体以部署配置为准。",
+              "官网配置 Google Analytics 后，仅在你同意后加载访问统计并使用 Cookie，记录公开页面访问及控制台、价格、GitHub 入口点击。不会在控制台或带查询参数、片段的页面加载统计，也不主动上报账号、组织、服务器或订阅信息。Google 会接收统计请求及其网络信息；你可在页脚更改偏好并停止后续统计。Web 服务器或部署平台仍可能记录访问日志。",
             )}
           </p>
           <p>
@@ -881,11 +882,7 @@ function Service() {
           {t("开始使用前，")}
           <em>{t("了解服务范围。")}</em>
         </h1>
-        <p>
-          {t(
-            "Xingdu Cloud 公开测试版的功能与使用边界。正式收费前将补齐运营信息、服务条款和退款规则。",
-          )}
-        </p>
+        <p>{t("了解 Xingdu Cloud 的功能、计费方式与使用边界。")}</p>
       </section>
       <div className="site-document">
         <section>
@@ -905,10 +902,10 @@ function Service() {
           </p>
         </section>
         <section>
-          <h2>{t("测试范围与后续变化")}</h2>
+          <h2>{t("功能范围与版本更新")}</h2>
           <p>
             {t(
-              "公开测试期间，功能与接口可能调整，当前不提供服务等级（SLA）承诺。自动证书和外部探测需要单独配置；可导出配置不代表所有客户端版本均已完成联网验证。升级自托管实例前，请备份并核对版本说明。",
+              "功能与接口会随版本更新调整，当前不提供服务等级（SLA）承诺。自动证书和外部探测需要单独配置；可导出配置不代表所有客户端版本均已完成联网验证。升级自托管实例前，请备份并核对版本说明。",
             )}
           </p>
         </section>
@@ -916,7 +913,7 @@ function Service() {
           <h2>{t("费用与资源上限")}</h2>
           <p>
             {t(
-              "MIT 开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。Cloud 套餐按组织计算，不包含 VPS 和带宽；各项资源上限以控制台为准。目前支付为测试模式，不收取真实费用。正式收费前将公布税费、续费、取消、退款和欠费处理规则。账单咨询请联系 info@xingdu.app。",
+              "MIT 开源版本不收取软件许可费，自托管基础设施与运维由部署者承担。Cloud 套餐按组织计算，不包含 VPS 和带宽；各项资源上限以控制台为准。付费套餐通过 Stripe 结算，以美元计价并产生真实扣款。请核对结账页面的金额与计费周期，在「套餐与账单」管理订阅；税费、退款及账单问题请联系 info@xingdu.app。",
             )}
           </p>
         </section>
@@ -1012,7 +1009,7 @@ function Security() {
         </p>
         <p>
           {t(
-            "当前为公开测试版，没有独立安全认证或 SLA 承诺。已提供加密备份与隔离恢复工具，但工具可用不代表 Cloud 的恢复演练或密钥轮换已完成。正式收费前仍需完成运营验收并公布完整隐私政策。",
+            "当前没有独立安全认证或 SLA 承诺。已提供加密备份与隔离恢复工具；实际恢复能力取决于部署配置与恢复演练。安全问题请通过公开联系渠道报告。",
           )}
         </p>
         <a
@@ -1171,8 +1168,9 @@ function MarketingContent({ page }: { page: PublicPage }) {
           </div>
           <div className="site-footer-bottom">
             <span>{t("© 2026 星渡 Xingdu")}</span>
-            <span>{t("MIT 开源 · 公开测试版")}</span>
+            <span>{t("MIT 开源 · 云端服务")}</span>
             <span>Built to connect.</span>
+            <MarketingAnalytics />
           </div>
         </div>
       </footer>

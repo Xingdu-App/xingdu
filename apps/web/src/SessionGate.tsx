@@ -529,7 +529,7 @@ export default function SessionGate() {
         </details>
         <p className="form-hint">
           {t(
-            "开始使用前，请阅读服务范围与隐私说明，了解当前预览能力和数据处理方式。",
+            "开始使用前，请阅读服务范围与隐私说明，了解产品功能和数据处理方式。",
           )}
         </p>
         <div className="auth-footer">{t("你的 VPS 与节点，一处管理")}</div>

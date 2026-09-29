@@ -15,7 +15,7 @@ Xingdu is an open-source project building a multi-tenant SaaS control panel for 
 
 Built for individuals and small teams, Xingdu is designed to work with different protocol engines and clients, without tying your infrastructure to a single client application.
 
-> **Early development preview.** You can run the console locally today. Multi-user sign-in, organizations, member roles, invitation links, and isolated server inventories are available. Agent enrollment, telemetry, and SSH installation flows are implemented; managed Agent protocol deployment is implemented; client exports have explicit protocol and certificate limits; account security, node restart/status and operational quota/audit/backup tools are implemented; route orchestration is not yet available. Keep this preview local; it is not ready for public or production deployment.
+> **Xingdu Cloud is now available at [xingdu.app](https://xingdu.app).** Use the hosted service or deploy the MIT-licensed edition yourself. Supported protocols, client exports and operational requirements are documented below. Verify your target server and client combination before relying on it; a successful local build does not establish compatibility or recovery readiness.
 
 ## What you can try today
 
@@ -47,11 +47,11 @@ Connect a VPS → Choose a protocol and route → Deploy and verify → Import i
 | Reliable changes | Versioned deployments, progress tracking, retries, and rollback |
 | Client subscriptions | Dedicated export adapters for Stash, Surge, Loon, and Shadowrocket |
 
-These are roadmap items, not supported features in the current preview. Protocol and client-version compatibility will be documented as combinations are tested. See the [development plan](docs/PLAN.md) for milestones.
+This table describes development areas; consult the current feature documentation for implemented capabilities and limitations. Protocol and client-version compatibility will be documented as combinations are tested. See the [development plan](docs/PLAN.md) for milestones.
 
 ## Try it locally
 
-You need **Git, Docker, and Docker Compose v2**. Go and Node.js are not required for the container-based preview.
+You need **Git, Docker, and Docker Compose v2**. Go and Node.js are not required for the container-based setup.
 
 ```sh
 git clone https://github.com/Xingdu-App/xingdu.git

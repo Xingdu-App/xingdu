@@ -46,8 +46,7 @@ export default function Blog({ slug }: { slug?: string }) {
         </section>
         <BlogCards />
         <p className="blog-meta">
-          {t("星渡产品内容 · 以当前预览版本为基础 ·")}{" "}
-          <a href="/blog/feed.xml">{t("RSS 订阅")}</a>
+          {t("星渡产品指南 ·")} <a href="/blog/feed.xml">{t("RSS 订阅")}</a>
         </p>
       </div>
     );
@@ -110,7 +109,7 @@ export default function Blog({ slug }: { slug?: string }) {
             <h2>{t("把流程落实到你的工作空间")}</h2>
             <p>
               {t(
-                "从第一台服务器开始，验证接入、部署与客户端配置。星渡当前为产品预览，请先了解功能范围。",
+                "从第一台服务器开始，验证接入、部署与客户端配置。使用前请先了解功能范围。",
               )}
             </p>
             <p>

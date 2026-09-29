@@ -66,3 +66,54 @@ robots.txt 是抓取指引，不是访问控制或确保已收录 URL 移除的�
 - [站点地图构建与提交](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)
 - [标题链接](https://developers.google.com/search/docs/appearance/title-link)
 - [面包屑](https://developers.google.com/search/docs/appearance/structured-data/breadcrumb)
+
+## Google Analytics 4（可选）
+
+Web 构建时设置 `VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX`，再重新构建发布。
+两个 Web Dockerfile 都接受同名 build argument；Vite 本地开发可从环境变量读取。
+该 ID 是公开标识，不是 API 密钥。未设置或格式不合法时，不显示统计偏好、
+不加载 Google 脚本，自部署默认关闭。仅增加这一项，不覆盖现有部署变量。
+在托管平台确认变量已传入 Docker 构建参数，仅设置容器运行时变量不会生效。
+
+在星渡专用 GA4 Web 数据流中关闭 Enhanced measurement（增强型衡量），
+以免自动采集出站链接、表单或历史路由；关闭 Google signals、广告个性化，
+不要关联广告账户。建议事件数据保留设置为两个月。接入前先核对数据流域名。
+
+用户允许统计后才加载 gtag；拒绝时不向 Google 发送统计请求。页脚可重新选择，
+撤回会停止后续事件、删除当前主机的 GA Cookie 并刷新页面卸载标签；不会删除
+已经发送到 Google 的历史数据。统计仍受浏览器拦截、拒绝同意等影响，并非完整访问人数。
+
+仅精确匹配公开页面白名单。控制台、登录、API、未知路由，以及带查询参数或
+fragment 的页面不会加载统计（包含 UTM 链接，此版不支持 UTM 活动归因）。
+`page_location` 使用公开 origin + 路径，`page_title` 使用固定公开标题，
+referrer 仅保留 origin。不要添加邮箱、用户 ID、组织 ID、机器地址、订阅 URL
+等参数。Google 仍会接收请求所需的网络信息，不能声称此统计完全匿名。
+
+| 事件 | 含义 |
+| --- | --- |
+| `page_view` | 同意统计后的公开页面访问，关闭默认自动 page view 避免重复 |
+| `marketing_cta_click` | 固定 `destination`：`console`、`pricing`、`github` |
+
+在 GA4 为 `destination` 建立事件范围自定义维度。入口点击不是注册成功、
+首次接入成功或支付成功；本次未实现这些后台业务转化事件。
+
+发布验收：无选择/拒绝时无 Google 请求；同意后每页只有一次 page_view；
+点击入口可见固定事件标签；切入控制台不加载 gtag；撤回后刷新不再加载；
+带查询参数和邀请片段的页面不加载；同时用 GA4 Realtime 核对真实数据接收。
+构建或本地测试通过不能代替线上 GA4 接收验证。
+
+## 上线后四周的自然获客
+
+1. 第一周：在 Search Console 验证域名，提交 sitemap，检查首页和五篇现有
+   指南的索引状态；完善 GitHub README 演示图、安装入口与托管版入口。
+2. 第二周：发布两篇可复现的实操文章，例如 Ubuntu/Debian Agent 安装排障、
+   自有节点导入 Stash/Mihomo 的分步流程。写明版本、错误示例与验证范围。
+3. 第三周：补充规则模板组合教程（开发与影音可同时使用）和服务器迁移指南。
+   在允许项目分享的技术社区发布实际解决问题的案例，避免重复灌水和虚构对比。
+4. 第四周：根据 Search Console 的真实查询/展示/点击改标题与内容，更新有
+   展示但点击低的文章，完善读者卡住的步骤；不要为了数量生成同质页面。
+
+每周分别看搜索展示与点击（Search Console）、自然搜索访问与入口点击（GA4），
+以及真实注册、首台 Agent 接入、首个订阅创建、付费（业务系统）。避免将入口
+点击当注册率，或把 GA4 中未采集的业务指标视为零。当前选题是产品场景假设，
+不代表已验证搜索量；四周后用实际查询数据调整。

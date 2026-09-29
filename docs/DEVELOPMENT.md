@@ -15,7 +15,7 @@ cp .env.example .env
 make up
 ```
 
-如果已有 `.env`，不要覆盖。示例密码仅供本地开发；迁移使用 `POSTGRES_PASSWORD`；API/Worker 使用独立 `XINGDU_APP_DATABASE_PASSWORD`（至少 16 字节），Worker 使用 `XINGDU_WORKER_DATABASE_PASSWORD`。Compose 中建议使用 URL 安全的随机十六进制密码；手动配置连接串时对特殊字符进行 URL 编码。当前 Compose 用于多租户开发预览，公网运维尚未完成。已有 `.env` 需新增运行账号密码，不能继续让 API 使用迁移账号。
+如果已有 `.env`，不要覆盖。示例密码仅供本地开发；迁移使用 `POSTGRES_PASSWORD`；API/Worker 使用独立 `XINGDU_APP_DATABASE_PASSWORD`（至少 16 字节），Worker 使用 `XINGDU_WORKER_DATABASE_PASSWORD`。Compose 中建议使用 URL 安全的随机十六进制密码；手动配置连接串时对特殊字符进行 URL 编码。当前 Compose 用于本地开发；公网自托管需要另行配置域名、HTTPS、邮件和运维措施。已有 `.env` 需新增运行账号密码，不能继续让 API 使用迁移账号。
 
 | 服务 | 地址 / 行为 |
 | --- | --- |

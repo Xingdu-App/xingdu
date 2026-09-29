@@ -1,6 +1,6 @@
 # SaaS operations
 
-The hosted service is still in development. A green readiness endpoint is not a public launch or proof of node connectivity.
+Xingdu Cloud is available as a hosted service. A green readiness endpoint alone does not prove node connectivity or recovery readiness.
 
 ## Organization limits
 
