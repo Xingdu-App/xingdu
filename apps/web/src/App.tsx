@@ -574,6 +574,7 @@ function App({
           )}
           {page === "subscriptions" && (
             <SubscriptionPanel
+              key={organization.id + organization.role}
               nodes={nodes}
               manage={manageMachines}
               refreshKey={attempt}

@@ -2541,3 +2541,6 @@ html[lang="en"] .subscription-rule {
 .subscription-qr { margin-top: 12px; text-align: center; }
 .subscription-qr svg { max-width: 100%; height: auto; border-radius: 8px; background: white; }
 .subscription-qr p { font-size: 12px; color: #6a7c89; }
+
+.rule-template-panel { margin-top: 28px; border-top: 1px solid #d2e0df; padding-top: 16px; }
+.template-picker { margin-top: 20px; padding: 16px; border: 1px solid #d2e0df; border-radius: 12px; }

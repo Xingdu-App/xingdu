@@ -232,6 +232,9 @@ func New(store Store, opts Options) http.Handler {
 }
 func validID(w http.ResponseWriter, r *http.Request) bool {
 	prefix := "srv"
+	if strings.HasPrefix(r.URL.Path, "/api/v1/rule-templates/") {
+		prefix = "obj"
+	}
 	if strings.HasPrefix(r.URL.Path, "/api/v1/subscriptions/") {
 		prefix = "sub"
 	}

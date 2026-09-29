@@ -490,3 +490,9 @@ export const saveAvatar = (image: string, signal: AbortSignal) =>
   );
 export const removeAvatar = (signal: AbortSignal) =>
   request<void>("/api/v1/account/avatar", "DELETE", undefined, signal);
+
+export type RuleTemplateInput = Pick<SubscriptionInput, "name" | "rules" | "final_action">;
+export type RuleTemplate = RuleTemplateInput & { id: string; created_at: string; updated_at: string };
+export const listRuleTemplates = (signal: AbortSignal) => request<RuleTemplate[]>("/api/v1/rule-templates", "GET", undefined, signal);
+export const saveRuleTemplate = (id: string | undefined, input: RuleTemplateInput, signal: AbortSignal) => request<RuleTemplate>(id ? `/api/v1/rule-templates/${id}` : "/api/v1/rule-templates", id ? "PUT" : "POST", input, signal);
+export const deleteRuleTemplate = (id: string, signal: AbortSignal) => request<void>(`/api/v1/rule-templates/${id}`, "DELETE", undefined, signal);

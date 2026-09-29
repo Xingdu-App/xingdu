@@ -13,6 +13,9 @@ import (
 )
 
 type SubscriptionStore interface {
+	RuleTemplates(context.Context) ([]storage.RuleTemplate, error)
+	SaveRuleTemplate(context.Context, storage.RuleTemplate, bool) (storage.RuleTemplate, error)
+	DeleteRuleTemplate(context.Context, string) error
 	Subscriptions(context.Context) ([]storage.Subscription, error)
 	SaveSubscription(context.Context, storage.Subscription, string, bool) (storage.Subscription, error)
 	RotateSubscription(context.Context, string, string, ...[]byte) error
@@ -24,6 +27,7 @@ func subscriptionPath(id, token string) string {
 	return "/api/v1/subscriptions/" + id + "/content?token=" + token + ""
 }
 func (a *api) subscriptionRoutes(mux *http.ServeMux) {
+	a.ruleTemplateRoutes(mux)
 	mux.HandleFunc("GET /api/v1/subscriptions", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		out, err := a.store.Subscriptions(r.Context())
 		if err != nil {

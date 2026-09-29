@@ -885,5 +885,21 @@
   "旧订阅未保存可恢复链接。请重置一次链接，之后可随时查看；重置会使旧链接失效。": "This older subscription has no recoverable URL. Reset it once to make it available here. Resetting invalidates the previous URL.",
   "订阅链接暂时不可读取，请检查控制端加密配置。": "The subscription URL is unavailable. Check the control plane encryption configuration.",
   "订阅已创建，可随时查看和复制链接。": "Subscription created. You can view and copy its URL at any time.",
-  "订阅链接加密不可用": "Subscription link encryption is unavailable."
+  "订阅链接加密不可用": "Subscription link encryption is unavailable.",
+  "规则模板": "Rule templates",
+  "选择规则模板": "Select a rule template",
+  "应用会替换当前规则和默认连接方式，保存订阅后生效。后续修改模板不会自动更新订阅。": "Applying replaces the current rules and default action. Save the subscription to take effect. Later template edits do not update subscriptions automatically.",
+  "此模板包含分享链接不支持的分流设置。": "This template contains routing settings that share links do not support.",
+  "应用模板": "Apply template",
+  "替换当前订阅草稿的全部规则和默认连接方式？": "Replace all rules and the default action in this subscription draft?",
+  "确认替换": "Replace",
+  "创建规则模板": "Create rule template",
+  "在组织内复用分流规则。应用时复制到订阅，模板修改或删除不影响已有订阅。": "Reuse routing rules within your organization. Rules are copied to subscriptions when applied; editing or deleting a template does not affect existing subscriptions.",
+  "暂无规则模板": "No rule templates yet",
+  "删除此模板？已应用的订阅不受影响。": "Delete this template? Existing subscriptions will not be affected.",
+  "编辑规则模板": "Edit rule template",
+  "模板名称": "Template name",
+  "分流规则": "Routing rules",
+  "确认删除": "Confirm deletion",
+  "关闭": "Close"
 }
