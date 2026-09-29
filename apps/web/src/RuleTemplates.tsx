@@ -1,3 +1,4 @@
+import { rulePresets, ruleTemplateSources } from "./rule-presets";
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
@@ -35,7 +36,7 @@ export function TemplatePicker({
       });
     return () => c.abort();
   }, []);
-  const row = rows.find((r) => r.id === selected);
+  const row = [...rows, ...rulePresets].find((r) => r.id === selected);
   const incompatible =
     input.format === "hysteria2_uri" &&
     !!row &&
@@ -59,6 +60,11 @@ export function TemplatePicker({
         options={[
           { value: "", label: t("选择规则模板") },
           ...rows.map((r) => ({ value: r.id, label: r.name })),
+          ...rulePresets.map((r) => ({
+            value: r.id,
+            label: `${t("内置")} · ${t(r.name)}`,
+            description: t(r.description),
+          })),
         ]}
         disabled={busy}
         onChange={(v) => {
@@ -75,6 +81,9 @@ export function TemplatePicker({
         <p className="form-error" role="alert">
           {t(error)}
         </p>
+      )}
+      {row && "description" in row && (
+        <p className="form-hint">{t(String(row.description))}</p>
       )}
       {row && (
         <p>
@@ -208,6 +217,62 @@ export function RuleTemplatePanel({ manage }: { manage: boolean }) {
           "在组织内复用分流规则。应用时复制到订阅，模板修改或删除不影响已有订阅。",
         )}
       </p>
+      <div className="preset-section">
+        <h4>{t("内置基础模板")}</h4>
+        <p className="form-hint">
+          {t(
+            "星渡维护的精简方案，可直接应用或复制后编辑；不等同于社区完整规则集，不自动更新。",
+          )}
+        </p>
+        <div className="node-grid preset-grid">
+          {rulePresets.map((preset) => (
+            <article className="node-card" key={preset.id}>
+              <h3>{t(preset.name)}</h3>
+              <p className="form-hint">{t(preset.description)}</p>
+              <p>
+                {preset.rules.length} {t("条规则 · 默认")}{" "}
+                {preset.final_action === "proxy"
+                  ? t("使用节点")
+                  : t("直接连接")}
+              </p>
+              {manage && (
+                <button
+                  type="button"
+                  className="secondary compact"
+                  disabled={busy}
+                  onClick={() => {
+                    setError("");
+                    setInput({
+                      name: t(preset.name),
+                      rules: preset.rules.map((r) => ({ ...r })),
+                      final_action: preset.final_action,
+                    });
+                    setEditor(null);
+                  }}
+                >
+                  {t("复制并编辑")}
+                </button>
+              )}
+            </article>
+          ))}
+        </div>
+        <details>
+          <summary>{t("社区规则参考")}</summary>
+          <p className="form-hint">
+            {t(
+              "以下是外部项目入口，暂不直接导入其 RULE-SET、GEOIP 或多策略组配置。订阅地址不会发送给这些项目。",
+            )}
+          </p>
+          {ruleTemplateSources.map((source) => (
+            <p key={source.name}>
+              <a href={source.url} target="_blank" rel="noreferrer">
+                {source.name} ↗
+              </a>{" "}
+              · {t(source.description)}
+            </p>
+          ))}
+        </details>
+      </div>
       {error && editor === undefined && (
         <p className="form-error" role="alert">
           {t(error)}

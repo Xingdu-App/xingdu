@@ -910,5 +910,22 @@
   "完成节点部署后，可在这里查看直连线路或配置中转。": "Once nodes are deployed, view direct routes or configure a relay here.",
   "中转线路": "Relay route",
   "直连线路": "Direct route",
-  "节点状态需核实": "Node status needs verification"
+  "节点状态需核实": "Node status needs verification",
+  "内置": "Built-in",
+  "内置基础模板": "Built-in starter templates",
+  "全部使用节点": "Proxy all traffic",
+  "所有匹配流量使用所选节点，不添加直连例外。": "Route all matched traffic through the selected nodes, without direct exceptions.",
+  "局域网直连 · 其余代理": "LAN direct · Proxy the rest",
+  "私有网段与 .lan / .local 直连，其余使用节点；不代表完整的局域网发现或 DNS 配置。": "Connect private networks and .lan / .local directly; proxy the rest. This is not a complete LAN discovery or DNS configuration.",
+  "常用国内服务直连 · 精简版": "Common China services direct · Starter",
+  "局域网及列出的常用国内服务直连，其余使用节点。不是完整中国大陆规则，不含 GEOIP。": "Connect LAN and listed China services directly; proxy the rest. This is not a complete mainland China ruleset and has no GEOIP rules.",
+  "开发服务代理 · 精简版": "Developer services proxy · Starter",
+  "GitHub、Google 和 Docker 等列出的域名使用节点，其余直连；不是完整服务清单，请按需补充。": "Proxy listed domains for GitHub, Google and Docker; connect the rest directly. This is a partial list; extend it as needed.",
+  "星渡维护的精简方案，可直接应用或复制后编辑；不等同于社区完整规则集，不自动更新。": "Xingdu-maintained starter templates. Apply directly or copy to edit; these are not full community rulesets and do not update automatically.",
+  "复制并编辑": "Copy and edit",
+  "社区规则参考": "Community rule references",
+  "以下是外部项目入口，暂不直接导入其 RULE-SET、GEOIP 或多策略组配置。订阅地址不会发送给这些项目。": "These links open external projects. RULE-SET, GEOIP and multi-group configurations cannot be imported yet. Your subscription URL is not sent to these projects.",
+  "综合分流、广告拦截与策略组配置": "Routing, ad blocking and policy-group configurations",
+  "按应用分类的多客户端规则集": "Application-specific rulesets for multiple clients",
+  "Mihomo 的 GeoIP、GeoSite 与规则数据": "GeoIP, GeoSite and ruleset data for Mihomo"
 }

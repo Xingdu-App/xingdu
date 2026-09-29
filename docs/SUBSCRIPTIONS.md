@@ -99,3 +99,27 @@ Surge 采用独立 INI 适配：VMess AEAD + TLS、TUIC v5 的 UUID/密码分别
 分流规则，因此只能应用空规则且默认为使用节点的模板。
 
 模板不包含节点、令牌或客户端凭据；本阶段不提供远程规则下载与自动同步。
+
+## 内置基础模板与社区方案
+
+订阅模板选择器内置四个无需预先创建的星渡基础方案：全部使用节点、局域网
+直连其余代理、常用国内服务直连精简版、开发服务代理精简版。模板管理页可
+复制到组织模板并编辑。它们是星渡维护的静态规则，不是上游规则的完整快照；
+国内/开发服务只覆盖明确列出的域名，不表示所有相关 CDN、IP 或应用均已覆盖。
+
+调研记录（2026-09-29）：
+
+- [ACL4SSR 在线配置](https://github.com/ACL4SSR/ACL4SSR/blob/master/Clash/config/ACL4SSR_Online.ini)
+  组合局域网、拦截、应用、中国域名/IP、GEOIP 与最终策略，并提供多个策略组。
+- [subconverter](https://github.com/tindy2013/subconverter/blob/master/README-cn.md)
+  将订阅节点与外部规则、策略组和基础配置组合，再按目标格式输出。
+- [Sub-Store](https://github.com/sub-store-org/Sub-Store)
+  提供订阅聚合、节点过滤/处理和多格式转换；这些功能不等同于完整的路由模板。
+- [blackmatrix7](https://github.com/blackmatrix7/ios_rule_script)
+  提供按应用分类的多客户端规则资源；[MetaCubeX](https://github.com/MetaCubeX/meta-rules-dat)
+  提供 Mihomo 的地理与规则数据。
+
+当前只支持结构化 DOMAIN、DOMAIN-SUFFIX、IP-CIDR/IPv6 和默认动作，最多100条。
+不直接执行外部脚本，不把订阅令牌发送到公共转换服务，也不静默忽略不支持的
+RULE-SET/GEOIP/GEOSITE/多策略组。完整社区模板接入应另行增加规则源更新、
+格式能力校验、版本固定/失败保留、策略组映射和许可证检查。

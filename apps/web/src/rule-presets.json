@@ -1,0 +1,318 @@
+[
+  {
+    "id": "builtin:all-proxy",
+    "name": "全部使用节点",
+    "description": "所有匹配流量使用所选节点，不添加直连例外。",
+    "rules": [],
+    "final_action": "proxy"
+  },
+  {
+    "id": "builtin:lan-direct",
+    "name": "局域网直连 · 其余代理",
+    "description": "私有网段与 .lan / .local 直连，其余使用节点；不代表完整的局域网发现或 DNS 配置。",
+    "rules": [
+      {
+        "type": "domain_suffix",
+        "value": "lan",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "local",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "10.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "172.16.0.0/12",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "192.168.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "127.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "169.254.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "::1/128",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fc00::/7",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fe80::/10",
+        "target": "direct"
+      }
+    ],
+    "final_action": "proxy"
+  },
+  {
+    "id": "builtin:common-cn",
+    "name": "常用国内服务直连 · 精简版",
+    "description": "局域网及列出的常用国内服务直连，其余使用节点。不是完整中国大陆规则，不含 GEOIP。",
+    "rules": [
+      {
+        "type": "domain_suffix",
+        "value": "lan",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "local",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "10.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "172.16.0.0/12",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "192.168.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "127.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "169.254.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "::1/128",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fc00::/7",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fe80::/10",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "qq.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "weixin.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "wechat.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "taobao.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "tmall.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "alipay.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "aliyun.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "baidu.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "jd.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "bilibili.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "bilivideo.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "163.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "126.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "netease.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "mi.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "xiaomi.com",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "douyin.com",
+        "target": "direct"
+      }
+    ],
+    "final_action": "proxy"
+  },
+  {
+    "id": "builtin:developer",
+    "name": "开发服务代理 · 精简版",
+    "description": "GitHub、Google 和 Docker 等列出的域名使用节点，其余直连；不是完整服务清单，请按需补充。",
+    "rules": [
+      {
+        "type": "domain_suffix",
+        "value": "lan",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "local",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "10.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "172.16.0.0/12",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "192.168.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "127.0.0.0/8",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "169.254.0.0/16",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "::1/128",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fc00::/7",
+        "target": "direct"
+      },
+      {
+        "type": "ip_cidr",
+        "value": "fe80::/10",
+        "target": "direct"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "github.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "githubusercontent.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "githubassets.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "google.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "googleapis.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "gstatic.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "golang.org",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "go.dev",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "docker.com",
+        "target": "proxy"
+      },
+      {
+        "type": "domain_suffix",
+        "value": "docker.io",
+        "target": "proxy"
+      }
+    ],
+    "final_action": "direct"
+  }
+]

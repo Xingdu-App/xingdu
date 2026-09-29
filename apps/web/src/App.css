@@ -2579,3 +2579,9 @@ html[lang="en"] .subscription-rule {
   .route-editor-footer { align-items: stretch; flex-direction: column; }
   .routes-heading { gap: 12px; }
 }
+
+.preset-section { margin: 20px 26px; }
+.preset-section h4 { margin-bottom: 8px; }
+.preset-grid { margin: 16px 0; }
+.preset-section details { margin-bottom: 20px; font-size: 13px; }
+.preset-section summary { cursor: pointer; color: #3b716b; }
