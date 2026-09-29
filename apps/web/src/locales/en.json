@@ -901,5 +901,14 @@
   "模板名称": "Template name",
   "分流规则": "Routing rules",
   "确认删除": "Confirm deletion",
-  "关闭": "Close"
+  "关闭": "Close",
+  "配置线路": "Configure route",
+  "当前线路": "Current routes",
+  "客户端": "Client",
+  "暂无可配置节点，请先完成节点部署。": "No configurable nodes. Deploy a node first.",
+  "暂无线路": "No routes yet",
+  "完成节点部署后，可在这里查看直连线路或配置中转。": "Once nodes are deployed, view direct routes or configure a relay here.",
+  "中转线路": "Relay route",
+  "直连线路": "Direct route",
+  "节点状态需核实": "Node status needs verification"
 }

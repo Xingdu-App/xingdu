@@ -583,6 +583,7 @@ function App({
           )}
           {page === "routes" && (
             <RoutePanel
+              key={organization.id + organization.role}
               nodes={nodes}
               manage={manageMachines}
               onChanged={refresh}
