@@ -33,7 +33,7 @@ type protocolExecutor struct {
 }
 
 func newProtocolExecutor() *protocolExecutor {
-	return &protocolExecutor{stateDir: filepath.Join(StateDir, "protocols"), unitDir: "/etc/systemd/system", binaryDir: "/usr/local/lib/xingdu", root: os.Geteuid() == 0 && runtime.GOOS == "linux", arch: runtime.GOARCH, client: &http.Client{Timeout: 70 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, run: func(ctx context.Context, name string, args ...string) error {
+	return &protocolExecutor{stateDir: filepath.Join(StateDir, "protocols"), unitDir: "/etc/systemd/system", binaryDir: "/usr/local/lib/xingdu", root: os.Geteuid() == 0 && runtime.GOOS == "linux", arch: runtime.GOARCH, client: &http.Client{Timeout: protocol.RuntimeDownloadTimeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, run: func(ctx context.Context, name string, args ...string) error {
 		return exec.CommandContext(ctx, name, args...).Run()
 	}}
 }
@@ -458,7 +458,7 @@ func pollProtocols(ctx context.Context, c Config) error {
 	}
 	defer unlock()
 	_ = x.reportServices(ctx, c)
-	jobCtx, cancel := context.WithTimeout(ctx, 110*time.Second)
+	jobCtx, cancel := context.WithTimeout(ctx, protocol.DeploymentTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(jobCtx, "POST", c.Server+"/api/v1/agent/deployments/claim", bytes.NewBufferString("{}"))
 	if err != nil {

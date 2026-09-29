@@ -142,6 +142,13 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e != nil || claimed == nil {
 		t.Fatal("claim", e)
 	}
+	var remaining float64
+	if err := admin.Pool.QueryRow(ctx, "SELECT extract(epoch FROM lease_until-now()) FROM protocol_deployments WHERE id=$1", d.ID).Scan(&remaining); err != nil {
+		t.Fatal(err)
+	}
+	if remaining < 9*60 || remaining > 10*60 {
+		t.Fatalf("download lease has insufficient or unbounded budget: %v", remaining)
+	}
 	again, e := s.ClaimDeployment(ctx, hash)
 	if e != nil || again.Lease != claimed.Lease || again.OperationID != claimed.OperationID {
 		t.Fatal("reclaim changed immutable operation", e)

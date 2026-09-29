@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const Version = "0.11.0-dev"
+const Version = "0.11.1-dev"
 
 type Metrics struct {
 	Hostname        string  `json:"hostname"`

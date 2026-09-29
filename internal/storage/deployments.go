@@ -231,7 +231,7 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 		}
 		return nil, tx.Commit(ctx)
 	}
-	err = tx.QueryRow(ctx, `UPDATE protocol_deployments SET state='running',lease=COALESCE(lease,new_resource_id('lease')),lease_until=COALESCE(lease_until,now()+interval '5 minutes') WHERE id=$1 RETURNING lease::text`, d.ID).Scan(&d.Lease)
+	err = tx.QueryRow(ctx, `UPDATE protocol_deployments SET state='running',lease=COALESCE(lease,new_resource_id('lease')),lease_until=COALESCE(lease_until,now()+$2*interval '1 second') WHERE id=$1 RETURNING lease::text`, d.ID, int(protocol.DeploymentLease/time.Second)).Scan(&d.Lease)
 	if err != nil {
 		return nil, err
 	}

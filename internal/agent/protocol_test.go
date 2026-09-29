@@ -415,3 +415,48 @@ func TestShadowsocksDoesNotReserveUDPPort(t *testing.T) {
 		}
 	}
 }
+
+func TestRuntimeCancelledTransferLeavesNoExecutable(t *testing.T) {
+	x, _, _ := executorFixture(t)
+	received := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("partial"))
+		w.(http.Flusher).Flush()
+		close(received)
+		<-r.Context().Done()
+	}))
+	defer srv.Close()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { _, err := x.binary(ctx, Config{Server: srv.URL, Token: "machine"}); done <- err }()
+	<-received
+	cancel()
+	if err := <-done; err == nil {
+		t.Fatal("cancelled download accepted")
+	}
+	files, err := os.ReadDir(x.binaryDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range files {
+		if f.Name() != "sing-box-LICENSE" {
+			t.Fatal("partial download retained", f.Name())
+		}
+	}
+}
+
+func TestRuntimeOperationBudgetFitsLease(t *testing.T) {
+	if newProtocolExecutor().client.Timeout <= 70*time.Second {
+		t.Fatal("cold downloads still use the short timeout")
+	}
+	if protocol.DeploymentTimeout < protocol.RuntimeDownloadTimeout+30*time.Second {
+		t.Fatal("no installation budget after download")
+	}
+	if protocol.DeploymentLease < protocol.DeploymentTimeout+30*time.Second {
+		t.Fatal("no acknowledgement budget before lease expiry")
+	}
+	if protocol.RuntimeResponseTimeout < protocol.RuntimeDownloadTimeout {
+		t.Fatal("server expires download before client")
+	}
+}

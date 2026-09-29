@@ -33,7 +33,7 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 		}
 		// Runtime artifacts are larger than ordinary API responses. Keep the normal
 		// API write deadline, but permit this bounded streaming transfer to finish.
-		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(90 * time.Second))
+		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(protocol.RuntimeResponseTimeout))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, path)
 	})

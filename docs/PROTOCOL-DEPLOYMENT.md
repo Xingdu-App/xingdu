@@ -97,3 +97,8 @@ python3 scripts/protocol-lab.py --protocol shadowsocks --protocol shadowsocks202
 新增 AnyTLS 与 HTTPS 代理的托管部署及 Stash / Mihomo 导出，要求 Agent
 0.10.0-dev 或更新版本；TLS 证书必填，当前仅 TCP。完整协议矩阵、后续差距
 及验证边界见 [Stash 兼容说明](STASH-COMPATIBILITY.md)。
+
+首次安装需下载并校验运行时。Agent 0.11.1-dev 将下载上限设为 8 分钟，
+任务执行上限为 9 分钟，控制端租约为 10 分钟；API 下载响应上限为 9 分钟。
+请先部署匹配的控制端再升级 Agent。心跳独立上报；下载仍禁止重定向，
+保留大小上限和 SHA-256 校验，失败时不启用未完整验证的文件。
