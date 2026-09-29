@@ -1,4 +1,5 @@
 import RoutePanel from "./RoutePanel";
+import APIDocsPage from "./APIDocsPage";
 import APIKeysPanel from "./APIKeysPanel";
 import { t, useLocale, localeTag } from "./i18n";
 import type { ReactNode } from "react";
@@ -243,15 +244,17 @@ function App({
               <p className="subtitle">
                 {page === "overview"
                   ? t("将分散的服务器，变成触手可及的网络。")
-                  : page === "api-keys"
-                    ? t(
-                        "为自动化脚本签发组织专属密钥。权限独立授权，随时撤销。",
-                      )
-                    : t("管理当前组织的服务器、节点与客户端配置。")}
+                  : page === "api-docs"
+                    ? t("通过 API 连接你的脚本与星渡。")
+                    : page === "api-keys"
+                      ? t(
+                          "为自动化脚本签发组织专属密钥。权限独立授权，随时撤销。",
+                        )
+                      : t("管理当前组织的服务器、节点与客户端配置。")}
               </p>
             </div>
             <button
-              hidden={page === "api-keys"}
+              hidden={page === "api-keys" || page === "api-docs"}
               className="secondary"
               disabled={state === "loading"}
               onClick={refresh}
@@ -275,10 +278,14 @@ function App({
               <button onClick={refresh}>{t("重试")}</button>
             </div>
           )}
+          {page === "api-docs" && (
+            <APIDocsPage onKeys={() => setPage("api-keys")} />
+          )}
           {page === "api-keys" && (
             <APIKeysPanel
               key={organization.id + organization.role}
               organization={organization}
+              onDocs={() => setPage("api-docs")}
             />
           )}
           {page === "members" && <TeamPanel organization={organization} />}

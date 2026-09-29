@@ -3,7 +3,8 @@
 API v1 supports organization-scoped automation for server inventory and managed
 nodes. Open **API 密钥 / API keys** in the console sidebar
 (`/app/api-keys?organization=org_...`). Only owners and administrators can
-create, list or revoke keys. A key belongs to its issuing user and organization.
+create, list or revoke keys. The dedicated console reference is available at
+`/app/api-docs`. A key belongs to its issuing user and organization.
 
 ## Authentication and lifecycle
 
@@ -44,6 +45,8 @@ Scopes are independent: a write scope does not imply read or credential access.
 | GET /api/v1/hosts/{srv_id}/deployments | nodes:read | List server protocol deployments |
 | POST /api/v1/hosts/{srv_id}/deployments/preflight | nodes:write | Run installation preflight |
 | POST /api/v1/hosts/{srv_id}/deployments | nodes:write | Queue installation |
+| PUT /api/v1/hosts/{srv_id}/deployments/{node_id} | nodes:write | Queue configuration update; requires `confirm: true` |
+| POST /api/v1/hosts/{srv_id}/deployments/{node_id}/probe | nodes:probe | Report a client probe result; does not initiate a probe |
 | POST /api/v1/hosts/{srv_id}/deployments/{node_id}/restart | nodes:write | Queue restart; JSON body `{"confirm":true}` |
 | DELETE /api/v1/hosts/{srv_id}/deployments/{node_id} | nodes:write | Queue uninstall |
 | POST /api/v1/hosts/{srv_id}/deployments/{node_id}/connection | nodes:credentials | Reveal client connection credentials; JSON body `{}` |
@@ -53,8 +56,11 @@ Responses use `{"data": ...}`; errors use
 `{"error":{"code":"...","message":"..."}}`. Deletions may return HTTP 204
 with no body. Protocol jobs return HTTP 202 when queued; this does **not**
 mean installation or restart completed. Poll the deployments endpoint to
-observe job state. There is no generic node-edit endpoint: replace deployments
-using the existing uninstall/install flow.
+observe job state. Configuration updates use PUT on the deployment with `confirm: true`, for
+example `{"port":8443,"confirm":true}`. Probe reports use
+`{"ok":true,"latency_ms":120,"exit_ip":"203.0.113.10","revision":1}`;
+replace the example IP and revision with observed values. Probe reports return
+`{"ok":true}` rather than a `data` envelope.
 
 Server request body:
 
@@ -92,7 +98,9 @@ Preflight uses the same body without `confirm_install`.
 }
 ```
 
-Protocol values: `trojan`, `vless`, `vmess`, `hysteria2`, `tuic`.
+Protocol values: `shadowsocks`, `shadowsocks2022`, `trojan`, `vless`,
+`vmess`, `hysteria2`, `tuic`, `anytls`, `http`. Shadowsocks modes omit TLS
+fields; `http` is an HTTPS proxy and requires a certificate.
 Do not blindly retry installation after a timeout: check the deployment list
 first, because a queued job might have been accepted before the response was
 lost.

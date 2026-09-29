@@ -1,0 +1,61 @@
+.api-docs {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+.api-docs .panel {
+  padding: 24px;
+  min-width: 0;
+  scroll-margin-top: 24px;
+}
+.api-docs p,
+.api-docs li {
+  line-height: 1.8;
+}
+.api-docs li + li {
+  margin-top: 8px;
+}
+.api-docs nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-top: 24px;
+}
+.api-docs a {
+  color: var(--accent, #477b71);
+}
+.api-docs pre {
+  max-width: 100%;
+  overflow: auto;
+  padding: 18px;
+  border-radius: 10px;
+  background: var(--surface, #f3f5f4);
+  line-height: 1.65;
+  font-size: 13px;
+}
+.api-docs p code {
+  overflow-wrap: anywhere;
+}
+.api-docs-table {
+  overflow-x: auto;
+}
+.api-docs table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.api-docs th,
+.api-docs td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border, #e2e5e8);
+  vertical-align: top;
+}
+.api-docs td code {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .api-docs .panel {
+    padding: 18px;
+  }
+}

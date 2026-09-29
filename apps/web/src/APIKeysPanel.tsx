@@ -24,8 +24,10 @@ const scopeNames: Record<string, string> = {
 };
 export default function APIKeysPanel({
   organization,
+  onDocs,
 }: {
   organization: Organization;
+  onDocs: () => void;
 }) {
   useLocale();
   const manage = ["owner", "admin"].includes(organization.role);
@@ -304,18 +306,11 @@ export default function APIKeysPanel({
             </section>
           </div>
           <section className="panel api-key-help">
-            <h2>{t("通过 API 管理资源")}</h2>
-            <p>
-              {t(
-                "使用 Authorization: Bearer <API_KEY>，组织由密钥自动确定。请求体使用 application/json，无需 Cookie 或 CSRF Token。",
-              )}
-            </p>
-            <code>GET /api/v1/hosts · GET /api/v1/nodes</code>
-            <p>
-              {t(
-                "节点安装、预检、重启和卸载使用服务器下的 deployments 接口。SSH 接入和 Agent 注册仍在控制台完成。",
-              )}
-            </p>
+            <h2>{t("API 文档")}</h2>
+            <p>{t("查看认证方式、接口权限和可运行的请求示例。")}</p>
+            <button className="secondary" onClick={onDocs}>
+              {t("查看 API 文档 →")}
+            </button>
           </section>
         </>
       )}

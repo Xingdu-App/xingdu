@@ -57,6 +57,13 @@ export const pages = [
     icon: "⚿",
   },
   {
+    id: "api-docs",
+    get label() {
+      return t("API 文档");
+    },
+    icon: "≡",
+  },
+  {
     id: "members",
     get label() {
       return t("人员管理");

@@ -927,5 +927,9 @@
   "以下是外部项目入口，暂不直接导入其 RULE-SET、GEOIP 或多策略组配置。订阅地址不会发送给这些项目。": "These links open external projects. RULE-SET, GEOIP and multi-group configurations cannot be imported yet. Your subscription URL is not sent to these projects.",
   "综合分流、广告拦截与策略组配置": "Routing, ad blocking and policy-group configurations",
   "按应用分类的多客户端规则集": "Application-specific rulesets for multiple clients",
-  "Mihomo 的 GeoIP、GeoSite 与规则数据": "GeoIP, GeoSite and ruleset data for Mihomo"
+  "Mihomo 的 GeoIP、GeoSite 与规则数据": "GeoIP, GeoSite and ruleset data for Mihomo",
+  "API 文档": "API documentation",
+  "通过 API 连接你的脚本与星渡。": "Connect your scripts to Xingdu through the API.",
+  "查看认证方式、接口权限和可运行的请求示例。": "Explore authentication, endpoint permissions and runnable examples.",
+  "查看 API 文档 →": "View API documentation →"
 }
