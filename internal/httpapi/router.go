@@ -181,8 +181,11 @@ func New(store Store, opts Options) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
-		machineRequest := r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result" || r.URL.Path == "/api/v1/agent/deployments/status"
-		keyRequest := !machineRequest && r.Header.Get("Authorization") != ""
+		machineRequest := r.URL.Path == "/api/v1/agent/update/applied" || r.URL.Path == "/api/v1/agent/update/claim" || r.URL.Path == "/api/v1/agent/update/check" || r.URL.Path == "/api/v1/agent/update/failed" || r.URL.Path == "/api/v1/agent/enroll" || r.URL.Path == "/api/v1/agent/heartbeat" || r.URL.Path == "/api/v1/agent/deployments/claim" || r.URL.Path == "/api/v1/agent/deployments/result" || r.URL.Path == "/api/v1/agent/deployments/status"
+		// Build artifacts are public. Existing Agents send their machine bearer
+		// when fetching a runtime; it must not be interpreted as a user API key.
+		artifactRequest := (r.Method == "GET" || r.Method == "HEAD") && (r.URL.Path == "/api/v1/agent/runtime/amd64" || r.URL.Path == "/api/v1/agent/runtime/arm64" || r.URL.Path == "/api/v1/agent/download/amd64" || r.URL.Path == "/api/v1/agent/download/arm64")
+		keyRequest := !machineRequest && !artifactRequest && r.Header.Get("Authorization") != ""
 		if keyRequest {
 			var ok bool
 			r, ok = a.apiKeyRequest(w, r)

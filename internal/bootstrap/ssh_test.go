@@ -5,6 +5,8 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/pem"
 	"golang.org/x/crypto/ssh"
 	"io"
@@ -142,6 +144,19 @@ func TestSSHAuthenticationAndInstallBundle(t *testing.T) {
 	bundle := <-bundles
 	if bundle["enrollment.token"] != secret.EnrollmentToken+"\n" || strings.Contains(bundle["command"], secret.EnrollmentToken) || strings.Contains(bundle["command"], secret.Password) {
 		t.Fatal("unsafe installation transport")
+	}
+	digest := sha256.Sum256([]byte("test-agent-binary"))
+	job := machine.Job{Action: "upgrade", TargetVersion: machine.Version, AgentHash: machine.Hash(machine.Token()), Arch: "amd64", ArtifactSHA256: hex.EncodeToString(digest[:])}
+	if e = c.UpgradeChecked(ctx, secret, "https://control.example.invalid", job, nil); e != nil {
+		t.Fatal("upgrade bundle", e)
+	}
+	upgradeBundle := <-bundles
+	if upgradeBundle["enrollment.token"] != "" || !strings.Contains(upgradeBundle["install.sh"], "--upgrade < upgrade.json") || strings.Contains(upgradeBundle["command"], job.AgentHash) || !strings.Contains(upgradeBundle["upgrade.json"], job.AgentHash) {
+		t.Fatal("unsafe upgrade bundle")
+	}
+	job.ArtifactSHA256 = strings.Repeat("0", 64)
+	if e = c.UpgradeChecked(ctx, secret, "https://control.example.invalid", job, nil); e == nil || e.Error() != "upgrade_release_changed" {
+		t.Fatal("changed artifact accepted", e)
 	}
 	block, _ := ssh.MarshalPrivateKey(private, "")
 	secret.Method = "pem"

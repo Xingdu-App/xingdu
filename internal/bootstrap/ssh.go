@@ -4,7 +4,10 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ssh"
@@ -16,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"xingdu.app/xingdu/internal/agent"
 	"xingdu.app/xingdu/internal/machine"
 )
 
@@ -191,10 +195,20 @@ func (c *Connector) Install(ctx context.Context, s machine.Secret, origin string
 	return c.InstallChecked(ctx, s, origin, nil)
 }
 func (c *Connector) InstallChecked(ctx context.Context, s machine.Secret, origin string, check func() error) error {
+	return c.applyChecked(ctx, s, origin, machine.Job{}, check)
+}
+func (c *Connector) UpgradeChecked(ctx context.Context, s machine.Secret, origin string, j machine.Job, check func() error) error {
+	return c.applyChecked(ctx, s, origin, j, check)
+}
+func (c *Connector) applyChecked(ctx context.Context, s machine.Secret, origin string, j machine.Job, check func() error) error {
+	upgrading := j.Action == "upgrade"
+	if upgrading && (j.TargetVersion != machine.Version || !machine.ValidToken(j.AgentHash) || !machine.ValidToken(j.ArtifactSHA256)) {
+		return errors.New("upgrade_release_changed")
+	}
 	if machine.Origin(origin) != nil || !strings.HasPrefix(origin, "https://") {
 		return errors.New("public_https_origin_required")
 	}
-	if !machine.ValidToken(s.EnrollmentToken) || !machine.ValidMode(s.Mode) {
+	if (!upgrading && !machine.ValidToken(s.EnrollmentToken)) || !machine.ValidMode(s.Mode) {
 		return errors.New("invalid_install_request")
 	}
 	client, err := c.client(ctx, s)
@@ -220,13 +234,23 @@ func (c *Connector) InstallChecked(ctx context.Context, s machine.Secret, origin
 		return errors.New("agent_artifact_unavailable")
 	}
 	script := fmt.Sprintf("#!/bin/sh\nset -eu\n./agent --install --server %s --mode %s < enrollment.token\n", shellQuote(origin), s.Mode)
+	extraName, extraData := "enrollment.token", []byte(s.EnrollmentToken+"\n")
+	if upgrading {
+		digest := sha256.Sum256(binary)
+		if j.Arch != arch || hex.EncodeToString(digest[:]) != j.ArtifactSHA256 {
+			return errors.New("upgrade_release_changed")
+		}
+		extraName = "upgrade.json"
+		extraData, _ = json.Marshal(agent.UpgradeExpectation{Server: origin, Mode: s.Mode, TokenHash: j.AgentHash, Version: j.TargetVersion})
+		script = fmt.Sprintf("#!/bin/sh\nset -eu\nprintf '%%s  agent\\n' '%s' | sha256sum -c - >/dev/null\ntest \"$(./agent --version)\" = '%s'\n./agent --upgrade < upgrade.json\n", j.ArtifactSHA256, "xingdu-agent "+j.TargetVersion)
+	}
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	for _, f := range []struct {
 		name string
 		data []byte
 		mode int64
-	}{{"agent", binary, 0700}, {"install.sh", []byte(script), 0700}, {"enrollment.token", []byte(s.EnrollmentToken + "\n"), 0600}} {
+	}{{"agent", binary, 0700}, {"install.sh", []byte(script), 0700}, {extraName, extraData, 0600}} {
 		if err = tw.WriteHeader(&tar.Header{Name: f.name, Mode: f.mode, Size: int64(len(f.data))}); err != nil {
 			return errors.New("bundle_failed")
 		}
@@ -252,6 +276,9 @@ func (c *Connector) InstallChecked(ctx context.Context, s machine.Secret, origin
 	}
 	_, err = run(client, command, bytes.NewReader(buf.Bytes()))
 	if err != nil {
+		if upgrading {
+			return errors.New("upgrade_failed_check_vps")
+		}
 		return errors.New("install_failed_check_vps")
 	}
 	return nil

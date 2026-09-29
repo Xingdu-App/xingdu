@@ -219,8 +219,10 @@ export type MachineMetrics = {
   cpus: number;
 };
 export type MachineState = {
+  latest_agent_version?: string;
   required_agent_version: string;
   agent: null | {
+    self_update?: boolean;
     mode: "monitor" | "manage";
     enrolled_at: string;
     revoked_at: string | null;
@@ -228,6 +230,8 @@ export type MachineState = {
   };
   credential: null | { method: string; fingerprint: string; saved_at: string };
   jobs: {
+    action: "install" | "upgrade";
+    target_version?: string;
     id: string;
     host_id: string;
     mode: string;
@@ -287,6 +291,20 @@ export const installSSH = (
     `/api/v1/hosts/${id}/ssh/install`,
     "POST",
     input,
+  );
+
+export const upgradeAgent = (id: string) =>
+  request<{ id: string; state: string }>(
+    `/api/v1/hosts/${id}/agent/upgrade`,
+    "POST",
+    { confirm_upgrade: true },
+  );
+
+export const upgradeSSH = (id: string, input: Record<string, unknown>) =>
+  request<{ id: string; state: string }>(
+    `/api/v1/hosts/${id}/ssh/upgrade`,
+    "POST",
+    { ...input, confirm_upgrade: true },
   );
 
 export type Protocol = "trojan" | "vless" | "vmess" | "hysteria2" | "tuic";

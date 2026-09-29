@@ -1,0 +1,117 @@
+[
+  {
+    "actual": "0.7.0-dev",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "0.6.0-dev",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "0.7.0",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "0.8.0-dev",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "0.10.0",
+    "minimum": "0.9.0",
+    "want": true
+  },
+  {
+    "actual": "1.0.0",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "0.7.0-dev",
+    "minimum": "0.7.0",
+    "want": false
+  },
+  {
+    "actual": "0.7.0-dev.10",
+    "minimum": "0.7.0-dev.2",
+    "want": true
+  },
+  {
+    "actual": "0.7.0-dev.2",
+    "minimum": "0.7.0-dev.10",
+    "want": false
+  },
+  {
+    "actual": "0.7.0-alpha",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "0.7.0+build.2",
+    "minimum": "0.7.0+build.1",
+    "want": true
+  },
+  {
+    "actual": "0.7.0-dev+abc",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "0.7.0-1",
+    "minimum": "0.7.0-alpha",
+    "want": false
+  },
+  {
+    "actual": "0.7.0-alpha",
+    "minimum": "0.7.0-1",
+    "want": true
+  },
+  {
+    "actual": "0.7.0-dev.1",
+    "minimum": "0.7.0-dev",
+    "want": true
+  },
+  {
+    "actual": "",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "banana",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "0.7",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "00.7.0",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "0.7.0-dev.01",
+    "minimum": "0.7.0-dev",
+    "want": false
+  },
+  {
+    "actual": "0.7.0",
+    "minimum": "",
+    "want": false
+  },
+  {
+    "actual": "0.7.0",
+    "minimum": "invalid",
+    "want": false
+  },
+  {
+    "actual": "0.7.0\n",
+    "minimum": "0.7.0-dev",
+    "want": false
+  }
+]

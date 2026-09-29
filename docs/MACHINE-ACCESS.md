@@ -48,6 +48,24 @@ Linux systemd 安装支持 amd64 / arm64，首批目标为 Debian / Ubuntu 系�
 
 注册失败会保留初始身份，便于网络恢复后用同一配置重试；若令牌已经过期或撤销，先检查并清理这次失败安装的状态目录，再申请新令牌。不要直接覆盖未知的已有安装。服务启动失败时检查 `journalctl -u xingdu-agent`。
 
+## 网页升级 Agent
+
+在服务器「接入 / 状态」中查看当前版本与控制端可用版本，点击「升级 Agent」。从 0.11.0-dev 起，标准 systemd 安装包含独立升级服务；服务正常连接时优先使用 **Agent 自更新，不需要 SSH 密码、PEM 或保存凭据**。任务必须由组织所有者、管理员主动提交，不会因为发布新版本就自动升级。
+
+旧 Agent 需要先通过 SSH 升级一次，或由管理员在机器上更新到支持自更新的版本。已有加密保存的 SSH 凭据可直接使用；没有时输入一次密码或 PEM 并核实指纹。升级服务未连接或故障时仍保留 SSH 恢复入口。仅比较版本大小不足以判断自更新可用性，网页以升级服务最近 90 秒的认证连接为准。
+
+标准安装创建 `xingdu-agent-update.service` 和 `xingdu-agent-update.timer`，约每 30 秒检查是否有授权任务。这个独立的 root 服务负责校验、替换及重启 Agent，不随 Agent 重启被终止。探针主服务仍使用低权限用户和原有沙箱；升级服务的信任配置保存在 root 所有、0600 的 `/etc/xingdu-agent/updater.json`，普通探针用户不能改写控制端来源或升级程序。此配置复用机器身份，不包含 SSH 凭据。只使用标准固定下载端点，不接受租户指定 URL 或命令。
+
+升级任务绑定组织、机器身份、架构、目标版本和升级包 SHA-256。机器主动领取任务，下载后、执行前再次校验发起者管理权限和任务租约；拒绝摘要错误、重定向、架构不匹配和降级。旧 SSH 路径同样校验身份和升级包。两条路径共用安装任务唯一约束，升级期间阻止新协议操作；已有协议任务未结束时不能排队升级。
+
+升级保留 `/var/lib/xingdu-agent/agent.json`、机器身份、权限模式和已有协议服务。需要标准 Xingdu systemd 安装；自定义 unit、drop-in、控制端地址或身份不匹配会被拒绝。新二进制原子替换旧文件，只重启 Agent；启动失败会尝试恢复旧二进制并重启，恢复失败需人工处理。自更新需先确认升级程序执行成功，再收到同一机器身份的目标版本新心跳才完成。任务 5 分钟内未完成会显示失败/未确认，不自动重复执行。强制终止、掉电或网络中断可能留下需要人工检查的不确定结果。
+
+`POST /api/v1/hosts/{id}/agent/upgrade` 创建无凭据自更新任务；`POST /api/v1/hosts/{id}/ssh/upgrade` 为兼容和恢复入口。两者必须提供 `confirm_upgrade: true`。自更新机器接口拒绝浏览器 Cookie/Origin，使用独立机器 bearer；领取、执行前检查和完成均在事务局部租户上下文及 RLS 下执行，SSH Worker 不会领取自更新任务。撤销身份或发起者权限会阻止后续执行，但无法撤回已开始的远程操作。独立发布签名仍待实现，当前信任控制端 HTTPS 来源与其固定 SHA-256。
+
+2026-09-29 的隔离 arm64 Docker 验证覆盖 Ubuntu 24.04、Debian 13 和 Amazon Linux 2023 从 0.7.0-dev 升级到控制端构建版本：一次性与保存凭据、身份及模式保留、目标心跳确认均通过；两个托管系统验证已部署节点在升级后继续转发，探针系统保持低权限运行。另以故意启动失败的测试二进制验证真实 systemd 回滚。该结果不代表公网 VPS 或 amd64 实机验收。
+
+补充自更新验收：三个隔离 arm64 系统均在停止 SSH 服务后，通过网页 API 创建无凭据任务并升级成功。测试使用带自更新能力的旧版本标签构建作为夹具，不能据此认为已发布的旧 Agent 具备该能力。托管节点继续转发，Amazon Linux 探针保持低权限运行，探针用户无法读取 root 升级配置；摘要错误、重定向、重复领取、跨租户/错误租约和管理员撤权另有自动化覆盖。未验证公网 VPS 或真实客户端 App。
+
 ## 身份、心跳与撤销
 
 手动注册令牌绑定组织、机器和权限模式，15 分钟有效且只能使用一次；SSH 任务的注册令牌有效期 30 分钟。数据库仅保存令牌摘要。Agent 在本地生成并先保存独立随机机器凭据，再注册；即使注册响应丢失，也可凭该身份恢复。注册完成后从配置中清除初始令牌。
@@ -61,7 +79,11 @@ Agent 使用 HTTPS 和独立 bearer 凭据，每 30 秒主动发送心跳，无�
 「撤销机器接入」同时撤销未使用令牌、旧 Agent 身份并取消安装任务，**不会卸载 VPS 上的服务，也不能撤回已发出的远程操作**。删除资料会级联撤销相关身份、任务和保存的凭据。卸载或重装 Agent 前，请先卸载该机器的协议服务并确认完成；不要删除仍被协议服务使用的 `/var/lib/xingdu-agent/protocols`。需要卸载 Agent 时，由管理员在 VPS 上执行：
 
 ```sh
+sudo systemctl disable --now xingdu-agent-update.timer xingdu-agent-update.service
 sudo systemctl disable --now xingdu-agent
+sudo rm /etc/systemd/system/xingdu-agent-update.service /etc/systemd/system/xingdu-agent-update.timer
+sudo rm /etc/xingdu-agent/updater.json
+sudo rmdir /etc/xingdu-agent
 sudo rm /etc/systemd/system/xingdu-agent.service
 sudo systemctl daemon-reload
 sudo rm /usr/local/bin/xingdu-agent
@@ -89,7 +111,7 @@ SSH 会话有连接和任务超时；检查受并发数和用户限流约束。�
 
 安装任务持久化，Worker 使用独立 `xingdu_worker` 低权限登录角色。仅这个角色可通过固定 SECURITY DEFINER 函数领取全局任务 ID 与租户上下文，业务访问仍受 RLS；API 不能调用全局领取函数。Worker 每次执行与远程安装前重新检查发起者管理权限、任务租约及当前连接目标。
 
-任务租约 3 分钟、操作超时 100 秒。过期的运行任务标记中断并清除密文，不自动重试，避免不确定的远程动作重复执行。排队超过 30 分钟过期；清理依赖 Worker 正常运行。用户需核实 VPS 状态后重新提交。
+SSH 任务租约 3 分钟、操作超时 100 秒。过期的运行任务标记中断并清除密文，不自动重试，避免不确定的远程动作重复执行。排队超过 30 分钟过期；清理依赖 Worker 正常运行。用户需核实 VPS 状态后重新提交。
 
 ## 验收边界
 

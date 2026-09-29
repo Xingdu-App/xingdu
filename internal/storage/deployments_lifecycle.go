@@ -16,13 +16,6 @@ func (s *Store) RestartDeployment(ctx context.Context, host, id string) error {
 	if err != nil {
 		return err
 	}
-	var supported bool
-	if err = tx.QueryRow(ctx, `SELECT metrics->>'version'='0.7.0-dev' FROM machine_agents WHERE token_hash=$1`, hash).Scan(&supported); err != nil {
-		return err
-	}
-	if !supported {
-		return ErrConflict
-	}
 	if err = cleanupDeployments(ctx, tx, host); err != nil {
 		return err
 	}

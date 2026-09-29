@@ -64,6 +64,10 @@ func Install(ctx context.Context, server, mode, token string) error {
 	if err := Initialize(ctx, config, server, mode, token); err != nil {
 		return fmt.Errorf("enrollment incomplete; config retained for recovery: %w", err)
 	}
+	trustedConfig, err := Load(config)
+	if err != nil {
+		return err
+	}
 	if err := os.Chown(config, uid, gid); err != nil {
 		return err
 	}
@@ -109,7 +113,7 @@ func Install(ctx context.Context, server, mode, token string) error {
 	if err = exec.CommandContext(ctx, "systemctl", "enable", "--now", "xingdu-agent.service").Run(); err != nil {
 		return errors.New("service start failed; inspect journalctl -u xingdu-agent on VPS")
 	}
-	return nil
+	return installUpdater(ctx, trustedConfig)
 }
 func ServiceUnit(user, mode string) string {
 	s := `[Unit]

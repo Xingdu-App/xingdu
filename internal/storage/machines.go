@@ -10,6 +10,7 @@ import (
 )
 
 type MachineState struct {
+	LatestAgentVersion   string                   `json:"latest_agent_version,omitempty"`
 	RequiredAgentVersion string                   `json:"required_agent_version"`
 	Agent                *machine.AgentInfo       `json:"agent"`
 	Credential           *machine.SavedCredential `json:"credential"`
@@ -31,7 +32,7 @@ func (s *Store) MachineTarget(ctx context.Context, id string) (machine.Target, e
 	return t, mapError(err)
 }
 func (s *Store) MachineState(ctx context.Context, id string) (MachineState, error) {
-	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.Version}
+	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.MinimumDeploymentVersion}
 	tx, role, err := s.tenantTx(ctx, false, false)
 	if err != nil {
 		return out, err
@@ -43,7 +44,7 @@ func (s *Store) MachineState(ctx context.Context, id string) (MachineState, erro
 	}
 	var a machine.AgentInfo
 	var raw []byte
-	err = tx.QueryRow(ctx, "SELECT mode,enrolled_at,revoked_at,metrics FROM machine_agents WHERE host_id=$1", id).Scan(&a.Mode, &a.EnrolledAt, &a.RevokedAt, &raw)
+	err = tx.QueryRow(ctx, "SELECT mode,enrolled_at,revoked_at,metrics,COALESCE(updater_seen_at>now()-interval '90 seconds',false) FROM machine_agents WHERE host_id=$1", id).Scan(&a.Mode, &a.EnrolledAt, &a.RevokedAt, &raw, &a.SelfUpdate)
 	if err == nil {
 		json.Unmarshal(raw, &a.Metrics)
 		out.Agent = &a
@@ -60,14 +61,14 @@ func (s *Store) MachineState(ctx context.Context, id string) (MachineState, erro
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
 	}
-	rows, err := tx.Query(ctx, "SELECT id::text,host_id::text,mode,state,result,created_at,finished_at FROM machine_jobs WHERE host_id=$1 ORDER BY created_at DESC LIMIT 20", id)
+	rows, err := tx.Query(ctx, "SELECT id::text,host_id::text,mode,state,result,created_at,finished_at,action,target_version,transport FROM machine_jobs WHERE host_id=$1 ORDER BY created_at DESC LIMIT 20", id)
 	if err != nil {
 		return out, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var j machine.Job
-		if err = rows.Scan(&j.ID, &j.HostID, &j.Mode, &j.State, &j.Result, &j.CreatedAt, &j.FinishedAt); err != nil {
+		if err = rows.Scan(&j.ID, &j.HostID, &j.Mode, &j.State, &j.Result, &j.CreatedAt, &j.FinishedAt, &j.Action, &j.TargetVersion, &j.Transport); err != nil {
 			return out, err
 		}
 		out.Jobs = append(out.Jobs, j)
@@ -117,7 +118,7 @@ func (s *Store) EnrollAgent(ctx context.Context, enrollmentHash, agentHash, mode
 	if expected != mode {
 		return ErrForbidden
 	}
-	_, err = tx.Exec(ctx, "INSERT INTO machine_agents(host_id,organization_id,token_hash,mode) VALUES($1,$2,$3,$4) ON CONFLICT(host_id) DO UPDATE SET token_hash=excluded.token_hash,mode=excluded.mode,revoked_at=NULL,enrolled_at=now(),metrics='{}'", host, org, agentHash, mode)
+	_, err = tx.Exec(ctx, "INSERT INTO machine_agents(host_id,organization_id,token_hash,mode) VALUES($1,$2,$3,$4) ON CONFLICT(host_id) DO UPDATE SET token_hash=excluded.token_hash,mode=excluded.mode,revoked_at=NULL,enrolled_at=now(),metrics='{}',updater_seen_at=NULL", host, org, agentHash, mode)
 	if err != nil {
 		return err
 	}
@@ -225,14 +226,62 @@ func (s *Store) QueueInstall(ctx context.Context, j machine.Job, enrollmentHash 
 	if actual != target {
 		return ErrConflict
 	}
-	if _, err = tx.Exec(ctx, "INSERT INTO machine_jobs(id,organization_id,host_id,created_by,mode,encrypted) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4)", j.ID, j.HostID, j.Mode, j.Encrypted); err != nil {
+	if j.Transport == "" {
+		j.Transport = "ssh"
+	}
+	if j.Transport != "ssh" && j.Transport != "agent" {
+		return ErrInvalid
+	}
+	if j.Transport == "agent" {
+		if j.Action != "upgrade" || len(j.Encrypted) > 0 || c != nil {
+			return ErrInvalid
+		}
+		var ready bool
+		if err = tx.QueryRow(ctx, `SELECT COALESCE(updater_seen_at>now()-interval '90 seconds',false) FROM machine_agents WHERE host_id=$1 AND revoked_at IS NULL`, j.HostID).Scan(&ready); err != nil {
+			return mapError(err)
+		}
+		if !ready {
+			return ErrConflict
+		}
+	}
+	if j.Action == "" {
+		j.Action = "install"
+	}
+	if j.Action != "install" && j.Action != "upgrade" {
+		return ErrInvalid
+	}
+	if j.Action == "upgrade" {
+		var hash, mode, arch, version string
+		if err = tx.QueryRow(ctx, `SELECT token_hash,mode,COALESCE(metrics->>'arch',''),COALESCE(metrics->>'version','') FROM machine_agents WHERE host_id=$1 AND revoked_at IS NULL FOR UPDATE`, j.HostID).Scan(&hash, &mode, &arch, &version); err != nil {
+			return mapError(err)
+		}
+		if hash != j.AgentHash || mode != j.Mode || arch != j.Arch || j.TargetVersion != machine.Version || !machine.VersionAtLeast(j.TargetVersion, version) || machine.VersionAtLeast(version, j.TargetVersion) {
+			return ErrConflict
+		}
+		if !machine.ValidToken(j.ArtifactSHA256) {
+			return ErrInvalid
+		}
+		if err = cleanupDeployments(ctx, tx, j.HostID); err != nil {
+			return err
+		}
+		var active bool
+		if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running'))`, j.HostID).Scan(&active); err != nil {
+			return err
+		}
+		if active {
+			return ErrConflict
+		}
+	}
+	if _, err = tx.Exec(ctx, "INSERT INTO machine_jobs(id,organization_id,host_id,created_by,mode,encrypted,action,target_version,agent_hash,artifact_sha256,arch,transport) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9,$10)", j.ID, j.HostID, j.Mode, j.Encrypted, j.Action, j.TargetVersion, j.AgentHash, j.ArtifactSHA256, j.Arch, j.Transport); err != nil {
 		return mapError(err)
 	}
 	if _, err = tx.Exec(ctx, "DELETE FROM machine_enrollments WHERE host_id=$1", j.HostID); err != nil {
 		return err
 	}
-	if _, err = tx.Exec(ctx, "INSERT INTO machine_enrollments(token_hash,organization_id,host_id,mode,expires_at,created_by) VALUES($1,request_org_id(),$2,$3,now()+interval '30 minutes',request_user_id())", enrollmentHash, j.HostID, j.Mode); err != nil {
-		return err
+	if j.Action == "install" {
+		if _, err = tx.Exec(ctx, "INSERT INTO machine_enrollments(token_hash,organization_id,host_id,mode,expires_at,created_by) VALUES($1,request_org_id(),$2,$3,now()+interval '30 minutes',request_user_id())", enrollmentHash, j.HostID, j.Mode); err != nil {
+			return err
+		}
 	}
 	if c != nil {
 		if _, err = tx.Exec(ctx, "INSERT INTO machine_credentials(host_id,organization_id,method,fingerprint,encrypted) VALUES($1,request_org_id(),$2,$3,$4) ON CONFLICT(host_id) DO UPDATE SET method=excluded.method,fingerprint=excluded.fingerprint,encrypted=excluded.encrypted,saved_at=now()", j.HostID, c.Method, c.Fingerprint, c.Encrypted); err != nil {
@@ -242,7 +291,7 @@ func (s *Store) QueueInstall(ctx context.Context, j machine.Job, enrollmentHash 
 			return err
 		}
 	}
-	if err = audit(ctx, tx, j.HostID, "ssh_install_queued"); err != nil {
+	if err = audit(ctx, tx, j.HostID, j.Transport+"_"+j.Action+"_queued"); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -258,7 +307,14 @@ func (s *Store) LoadMachineJob(ctx context.Context, claim machine.Job) (machine.
 		return claim, err
 	}
 	defer tx.Rollback(ctx)
-	err = tx.QueryRow(ctx, "SELECT host_id::text,mode,encrypted FROM machine_jobs WHERE id=$1 AND lease=$2 AND state='running' AND lease_until>now()", claim.ID, claim.Lease).Scan(&claim.HostID, &claim.Mode, &claim.Encrypted)
+	err = tx.QueryRow(ctx, "SELECT host_id::text,mode,encrypted,action,target_version,agent_hash,artifact_sha256,arch FROM machine_jobs WHERE id=$1 AND lease=$2 AND state='running' AND lease_until>now()", claim.ID, claim.Lease).Scan(&claim.HostID, &claim.Mode, &claim.Encrypted, &claim.Action, &claim.TargetVersion, &claim.AgentHash, &claim.ArtifactSHA256, &claim.Arch)
+	if err == nil && claim.Action == "upgrade" {
+		var valid bool
+		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM machine_agents WHERE host_id=$1 AND token_hash=$2 AND mode=$3 AND revoked_at IS NULL)`, claim.HostID, claim.AgentHash, claim.Mode).Scan(&valid)
+		if err == nil && !valid {
+			err = ErrConflict
+		}
+	}
 	return claim, mapError(err)
 }
 func (s *Store) FinishMachineJob(ctx context.Context, j machine.Job, state, result string) error {
@@ -274,7 +330,7 @@ func (s *Store) FinishMachineJob(ctx context.Context, j machine.Job, state, resu
 	if tag.RowsAffected() == 0 {
 		return ErrConflict
 	}
-	if err = audit(ctx, tx, j.HostID, "ssh_install_"+state); err != nil {
+	if err = audit(ctx, tx, j.HostID, "ssh_"+j.Action+"_"+state); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

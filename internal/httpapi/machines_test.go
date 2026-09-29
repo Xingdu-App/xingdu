@@ -77,7 +77,7 @@ func TestMachineLifecycle(t *testing.T) {
 		t.Fatal("bootstrap token persisted", e)
 	}
 	state, e := s.MachineState(scoped, host.ID)
-	if e != nil || state.RequiredAgentVersion != machine.Version || state.Agent == nil || state.Agent.Metrics.Hostname == "" {
+	if e != nil || state.RequiredAgentVersion != machine.MinimumDeploymentVersion || state.Agent == nil || state.Agent.Metrics.Hostname == "" {
 		t.Fatal("heartbeat metrics missing", e)
 	}
 	records, _ := s.Hosts(scoped)

@@ -1,5 +1,6 @@
 import { t, useLocale, localeTag } from "./i18n";
 import Select from "./Select";
+import { agentVersionAtLeast } from "./agent-version";
 import { useEffect, useRef, useState } from "react";
 import {
   errorMessage,
@@ -7,6 +8,8 @@ import {
   getMachine,
   inspectSSH,
   installSSH,
+  upgradeSSH,
+  upgradeAgent,
   issueEnrollment,
   revokeMachine,
 } from "./api";
@@ -29,6 +32,28 @@ const jobStates: Record<string, string> = {
   },
 };
 const failures: Record<string, string> = {
+  get awaiting_heartbeat() {
+    return t("新版本已启动，正在等待心跳确认。");
+  },
+  get agent_upgraded() {
+    return t("已收到目标版本的 Agent 心跳，升级完成。");
+  },
+  get upgrade_release_changed() {
+    return t("控制端升级包已变化，请重新提交升级任务。");
+  },
+  get upgrade_failed_check_vps() {
+    return t(
+      "升级未完成，请检查 SSH 权限、原安装与控制端地址。启动失败时会尝试恢复旧版本。",
+    );
+  },
+  get self_update_failed() {
+    return t("Agent 自更新失败，请检查升级服务或使用 SSH 重试。");
+  },
+  get upgrade_unconfirmed() {
+    return t(
+      "升级命令已执行，但尚未确认新版本心跳。请检查机器状态，不要重复安装。",
+    );
+  },
   get service_installed() {
     return t("服务已安装，请以下方心跳状态为准。");
   },
@@ -142,7 +167,18 @@ export default function MachineDialog({
       setBusy(false);
     }
   }
-  const privileged = mode !== "manage" || confirmManage;
+  const privileged = path === "upgrade" || mode !== "manage" || confirmManage;
+  const upgrading = state?.jobs.some(
+    (j) => j.action === "upgrade" && ["queued", "running"].includes(j.state),
+  );
+  const latest = state?.latest_agent_version;
+  const canUpgrade = Boolean(
+    latest &&
+    state?.agent &&
+    !state.agent.revoked_at &&
+    agentVersionAtLeast(latest, state.agent.metrics.version) &&
+    !agentVersionAtLeast(state.agent.metrics.version, latest),
+  );
   const metrics = state?.agent?.metrics;
   return (
     <dialog
@@ -222,6 +258,72 @@ export default function MachineDialog({
               "在线状态以服务器列表中的最近心跳为准，超过 90 秒未上报会显示离线。",
             )}
           </p>
+          {manage && latest && state?.agent && !state.agent.revoked_at && (
+            <div className="machine-job">
+              <strong>{t("Agent 升级")}</strong>
+              <p>
+                {t("当前版本")}：{metrics?.version || "—"} · {t("可用版本")}：
+                {latest}
+              </p>
+              <p className="form-hint">
+                {t(
+                  state.agent.self_update
+                    ? "Agent 已支持自更新，无需 SSH 凭据。点击后下载并校验升级包，保留配置和节点，新版本心跳确认后完成。"
+                    : "升级服务尚未连接。旧版 Agent 需先通过 SSH 升级一次；已有升级服务时请检查其运行状态。",
+                )}
+              </p>
+              <button
+                className="primary"
+                disabled={busy || upgrading || !canUpgrade}
+                onClick={() => {
+                  if (state.agent?.self_update) {
+                    void act(async () => {
+                      await upgradeAgent(host.id);
+                      setNotice(t("升级任务已提交，正在等待新版本上线。"));
+                    });
+                  } else if (state.credential) {
+                    void act(async () => {
+                      await upgradeSSH(host.id, { use_saved: true });
+                      setNotice(t("升级任务已提交，正在等待新版本上线。"));
+                    });
+                  } else {
+                    setPath("upgrade");
+                    setMode(state.agent!.mode);
+                    setUseSaved(false);
+                    setNotice(
+                      t("请提供 SSH 凭据并核实主机指纹，然后开始升级。"),
+                    );
+                  }
+                }}
+              >
+                {upgrading
+                  ? t("正在升级…")
+                  : canUpgrade
+                    ? t("升级 Agent")
+                    : agentVersionAtLeast(metrics?.version, latest)
+                      ? t("已是当前或更新版本")
+                      : t("无法判断当前版本")}
+              </button>
+              {canUpgrade && (state.credential || state.agent.self_update) && (
+                <button
+                  className="secondary"
+                  disabled={busy || upgrading}
+                  onClick={() => {
+                    setPath("upgrade");
+                    setMode(state.agent!.mode);
+                    setUseSaved(false);
+                    setFingerprint("");
+                    setConfirmFingerprint(false);
+                    setNotice(
+                      t("请提供 SSH 凭据并核实主机指纹，然后开始升级。"),
+                    );
+                  }}
+                >
+                  {t("使用 SSH 升级")}
+                </button>
+              )}
+            </div>
+          )}
         </section>
         {manage && (
           <>
@@ -246,7 +348,7 @@ export default function MachineDialog({
               label={t("运行权限")}
               id="agent-mode"
               value={mode}
-              disabled={busy}
+              disabled={busy || path === "upgrade"}
               onChange={(value) => {
                 setMode(value);
                 setConfirmManage(false);
@@ -265,7 +367,7 @@ export default function MachineDialog({
                 },
               ]}
             />
-            {mode === "manage" && (
+            {mode === "manage" && path !== "upgrade" && (
               <label className="check-row">
                 <input
                   type="checkbox"
@@ -490,6 +592,7 @@ export default function MachineDialog({
                   className="primary"
                   disabled={
                     busy ||
+                    upgrading ||
                     !privileged ||
                     !confirmFingerprint ||
                     (!useSaved &&
@@ -498,20 +601,27 @@ export default function MachineDialog({
                   onClick={() =>
                     void act(async () => {
                       try {
-                        await installSSH(host.id, {
-                          method,
-                          password,
-                          private_key: privateKey,
-                          passphrase,
-                          fingerprint,
-                          mode,
-                          retain,
-                          use_saved: useSaved,
-                          confirm_manage: confirmManage,
-                          confirm_fingerprint: confirmFingerprint,
-                        });
+                        await (path === "upgrade" ? upgradeSSH : installSSH)(
+                          host.id,
+                          {
+                            method,
+                            password,
+                            private_key: privateKey,
+                            passphrase,
+                            fingerprint,
+                            mode,
+                            retain,
+                            use_saved: useSaved,
+                            confirm_manage: confirmManage,
+                            confirm_fingerprint: confirmFingerprint,
+                          },
+                        );
                         setNotice(
-                          t("安装任务已提交。凭据不会回显，进度每 5 秒更新。"),
+                          path === "upgrade"
+                            ? t("升级任务已提交，正在等待新版本上线。")
+                            : t(
+                                "安装任务已提交。凭据不会回显，进度每 5 秒更新。",
+                              ),
                         );
                       } finally {
                         setPassword("");
@@ -522,18 +632,29 @@ export default function MachineDialog({
                     })
                   }
                 >
-                  {t("开始 SSH 安装")}
+                  {path === "upgrade" ? t("开始升级") : t("开始 SSH 安装")}
                 </button>
               </section>
             )}
-            <h3>{t("安装记录")}</h3>
+            <h3>{t("安装与升级记录")}</h3>
             {!state?.jobs.length && (
               <p className="form-hint">{t("暂无 SSH 安装任务。")}</p>
             )}
             {state?.jobs.map((j) => (
               <article className="machine-job" key={j.id}>
                 <strong>
-                  {jobStates[j.state] ?? j.state} ·{" "}
+                  {j.action === "upgrade"
+                    ? j.state === "installed" && j.result === "agent_upgraded"
+                      ? t("升级完成")
+                      : j.state === "failed"
+                        ? t("升级失败")
+                        : j.state === "queued"
+                          ? t("等待升级")
+                          : j.state === "running"
+                            ? t("正在升级…")
+                            : (jobStates[j.state] ?? j.state)
+                    : (jobStates[j.state] ?? j.state)}{" "}
+                  · {j.action === "upgrade" && `${j.target_version} · `}
                   {j.mode === "manage" ? t("托管") : t("探针")}
                 </strong>
                 <small>

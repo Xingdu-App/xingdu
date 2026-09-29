@@ -35,3 +35,20 @@ func TestRuntimeArtifactRoute(t *testing.T) {
 		t.Fatal("symlink artifact accepted")
 	}
 }
+
+func TestPublicRuntimeAcceptsMachineBearer(t *testing.T) {
+	dir := t.TempDir()
+	if e := os.WriteFile(filepath.Join(dir, "sing-box-linux-arm64"), []byte("runtime"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	h := New(nil, Options{ArtifactDir: dir})
+	for _, method := range []string{"GET", "HEAD"} {
+		req := httptest.NewRequest(method, "/api/v1/agent/runtime/arm64", nil)
+		req.Header.Set("Authorization", "Bearer machine-credential")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if w.Code != 200 {
+			t.Fatal("machine bearer incorrectly sent to API-key authentication", w.Code)
+		}
+	}
+}

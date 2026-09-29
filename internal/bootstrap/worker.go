@@ -40,7 +40,7 @@ func WorkOnce(ctx context.Context, s *storage.Store, v *vault.Vault, c *Connecto
 				result = "target_changed"
 			} else {
 				op, cancel := context.WithTimeout(scoped, 100*time.Second)
-				e = c.InstallChecked(op, secret, origin, func() error {
+				check := func() error {
 					_, err := s.LoadMachineJob(op, claim)
 					if err != nil {
 						return err
@@ -53,10 +53,44 @@ func WorkOnce(ctx context.Context, s *storage.Store, v *vault.Vault, c *Connecto
 						return storage.ErrConflict
 					}
 					return nil
-				})
+				}
+				if job.Action == "upgrade" {
+					e = c.UpgradeChecked(op, secret, origin, job, check)
+					if e == nil {
+						wait, cancelWait := context.WithTimeout(op, 40*time.Second)
+						for {
+							if e = check(); e != nil {
+								e = errors.New("authorization_revoked")
+								break
+							}
+							ready, err := s.UpgradeReady(wait, job)
+							if err != nil {
+								e = errors.New("upgrade_unconfirmed")
+								break
+							}
+							if ready {
+								break
+							}
+							select {
+							case <-wait.Done():
+								e = errors.New("upgrade_unconfirmed")
+							case <-time.After(time.Second):
+							}
+							if e != nil {
+								break
+							}
+						}
+						cancelWait()
+					}
+				} else {
+					e = c.InstallChecked(op, secret, origin, check)
+				}
 				cancel()
 				if e == nil {
 					state, result = "installed", "service_installed"
+					if job.Action == "upgrade" {
+						result = "agent_upgraded"
+					}
 				} else {
 					result = e.Error()
 				}

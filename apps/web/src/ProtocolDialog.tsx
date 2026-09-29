@@ -1,3 +1,4 @@
+import { agentVersionAtLeast } from "./agent-version";
 import {
   restartNode,
   preflightNode,
@@ -242,9 +243,7 @@ export default function ProtocolDialog({
 
   const agent = machine?.agent;
   const requiredVersion = machine?.required_agent_version;
-  const versionCompatible = Boolean(
-    requiredVersion && agent?.metrics.version === requiredVersion,
-  );
+  const versionCompatible = agentVersionAtLeast(agent?.metrics.version, requiredVersion);
   const eligible =
     loaded &&
     host.status === "online" &&
@@ -267,7 +266,7 @@ export default function ProtocolDialog({
           : !versionCompatible
             ? requiredVersion
               ? t(
-                  "当前 Agent 版本为 {0}，部署需要 {1}。请更新机器上的 Agent 后再部署。",
+                  "当前 Agent 版本为 {0}，部署至少需要 {1}。请更新机器上的 Agent 后再部署。",
                   { 0: agent.metrics.version || "—", 1: requiredVersion },
                 )
               : t("控制端未提供 Agent 版本要求，请更新控制端后重试。")

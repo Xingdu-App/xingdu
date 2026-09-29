@@ -18,6 +18,10 @@ import (
 )
 
 type MachineStore interface {
+	ClaimSelfUpdate(context.Context, string) (*machine.UpdateTask, error)
+	CheckSelfUpdate(context.Context, string, string, string, string) error
+	CompleteSelfUpdate(context.Context, string, string) error
+	UpgradeIdentity(context.Context, string) (machine.Job, error)
 	MachineTarget(context.Context, string) (machine.Target, error)
 	MachineState(context.Context, string) (storage.MachineState, error)
 	Enrollment(context.Context, string, string, string) (time.Time, error)
@@ -31,6 +35,7 @@ type MachineStore interface {
 
 func (a *api) machineRoutes(mux *http.ServeMux) {
 	a.runtimeRoutes(mux)
+	a.selfUpdateRoutes(mux)
 	mux.HandleFunc("POST /api/v1/agent/enroll", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Token      string `json:"token"`
@@ -76,6 +81,10 @@ func (a *api) machineRoutes(mux *http.ServeMux) {
 			}
 			return
 		}
+		if err := a.store.CompleteSelfUpdate(r.Context(), machine.Hash(token), in.Version); err != nil {
+			storeError(w, err)
+			return
+		}
 		reply(w, 200, map[string]bool{"ok": true})
 	})
 	mux.HandleFunc("GET /api/v1/agent/download/{arch}", func(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +109,14 @@ func (a *api) machineRoutes(mux *http.ServeMux) {
 		if err != nil {
 			storeError(w, err)
 			return
+		}
+		if out.Agent != nil && out.Agent.RevokedAt == nil {
+			arch := out.Agent.Metrics.Arch
+			if arch == "amd64" || arch == "arm64" {
+				if st, e := os.Stat(filepath.Join(a.artifacts, "xingdu-agent-linux-"+arch)); a.artifacts != "" && e == nil && st.Mode().IsRegular() && st.Size() > 0 {
+					out.LatestAgentVersion = machine.Version
+				}
+			}
 		}
 		reply(w, 200, map[string]any{"data": out})
 	}))
@@ -174,6 +191,7 @@ func (a *api) machineRoutes(mux *http.ServeMux) {
 		reply(w, 200, map[string]any{"data": map[string]string{"fingerprint": fp}})
 	}))
 	mux.HandleFunc("POST /api/v1/hosts/{id}/ssh/install", a.tenant(a.queueInstall))
+	mux.HandleFunc("POST /api/v1/hosts/{id}/ssh/upgrade", a.tenant(a.queueInstall))
 }
 func (a *api) queueInstall(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
 	if !validID(w, r) {
@@ -206,11 +224,30 @@ func (a *api) queueInstall(w http.ResponseWriter, r *http.Request, u storage.Use
 		Mode               string `json:"mode"`
 		Retain             bool   `json:"retain"`
 		UseSaved           bool   `json:"use_saved"`
+		ConfirmUpgrade     bool   `json:"confirm_upgrade"`
 		ConfirmManage      bool   `json:"confirm_manage"`
 		ConfirmFingerprint bool   `json:"confirm_fingerprint"`
 	}
 	if !decodeLimit(w, r, &in, 40*1024) {
 		return
+	}
+	upgrading := strings.HasSuffix(r.URL.Path, "/upgrade")
+	var identity machine.Job
+	if upgrading {
+		if !in.ConfirmUpgrade {
+			failure(w, 422, "confirmation_required", "请确认原地升级 Agent")
+			return
+		}
+		identity, err = a.store.UpgradeIdentity(r.Context(), id)
+		if err != nil {
+			storeError(w, err)
+			return
+		}
+		in.Mode = identity.Mode
+		in.ConfirmManage = true
+		if in.UseSaved {
+			in.ConfirmFingerprint = true
+		}
 	}
 	if !machine.ValidMode(in.Mode) || (in.Mode == "manage" && !in.ConfirmManage) || !in.ConfirmFingerprint {
 		failure(w, 422, "confirmation_required", "请确认主机指纹及所选权限模式")
@@ -235,6 +272,9 @@ func (a *api) queueInstall(w http.ResponseWriter, r *http.Request, u storage.Use
 			return
 		}
 		secret.Mode = in.Mode
+		if upgrading && in.Fingerprint == "" {
+			in.Fingerprint = secret.Fingerprint
+		}
 		if secret.Fingerprint != in.Fingerprint {
 			failure(w, 409, "host_key_changed", "保存的主机指纹不匹配，请重新核实并提供凭据")
 			return
@@ -251,7 +291,21 @@ func (a *api) queueInstall(w http.ResponseWriter, r *http.Request, u storage.Use
 		clear(plain)
 	}
 	secret.EnrollmentToken = machine.Token()
-	j := machine.Job{ID: storage.NewID("job"), HostID: id, Mode: in.Mode}
+	j := machine.Job{ID: storage.NewID("job"), HostID: id, Mode: in.Mode, Action: "install"}
+	if upgrading {
+		if identity.Arch != "amd64" && identity.Arch != "arm64" {
+			failure(w, 422, "unsupported_platform", "当前仅支持 Linux amd64 / arm64")
+			return
+		}
+		binary, e := os.ReadFile(filepath.Join(a.artifacts, "xingdu-agent-linux-"+identity.Arch))
+		if a.artifacts == "" || e != nil || len(binary) == 0 {
+			failure(w, 503, "agent_artifact_unavailable", "控制端缺少 Agent 构建产物")
+			return
+		}
+		digest := sha256.Sum256(binary)
+		j.Action, j.TargetVersion, j.AgentHash, j.Arch, j.ArtifactSHA256 = "upgrade", machine.Version, identity.AgentHash, identity.Arch, hex.EncodeToString(digest[:])
+		secret.EnrollmentToken = ""
+	}
 	plain, _ := json.Marshal(secret)
 	j.Encrypted = a.vault.Seal(plain, machine.AAD(org, id, j.ID))
 	clear(plain)

@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-const Version = "0.7.0-dev"
+const Version = "0.11.0-dev"
 
 type Metrics struct {
 	Hostname        string  `json:"hostname"`
@@ -47,19 +47,26 @@ type Secret struct {
 	Mode            string `json:"mode"`
 }
 type Job struct {
-	ID         string     `json:"id"`
-	HostID     string     `json:"host_id"`
-	OrgID      string     `json:"-"`
-	UserID     string     `json:"-"`
-	Mode       string     `json:"mode"`
-	State      string     `json:"state"`
-	Result     string     `json:"result"`
-	CreatedAt  time.Time  `json:"created_at"`
-	FinishedAt *time.Time `json:"finished_at"`
-	Encrypted  []byte     `json:"-"`
-	Lease      string     `json:"-"`
+	Transport      string     `json:"transport"`
+	Action         string     `json:"action"`
+	TargetVersion  string     `json:"target_version,omitempty"`
+	AgentHash      string     `json:"-"`
+	ArtifactSHA256 string     `json:"-"`
+	Arch           string     `json:"-"`
+	ID             string     `json:"id"`
+	HostID         string     `json:"host_id"`
+	OrgID          string     `json:"-"`
+	UserID         string     `json:"-"`
+	Mode           string     `json:"mode"`
+	State          string     `json:"state"`
+	Result         string     `json:"result"`
+	CreatedAt      time.Time  `json:"created_at"`
+	FinishedAt     *time.Time `json:"finished_at"`
+	Encrypted      []byte     `json:"-"`
+	Lease          string     `json:"-"`
 }
 type AgentInfo struct {
+	SelfUpdate bool       `json:"self_update"`
 	Mode       string     `json:"mode"`
 	EnrolledAt time.Time  `json:"enrolled_at"`
 	RevokedAt  *time.Time `json:"revoked_at"`
@@ -91,4 +98,13 @@ func Origin(s string) error {
 }
 func AAD(org, host, id string) string {
 	return strings.Join([]string{"xingdu-ssh-v1", org, host, id}, ":")
+}
+
+// UpdateTask contains no executable URL or command supplied by a tenant.
+type UpdateTask struct {
+	ID      string `json:"id"`
+	Lease   string `json:"lease"`
+	Version string `json:"version"`
+	Arch    string `json:"arch"`
+	SHA256  string `json:"sha256"`
 }

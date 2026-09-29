@@ -106,7 +106,7 @@ def main():
         lab.reset_install(system)
         enrollment = api.action(host, 'enrollment', {'mode': 'manage', 'confirm_manage': True})
         lab.execute(system, 'sh', '-c', 'curl -fsS ' + lab.CONTROL + '/api/v1/agent/install.sh -o /tmp/xingdu-install.sh && sh /tmp/xingdu-install.sh manage', data=(enrollment['token'] + '\n').encode())
-        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.7.0-dev')
+        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.11.0-dev')
         lab.verify_service(system, 'manage')
         prepare_target(system)
         deployments = []

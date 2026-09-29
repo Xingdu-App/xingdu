@@ -41,9 +41,17 @@ func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	return err
 }
 func managingAgent(ctx context.Context, tx pgx.Tx, host string) (string, error) {
-	var hash string
-	err := tx.QueryRow(ctx, `SELECT a.token_hash FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' AND a.metrics->>'version' =$2 FOR UPDATE OF a`, host, machine.Version).Scan(&hash)
-	if errors.Is(err, pgx.ErrNoRows) {
+	required := machine.MinimumDeploymentVersion
+	var pending bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM machine_jobs WHERE host_id=$1 AND action='upgrade' AND state IN ('queued','running'))`, host).Scan(&pending); err != nil {
+		return "", err
+	}
+	if pending {
+		return "", ErrConflict
+	}
+	var hash, version string
+	err := tx.QueryRow(ctx, `SELECT a.token_hash,COALESCE(a.metrics->>'version','') FROM machine_agents a JOIN hosts h ON h.id=a.host_id WHERE h.id=$1 AND a.mode='manage' AND a.revoked_at IS NULL AND h.last_seen_at>now()-interval '90 seconds' FOR UPDATE OF a`, host).Scan(&hash, &version)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && !machine.VersionAtLeast(version, required)) {
 		return "", ErrConflict
 	}
 	return hash, err
@@ -177,11 +185,11 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 		return nil, err
 	}
 	defer tx.Rollback(ctx)
-	var compatible bool
-	if err = tx.QueryRow(ctx, `SELECT COALESCE(metrics->>'version'=$2,false) FROM machine_agents WHERE token_hash=$1`, hash, machine.Version).Scan(&compatible); err != nil {
+	var version string
+	if err = tx.QueryRow(ctx, `SELECT COALESCE(metrics->>'version','') FROM machine_agents WHERE token_hash=$1`, hash).Scan(&version); err != nil {
 		return nil, err
 	}
-	if !compatible {
+	if !machine.VersionAtLeast(version, machine.MinimumDeploymentVersion) {
 		return nil, ErrConflict
 	}
 	if err = cleanupDeployments(ctx, tx, host); err != nil {
