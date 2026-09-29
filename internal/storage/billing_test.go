@@ -187,47 +187,6 @@ func TestBillingTenantWebhookAndQuota(t *testing.T) {
 	if err = s.DeleteHost(ca, existing[0].ID); err != nil {
 		t.Fatal("unpaid organization cannot clean up", err)
 	}
-	// Premium crosses the old implicit 25-host cap, but never permits host 51.
-	premiumUser, premiumOrg := register()
-	premiumCtx := WithTenant(ctx, premiumUser, premiumOrg)
-	if err = s.EnsureBilling(premiumCtx); err != nil {
-		t.Fatal(err)
-	}
-	if err = s.MutateBilling(premiumCtx, "", "", func(r *billing.Record) error {
-		r.Status = "active"
-		r.Plan = "premium"
-		r.CheckoutPlan = "premium"
-		r.PeriodEnd = time.Now().Add(time.Hour).Unix()
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
-	for i := 0; i < 50; i++ {
-		input := host
-		input.Address = NewID("obj") + ".example.invalid"
-		if _, err = s.CreateHost(premiumCtx, input); err != nil {
-			t.Fatalf("Premium host %d: %v", i+1, err)
-		}
-	}
-	_, err = s.CreateHost(premiumCtx, extra)
-	expectCode(err, "P0004")
-	premiumOps, e := s.OrganizationOperations(premiumCtx)
-	if e != nil || premiumOps.Usage["hosts"] != (ResourceUsage{50, 50}) {
-		t.Fatalf("Premium usage: %v %v", premiumOps, e)
-	}
-	record, e := s.Billing(premiumCtx)
-	if e != nil || record.Plan != "premium" || record.CheckoutPlan != "premium" {
-		t.Fatal("plan persistence", e)
-	}
-	if err = s.MutateBilling(premiumCtx, "", "", func(r *billing.Record) error { r.PeriodEnd = time.Now().Add(-time.Hour).Unix(); return nil }); err != nil {
-		t.Fatal(err)
-	}
-	_, err = s.CreateHost(premiumCtx, extra)
-	expectCode(err, "P0004")
-	premiumOps, e = s.OrganizationOperations(premiumCtx)
-	if e != nil || premiumOps.Usage["hosts"] != (ResourceUsage{50, 1}) {
-		t.Fatal("expired Premium quota", e)
-	}
 	// Self-hosting stays free even with no Stripe subscription.
 	s.CloudBilling = false
 	if _, err = s.CreateHost(cb, extra); err != nil {

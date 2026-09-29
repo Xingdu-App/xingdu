@@ -1,4 +1,3 @@
-import { paidPlans, enterpriseContact, type PaidPlan } from "./plans";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { request, errorMessage } from "./api";
 import type { Organization } from "./api";
@@ -9,12 +8,10 @@ type BillingState = {
   mode: "self_hosted" | "cloud";
   test_mode: boolean;
   configured: boolean;
-  premium_available: boolean;
   active: boolean;
   has_customer: boolean;
   server_limit: number;
   subscription: {
-    plan: PaidPlan;
     status: string;
     interval: string;
     period_end: number;
@@ -69,11 +66,7 @@ export default function BillingPage({
       .then(async (result) => {
         if (controller.signal.aborted) return;
         setData(result);
-        if (
-          owner &&
-          result.configured &&
-          (result.has_customer || returned === "success")
-        ) {
+        if (returned === "success" && owner && result.configured) {
           await request("/api/v1/billing/sync", "POST", {}, controller.signal);
           await load(controller.signal);
         }
@@ -83,39 +76,7 @@ export default function BillingPage({
       });
     return () => controller.abort();
   }, [load, returned, owner]);
-  useEffect(() => {
-    if (
-      data?.mode !== "cloud" ||
-      data?.active ||
-      (!["payment_pending", "incomplete"].includes(
-        data?.subscription.status ?? "",
-      ) &&
-        returned !== "success")
-    )
-      return;
-    const controller = new AbortController();
-    let pending = false;
-    const refresh = async () => {
-      if (document.visibilityState !== "visible" || pending) return;
-      pending = true;
-      try {
-        await load(controller.signal);
-      } catch (e) {
-        if (!controller.signal.aborted) setError(errorMessage(e));
-      } finally {
-        pending = false;
-      }
-    };
-    const timer = window.setInterval(() => void refresh(), 10000);
-    document.addEventListener("visibilitychange", refresh);
-    return () => {
-      controller.abort();
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", refresh);
-    };
-  }, [data?.mode, data?.active, data?.subscription.status, returned, load]);
-
-  async function act(action: "checkout" | "portal", plan: PaidPlan = "start") {
+  async function act(action: "checkout" | "portal" | "sync") {
     if (actionController.current && !actionController.current.signal.aborted)
       return;
     const controller = new AbortController();
@@ -126,18 +87,18 @@ export default function BillingPage({
       const result = await request<{ url: string }>(
         `/api/v1/billing/${action}`,
         "POST",
-        action === "checkout" ? { interval, plan } : {},
+        action === "checkout" ? { interval } : {},
         controller.signal,
       );
       if (controller.signal.aborted) return;
-      {
+      if (action !== "sync") {
         const target = new URL(result.url);
         const host =
           action === "checkout" ? "checkout.stripe.com" : "billing.stripe.com";
         if (target.protocol !== "https:" || target.host !== host)
           throw new Error(t("支付服务暂时不可用，请稍后重试"));
         window.location.assign(target.href);
-      }
+      } else await load(controller.signal);
     } catch (e) {
       if (!controller.signal.aborted) setError(errorMessage(e));
     } finally {
@@ -190,12 +151,6 @@ export default function BillingPage({
             <div>
               <span className="eyebrow">{organization.name}</span>
               <h2>
-                {data.active && data.mode === "cloud" && (
-                  <>
-                    {data.subscription.plan === "premium" ? "Premium" : "Starter"}{" "}
-                    ·{" "}
-                  </>
-                )}
                 {data.mode === "self_hosted"
                   ? t("免费自部署版")
                   : t(statusLabels[data.subscription.status] ?? "套餐需核查")}
@@ -208,7 +163,7 @@ export default function BillingPage({
                 </p>
               ) : (
                 <>
-                  <p>{t("免费版 1 台，Starter 10 台，Premium 50 台服务器。")}</p>
+                  <p>{t("免费版可管理 1 台服务器，付费套餐可管理 10 台。")}</p>
                   <p>{t("当前服务器额度：{0} 台", { 0: data.server_limit })}</p>
                   {data.subscription.period_end > 0 && (
                     <p>
@@ -230,7 +185,7 @@ export default function BillingPage({
                       {t(
                         data.active
                           ? "套餐已开通。"
-                          : "付款结果正在确认，页面会自动更新。",
+                          : "付款结果正在确认，请刷新账单状态。",
                       )}
                     </p>
                   )}
@@ -240,8 +195,15 @@ export default function BillingPage({
                 </>
               )}
             </div>
-            {data.configured && owner && data.has_customer && (
+            {data.configured && owner && (
               <div className="billing-actions">
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void act("sync")}
+                >
+                  {t("刷新账单状态")}
+                </button>
                 {data.has_customer && (
                   <button
                     className="primary"
@@ -254,114 +216,74 @@ export default function BillingPage({
               </div>
             )}
           </section>
-          <div
-            className="billing-cadence"
-            role="group"
-            aria-label={t("付款周期")}
-          >
-            <button
-              type="button"
-              aria-pressed={interval === "month"}
-              onClick={() => setInterval("month")}
-              disabled={busy}
-            >
-              {t("月付")}
-            </button>
-            <button
-              type="button"
-              aria-pressed={interval === "year"}
-              onClick={() => setInterval("year")}
-              disabled={busy}
-            >
-              {t("年付")}
-            </button>
-          </div>
-          <div className="billing-plans">
-            {paidPlans.map((plan) => {
-              const current =
-                data.active && (data.subscription.plan || "start") === plan.id;
-              const available =
-                data.configured &&
-                (plan.id === "start" || data.premium_available);
-              return (
-                <section
-                  className={
-                    "panel billing-tier" +
-                    (plan.id === "premium" ? " billing-tier-featured" : "")
-                  }
-                  key={plan.id}
-                >
-                  <span className="eyebrow">XINGDU CLOUD</span>
-                  <h2>{plan.name}</h2>
-                  <p>
-                    {t(
-                      plan.id === "start"
-                        ? "适合个人与小型工作空间。"
-                        : "适合更多服务器与团队协作。",
-                    )}
-                  </p>
-                  <p className="billing-amount">
-                    ${interval === "year" ? plan.yearly : plan.monthly}
-                    <span> / {t(interval === "year" ? "年" : "月")}</span>
-                  </p>
-                  <p>
-                    {t(
-                      plan.id === "start"
-                        ? "每个组织 10 台服务器"
-                        : "每个组织 50 台服务器",
-                    )}
-                  </p>
-                  <ul>
-                    <li>{t("机器接入与状态监控")}</li>
-                    <li>{t("协议部署与节点订阅")}</li>
-                    <li>{t("API 密钥与自动化管理")}</li>
-                    <li>{t("组织邀请与成员协作")}</li>
-                  </ul>
-                  <button
-                    className={plan.id === "premium" ? "primary" : "secondary"}
-                    disabled={!canPurchase || !available || busy}
-                    onClick={() => void act("checkout", plan.id)}
-                  >
-                    {t(
-                      current
-                        ? "当前套餐"
-                        : busy
-                          ? "正在处理…"
-                          : !available
-                            ? "暂未开放购买"
-                            : "选择套餐",
-                    )}
-                  </button>
-                  {data.active && !current && (
-                    <a href="mailto:info@xingdu.app">
-                      {t("更换套餐请联系客服")}
-                    </a>
-                  )}
-                </section>
-              );
-            })}
-            <section className="panel billing-tier">
-              <span className="eyebrow">CUSTOM</span>
-              <h2>Enterprise</h2>
-              <p>{t("适合更大规模与定制需求。")}</p>
-              <h3 className="billing-custom-price">{t("定制报价")}</h3>
-              <p>{t("服务器额度按需求协商")}</p>
+          <section className="panel billing-plan">
+            <div className="billing-plan-info">
+              <span className="eyebrow">XINGDU CLOUD</span>
+              <h2>{t("一个套餐，管理你的服务器。")}</h2>
+              <p>
+                {t("包含 10 台服务器，按组织计费。VPS 和网络流量由你自行提供。")}
+              </p>
               <ul>
-                <li>{t("部署与接入方案咨询")}</li>
-                <li>{t("服务范围与支持方式单独约定")}</li>
+                <li>{t("机器接入与状态监控")}</li>
+                <li>{t("协议部署与节点订阅")}</li>
+                <li>{t("组织邀请与成员协作")}</li>
               </ul>
-              <a className="secondary billing-contact" href={enterpriseContact}>
-                {t("联系客服")}
-              </a>
-              <small>{t("定制报价与交付范围以双方确认的方案为准。")}</small>
-            </section>
-          </div>
-          <p className="billing-note">
-            {t("通过 Stripe 支付并自动续费，可在账单管理中取消下次续费。")}
-          </p>
+            </div>
+            <div className="billing-plan-price">
+              <div
+                className="billing-cadence"
+                role="group"
+                aria-label={t("付款周期")}
+              >
+                <button
+                  type="button"
+                  aria-pressed={interval === "month"}
+                  onClick={() => setInterval("month")}
+                  disabled={busy}
+                >
+                  {t("月付")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={interval === "year"}
+                  onClick={() => setInterval("year")}
+                  disabled={busy}
+                >
+                  {t("年付")} <span>{t("省 33%")}</span>
+                </button>
+              </div>
+              <p className="billing-amount">
+                ${interval === "year" ? "40" : "5"}
+                <span> / {t(interval === "year" ? "年" : "月")}</span>
+              </p>
+              <p>
+                {t(
+                  interval === "year"
+                    ? "约 $3.33/月，每年支付 $40。"
+                    : "每月支付 $5。",
+                )}
+              </p>
+              <button
+                className="primary"
+                disabled={!canPurchase || busy}
+                onClick={() => void act("checkout")}
+              >
+                {t(
+                  data.active
+                    ? "当前套餐"
+                    : busy
+                      ? "正在处理…"
+                      : "前往安全支付",
+                )}
+              </button>
+              <small>
+                {t("通过 Stripe 支付并自动续费，可在账单管理中取消下次续费。")}
+              </small>
+            </div>
+          </section>
           <p className="billing-note">
             {t(
-              "取消续费后可使用至当前账期结束。到期后限制新增资源，已有机器和配置不会自动删除。更换套餐或计费周期请联系客服。",
+              "取消续费后可使用至当前账期结束。到期后限制新增资源，已有机器和配置不会自动删除。更换月付或年付周期需等当前订阅结束。",
             )}
           </p>
         </>

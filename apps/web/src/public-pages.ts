@@ -63,7 +63,7 @@ export const publicPages: Record<
     path: "/pricing",
     title: "价格与部署方式 · 星渡 Xingdu",
     description:
-      "选择星渡 Starter、Premium 或 Enterprise：Starter 每月 $5 起，Premium 每月 $20 起、包含 50 台服务器，Enterprise 联系客服定制。",
+      "选择适合你的星渡：MIT 开源版本免费自托管；云端套餐 $5/月或 $40/年，每个组织包含 10 台服务器，VPS 与流量另行准备。",
   },
   privacy: {
     path: "/privacy",

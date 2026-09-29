@@ -2,25 +2,15 @@
 
 The Cloud plan belongs to an **organization**, not an individual member:
 
-| Plan | USD monthly / yearly price | Included servers |
+| Interval | USD price | Included servers |
 | --- | --- | --- |
 | Free | $0 | 1 |
-| Starter | $5 / $40 | 10 |
-| Premium | $20 / $200 | 50 |
-| Enterprise | Contact info@xingdu.app for a custom proposal | Negotiated |
+| Monthly | $5 each month | 10 |
+| Yearly | $40 each year | 10 |
 
-Starter yearly billing saves $20; Premium yearly billing saves $40 compared
-with twelve monthly payments. Customers supply their VPS and bandwidth.
-Self-hosting remains free under MIT. Explicit operator quotas remain upper
-bounds; the implicit cloud host limit follows the paid plan.
-
-Existing subscriptions migrate to Starter without changing their Stripe prices.
-The two Premium price variables are optional as a pair: until configured,
-Premium is displayed but its purchase button remains disabled. Enterprise is
-a contact flow, not a self-service Stripe checkout or an automatically granted
-quota. Contract and entitlement provisioning require operator handling.
-Changing an active plan is not automated; contact support. Existing subscriptions
-cannot open a second checkout, and Customer Portal remains cancellation-only.
+Yearly billing saves $20 versus twelve monthly payments (about 33%). Customers
+provide their own VPS and bandwidth. Self-hosted deployments remain free under
+MIT; existing operator-defined resource quotas still apply.
 
 ## Implementation and verification boundary
 
@@ -48,8 +38,8 @@ Use a Stripe account dedicated to Xingdu. Store secrets in the API deployment's
 environment or the ignored local `.env`; never put them in frontend variables,
 Git, URLs, command arguments or chat messages.
 
-1. Configure recurring flat-rate prices for **Starter** (USD 5/month and
-   USD 40/year) and **Premium** (USD 20/month and USD 200/year). Quantity is always one
+1. Create a product called **Xingdu Cloud** with two recurring, flat-rate prices:
+   **USD 5.00 every month** and **USD 40.00 every year**. Quantity is always one
    per organization. No trial, promotion code, adjustable quantity or usage-based
    charge is included in this initial integration.
 2. Create a Billing Portal configuration with invoice history and payment-method
@@ -63,10 +53,8 @@ Git, URLs, command arguments or chat messages.
    MODE=cloud
    STRIPE_SECRET_KEY=<test secret key>
    STRIPE_WEBHOOK_SECRET=<endpoint signing secret>
-   STRIPE_PRICE_MONTHLY=<Starter monthly price ID>
-   STRIPE_PRICE_YEARLY=<Starter yearly price ID>
-   STRIPE_PRICE_PREMIUM_MONTHLY=<Premium monthly price ID>
-   STRIPE_PRICE_PREMIUM_YEARLY=<Premium yearly price ID>
+   STRIPE_PRICE_MONTHLY=<monthly price ID>
+   STRIPE_PRICE_YEARLY=<yearly price ID>
    STRIPE_PORTAL_CONFIGURATION=<portal configuration ID>
    ```
 
@@ -101,7 +89,7 @@ Git, URLs, command arguments or chat messages.
    API. The CLI signing secret differs from the public endpoint's secret.
 6. Open **Account menu → Plan & billing** as the organization owner. Complete a
    test Checkout, verify invoice payment and the persisted organization status,
-   and confirm an eleventh Starter server or fifty-first Premium server is rejected. Test both intervals, repeat clicks,
+   and confirm an eleventh server is rejected. Test both intervals, repeat clicks,
    cancel-at-period-end, payment failure, renewal and webhook retries. An admin
    or member must not be able to open Checkout or the billing portal.
 
@@ -127,9 +115,8 @@ by this implementation. Do not reuse test-mode objects for real payments.
   Stripe state **after taking the lock**, and commit state plus event ID together.
   Duplicate events are ignored; out-of-order snapshots cannot restore old state.
   Provider or database failures return a retryable non-2xx response.
-- Entering the billing page automatically reconciles existing customers with
-  Stripe. Payment confirmation also reloads state while the page is visible.
-  This uses server-to-server verification, never a
+- The owner can use **Refresh billing status** to reconcile with Stripe if a
+  webhook is delayed or missed. This uses server-to-server verification, never a
   client-provided status. Monitor failed webhook deliveries in Stripe; there is
   no separate scheduled reconciliation worker in this version.
 - Paid access requires the configured price, one item with quantity one, an
@@ -138,10 +125,11 @@ by this implementation. Do not reuse test-mode objects for real payments.
   fail closed when a customer has multiple nonterminal subscriptions or more than
   100 historical subscriptions; resolve these exceptional cases with the operator.
 - In Cloud mode, each organization can manage one server for free, including
-  protocol deployments and client subscriptions. An active Starter plan allows ten servers; Premium allows fifty
+  protocol deployments and client subscriptions. An active paid plan allows ten
   servers. Above the current allowance, new hosts, deployments and client
-  subscriptions are blocked; existing resources remain available. The eleventh Starter server and fifty-first Premium server are rejected,
-  including concurrent requests. Lower operator quotas still apply. Self-hosting does
+  subscriptions are blocked; existing resources remain available. The eleventh
+  server is rejected even
+  for concurrent requests. Lower operator quotas still apply. Self-hosting does
   not use this payment gate. The API injects deployment mode into each scoped
   tenant transaction; tenants have no API for changing that mode or billing state.
 - On expiry, existing machines, agents, deployed services and downloaded client
@@ -164,9 +152,7 @@ customer association. Treat the ownership-transfer permission accordingly.
 `make check` includes provider transport, signature, status, authorization and
 frontend checks. Set `XINGDU_TEST_DATABASE_URL` to a dedicated PostgreSQL test
 database to additionally exercise owner/member isolation, webhook idempotency,
-retry rollback, paid/unpaid transitions and concurrent Starter enforcement, Premium fifty-server enforcement, expiration,
-and Premium monthly/yearly price validation. These are local simulations;
-Premium has not been verified with a real Stripe Checkout payment.
+retry rollback, paid/unpaid transitions and concurrent ten-server enforcement.
 The test suite uses an HTTP provider simulator; it does not charge a card.
 
 Stripe references: [Checkout](https://docs.stripe.com/api/checkout/sessions/create),

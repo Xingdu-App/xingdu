@@ -1,4 +1,4 @@
-// Package billing implements Xingdu's organization-scoped Cloud plans.
+// Package billing implements Xingdu's single, organization-scoped Cloud plan.
 package billing
 
 import (
@@ -23,7 +23,7 @@ var ErrUnavailable = errors.New("billing unavailable")
 var ErrConflict = errors.New("billing operation conflicts with current subscription")
 var ErrSignature = errors.New("invalid Stripe signature")
 
-type Config struct{ Mode, SecretKey, WebhookSecret, MonthlyPrice, YearlyPrice, PremiumMonthlyPrice, PremiumYearlyPrice, PortalConfiguration string }
+type Config struct{ Mode, SecretKey, WebhookSecret, MonthlyPrice, YearlyPrice, PortalConfiguration string }
 
 func (c Config) Validate() error {
 	if c.Mode == "" || c.Mode == "self_hosted" {
@@ -35,23 +35,12 @@ func (c Config) Validate() error {
 	if !(strings.HasPrefix(c.SecretKey, "sk_test_") || strings.HasPrefix(c.SecretKey, "sk_live_")) || !strings.HasPrefix(c.WebhookSecret, "whsec_") || !strings.HasPrefix(c.MonthlyPrice, "price_") || !strings.HasPrefix(c.YearlyPrice, "price_") || c.MonthlyPrice == c.YearlyPrice || !strings.HasPrefix(c.PortalConfiguration, "bpc_") {
 		return errors.New("cloud billing requires Stripe secret, webhook secret, two distinct price IDs and a portal configuration")
 	}
-	if c.PremiumMonthlyPrice != "" || c.PremiumYearlyPrice != "" {
-		seen := map[string]bool{c.MonthlyPrice: true, c.YearlyPrice: true}
-		for _, price := range []string{c.PremiumMonthlyPrice, c.PremiumYearlyPrice} {
-			if !strings.HasPrefix(price, "price_") || seen[price] {
-				return errors.New("Premium requires two distinct Stripe price IDs")
-			}
-			seen[price] = true
-		}
-	}
 	return nil
 }
 func (c Config) Cloud() bool { return c.Mode == "cloud" }
 func (c Config) Live() bool  { return strings.HasPrefix(c.SecretKey, "sk_live_") }
 
 type Record struct {
-	Plan              string `json:"plan"`
-	CheckoutPlan      string `json:"-"`
 	OrganizationID    string `json:"-"`
 	CustomerID        string `json:"-"`
 	Attempt           string `json:"-"`
@@ -68,9 +57,6 @@ func (r Record) Entitled(now time.Time) bool { return r.Status == "active" && r.
 
 func (r Record) ServerLimit(now time.Time) int {
 	if r.Entitled(now) {
-		if r.Plan == "premium" {
-			return 50
-		}
 		return 10
 	}
 	return 1
@@ -78,7 +64,7 @@ func (r Record) ServerLimit(now time.Time) int {
 
 type Gateway interface {
 	Customer(context.Context, string) (string, error)
-	Checkout(context.Context, *Record, string, string, string) (string, error)
+	Checkout(context.Context, *Record, string, string) (string, error)
 	Portal(context.Context, string, string) (string, error)
 	Sync(context.Context, *Record) error
 	Event([]byte, string) (string, string, error)
@@ -137,23 +123,10 @@ func (s *Stripe) Customer(ctx context.Context, org string) (string, error) {
 	}
 	return out.ID, nil
 }
-func (s *Stripe) price(ctx context.Context, plan, interval string) (string, error) {
+func (s *Stripe) price(ctx context.Context, interval string) (string, error) {
 	id := s.Config.MonthlyPrice
 	amount := int64(500)
-	if plan == "premium" {
-		if interval == "month" {
-			id, amount = s.Config.PremiumMonthlyPrice, 2000
-		} else if interval == "year" {
-			id, amount = s.Config.PremiumYearlyPrice, 20000
-		} else {
-			return "", ErrConflict
-		}
-		if id == "" {
-			return "", ErrUnavailable
-		}
-	} else if plan != "start" {
-		return "", ErrConflict
-	} else if interval == "year" {
+	if interval == "year" {
 		id = s.Config.YearlyPrice
 		amount = 4000
 	} else if interval != "month" {
@@ -182,7 +155,7 @@ func stripeURL(raw, host string) bool {
 	u, err := url.Parse(raw)
 	return err == nil && u.Scheme == "https" && u.Host == host && u.User == nil
 }
-func (s *Stripe) Checkout(ctx context.Context, r *Record, plan, interval, origin string) (string, error) {
+func (s *Stripe) Checkout(ctx context.Context, r *Record, interval, origin string) (string, error) {
 	if err := s.Sync(ctx, r); err != nil {
 		return "", err
 	}
@@ -195,7 +168,7 @@ func (s *Stripe) Checkout(ctx context.Context, r *Record, plan, interval, origin
 			return "", err
 		}
 		if session.Status == "open" {
-			if r.CheckoutInterval == interval && (r.CheckoutPlan == plan || r.CheckoutPlan == "" && plan == "start") && stripeURL(session.URL, "checkout.stripe.com") {
+			if r.CheckoutInterval == interval && stripeURL(session.URL, "checkout.stripe.com") {
 				return session.URL, nil
 			}
 			// Expire the previous checkout before permitting another cadence. A completed
@@ -208,17 +181,13 @@ func (s *Stripe) Checkout(ctx context.Context, r *Record, plan, interval, origin
 			return "", ErrConflict
 		}
 	}
-	price, err := s.price(ctx, plan, interval)
+	price, err := s.price(ctx, interval)
 	if err != nil {
 		return "", err
 	}
 	values := url.Values{"mode": {"subscription"}, "customer": {r.CustomerID}, "line_items[0][price]": {price}, "line_items[0][quantity]": {"1"}, "payment_method_types[0]": {"card"}, "client_reference_id": {r.OrganizationID}, "metadata[xingdu_organization]": {r.OrganizationID}, "subscription_data[metadata][xingdu_organization]": {r.OrganizationID}, "success_url": {origin + "/app/billing?checkout=success&organization=" + r.OrganizationID}, "cancel_url": {origin + "/app/billing?checkout=cancelled&organization=" + r.OrganizationID}}
 	var out struct{ ID, URL string }
-	key := "xingdu/checkout/" + r.Attempt + "/" + r.CheckoutID + "/" + plan + "/" + interval
-	if plan == "start" {
-		// Preserve retry identity for existing checkout attempts across upgrades.
-		key = "xingdu/checkout/" + r.Attempt + "/" + r.CheckoutID + "/" + interval
-	}
+	key := "xingdu/checkout/" + r.Attempt + "/" + r.CheckoutID + "/" + interval
 	if err = s.call(ctx, "POST", "/checkout/sessions", values, key, &out); err != nil {
 		return "", err
 	}
@@ -227,7 +196,6 @@ func (s *Stripe) Checkout(ctx context.Context, r *Record, plan, interval, origin
 	}
 	r.CheckoutID = out.ID
 	r.CheckoutInterval = interval
-	r.CheckoutPlan = plan
 	return out.URL, nil
 }
 func (s *Stripe) Portal(ctx context.Context, customer, origin string) (string, error) {
@@ -327,7 +295,6 @@ func (s *Stripe) Sync(ctx context.Context, r *Record) error {
 	r.PeriodEnd = 0
 	r.CancelAtPeriodEnd = sub.CancelAtPeriodEnd
 	r.Interval = ""
-	r.Plan = "start"
 	if len(sub.Items.Data) != 1 {
 		r.Status = "unsupported"
 		return nil
@@ -336,13 +303,7 @@ func (s *Stripe) Sync(ctx context.Context, r *Record) error {
 	price := item.Price
 	interval := "month"
 	amount := int64(500)
-	if s.Config.PremiumMonthlyPrice != "" && price.ID == s.Config.PremiumMonthlyPrice {
-		r.Plan = "premium"
-		amount = 2000
-	} else if s.Config.PremiumYearlyPrice != "" && price.ID == s.Config.PremiumYearlyPrice {
-		r.Plan = "premium"
-		interval, amount = "year", 20000
-	} else if price.ID == s.Config.YearlyPrice {
+	if price.ID == s.Config.YearlyPrice {
 		interval = "year"
 		amount = 4000
 	} else if price.ID != s.Config.MonthlyPrice {

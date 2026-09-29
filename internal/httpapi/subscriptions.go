@@ -3,8 +3,11 @@ package httpapi
 import (
 	"context"
 	"errors"
+	"mime"
 	"net"
 	"net/http"
+	"strings"
+	"unicode"
 	resourceid "xingdu.app/xingdu/internal/id"
 	"xingdu.app/xingdu/internal/machine"
 	"xingdu.app/xingdu/internal/protocol"
@@ -167,18 +170,36 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			return
 		}
 		w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
-		w.Header().Set("Content-Disposition", `attachment; filename="xingdu.yaml"`)
 		if format == "surge" || format == "loon" {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Header().Set("Content-Disposition", `attachment; filename="xingdu.conf"`)
 		}
 		if format == "hysteria2_uri" {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-			w.Header().Set("Content-Disposition", `attachment; filename="xingdu.txt"`)
 		}
+		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": subscriptionFilename(sub.Name, format)}))
 		w.WriteHeader(200)
 		_, _ = w.Write(content)
 	})
+}
+
+func subscriptionFilename(name, format string) string {
+	name = strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) || strings.ContainsRune(`/\:*?"<>|`, r) {
+			return '_'
+		}
+		return r
+	}, name)
+	name = strings.Trim(strings.TrimSpace(name), ". ")
+	if name == "" {
+		name = "subscription"
+	}
+	ext := ".yaml"
+	if format == "surge" || format == "loon" {
+		ext = ".conf"
+	} else if format == "hysteria2_uri" {
+		ext = ".txt"
+	}
+	return name + ext
 }
 
 func remoteIP(r *http.Request) string {

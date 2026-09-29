@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"mime"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -40,7 +41,7 @@ func TestSubscriptionContentUsesRoutingAndRejectsURIOverride(t *testing.T) {
 	d := storage.Deployment{ID: storage.NewID("node"), HostID: storage.NewID("srv"), OrgID: storage.NewID("org"), Name: "Fixture", Server: "192.0.2.10"}
 	d.Encrypted = v.Seal(plain, deploymentAAD(d.OrgID, d.HostID, d.ID))
 	token := machine.Token()
-	store := &routingContentFake{hash: machine.Hash(token), deployment: d, sub: storage.Subscription{ID: storage.NewID("sub"), Name: "Fixture", Format: "stash", FinalAction: "proxy", NodeIDs: []string{d.ID}, Rules: []subscription.Rule{{Type: "domain", Value: "example.com", Target: "group:work"}}, Routing: &subscription.Routing{Preset: "balanced-v1", Groups: []subscription.RoutingGroup{{ID: "proxy", Name: "Default", Type: "url-test"}, {ID: "work", Name: "Work", Type: "select", NodeIDs: []string{d.ID}}}, Targets: map[string]string{"proxy": "group:work"}, Final: "group:proxy"}}}
+	store := &routingContentFake{hash: machine.Hash(token), deployment: d, sub: storage.Subscription{ID: storage.NewID("sub"), Name: "日常订阅 Home", Format: "stash", FinalAction: "proxy", NodeIDs: []string{d.ID}, Rules: []subscription.Rule{{Type: "domain", Value: "example.com", Target: "group:work"}}, Routing: &subscription.Routing{Preset: "balanced-v1", Groups: []subscription.RoutingGroup{{ID: "proxy", Name: "Default", Type: "url-test"}, {ID: "work", Name: "Work", Type: "select", NodeIDs: []string{d.ID}}}, Targets: map[string]string{"proxy": "group:work"}, Final: "group:proxy"}}}
 	h := New(store, Options{CredentialVault: v})
 	path := "/api/v1/subscriptions/" + store.sub.ID + "/content?token=" + token
 	for _, format := range []string{"stash", "mihomo", "surge"} {
@@ -48,6 +49,14 @@ func TestSubscriptionContentUsesRoutingAndRejectsURIOverride(t *testing.T) {
 		h.ServeHTTP(w, httptest.NewRequest("GET", path+"&format="+format, nil))
 		if w.Code != 200 {
 			t.Fatalf("%s: %d %s", format, w.Code, w.Body)
+		}
+		disposition, params, err := mime.ParseMediaType(w.Header().Get("Content-Disposition"))
+		ext := ".yaml"
+		if format == "surge" {
+			ext = ".conf"
+		}
+		if err != nil || disposition != "attachment" || params["filename"] != "日常订阅 Home"+ext {
+			t.Fatal("subscription download name", w.Header().Get("Content-Disposition"), err)
 		}
 		text := w.Body.String()
 		if !strings.Contains(text, "DOMAIN,example.com,Work") || !strings.Contains(text, "ChinaDomain.list") {
