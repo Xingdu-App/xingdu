@@ -254,15 +254,6 @@ function App({
                       : t("管理当前组织的服务器、节点与客户端配置。")}
               </p>
             </div>
-            <button
-              hidden={page === "api-keys" || page === "api-docs"}
-              className="secondary"
-              disabled={state === "loading"}
-              onClick={refresh}
-            >
-              {state === "loading" ? t("正在连接…") : t("刷新状态")}{" "}
-              <span aria-hidden="true">↻</span>
-            </button>
           </div>
           {notice && (
             <div className="notice" role="status">
