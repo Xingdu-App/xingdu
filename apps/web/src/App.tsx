@@ -1,3 +1,4 @@
+import { TableSkeleton } from "./LoadingSkeleton";
 import RoutePanel from "./RoutePanel";
 import APIDocsPage from "./APIDocsPage";
 import APIKeysPanel from "./APIKeysPanel";
@@ -358,7 +359,18 @@ function App({
                     </span>
                   </div>
                 </div>
-                {state === "ready" && hosts.length > 0 ? (
+                {state === "loading" ? (
+                  <TableSkeleton
+                    headers={[
+                      t("名称"),
+                      t("地址 / SSH"),
+                      t("标签"),
+                      t("状态"),
+                      t("Agent 版本"),
+                      t("操作"),
+                    ]}
+                  />
+                ) : state === "ready" && hosts.length > 0 ? (
                   <>
                     <div className="table-scroll inventory-table">
                       <table>
@@ -523,9 +535,7 @@ function App({
                     <h3>
                       {state === "ready"
                         ? t("还没有添加服务器")
-                        : state === "loading"
-                          ? t("正在获取服务器列表")
-                          : t("服务器列表暂时不可用")}
+                        : t("服务器列表暂时不可用")}
                     </h3>
                     <p>
                       {state === "ready"

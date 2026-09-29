@@ -1,3 +1,4 @@
+import { TableSkeleton } from "./LoadingSkeleton";
 import { useEffect, useState } from "react";
 import { request, errorMessage } from "./api";
 import { t, useLocale, localeTag } from "./i18n";
@@ -129,7 +130,11 @@ export default function OperationsPanel({
           {error}
         </p>
       )}
-      {!data && !error && <p className="operations-empty">{t("加载中…")}</p>}
+      {!data && !error && (
+        <TableSkeleton
+          headers={[t("时间"), t("操作"), t("资源"), t("操作者")]}
+        />
+      )}
       {data && (
         <>
           <dl className="operations-quotas">

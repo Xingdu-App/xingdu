@@ -1,3 +1,4 @@
+import ConsoleSkeleton from "./LoadingSkeleton";
 import { t, useLocale } from "./i18n";
 import Select from "./Select";
 import { useEffect, useRef, useState } from "react";
@@ -264,12 +265,7 @@ export default function OrganizationGate({
       {overlay}
     </>
   );
-  if (loading)
-    return (
-      <div className="auth-page">
-        <p role="status">{t("正在加载组织…")}</p>
-      </div>
-    );
+  if (loading) return <ConsoleSkeleton />;
   if (!org)
     return (
       <div className="auth-page">

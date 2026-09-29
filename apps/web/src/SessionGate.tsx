@@ -1,3 +1,4 @@
+import ConsoleSkeleton from "./LoadingSkeleton";
 import { t, useLocale } from "./i18n";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -252,6 +253,7 @@ export default function SessionGate() {
         <OrganizationGate session={session} onLogout={signOut} />
       </AvatarProvider>
     );
+  if (checking) return <ConsoleSkeleton />;
   return (
     <div className="auth-page">
       <a className="auth-home-link" href="/">
@@ -299,9 +301,7 @@ export default function SessionGate() {
             </p>
           </div>
         )}
-        {checking ? (
-          <p role="status">{t("正在检查登录状态…")}</p>
-        ) : checkError ? (
+        {checkError ? (
           <div className="auth-error" role="alert">
             <p>{checkError}</p>
             <button

@@ -1,3 +1,4 @@
+import { CardSkeleton } from "./LoadingSkeleton";
 import { localServiceLabel, certificateLabel } from "./runtime-api";
 import { t, useLocale, localeTag } from "./i18n";
 import { useState } from "react";
@@ -90,7 +91,9 @@ export default function NodePanel({
           </button>
         )}
       </div>
-      {!ready || !filtered.length ? (
+      {loading ? (
+        <CardSkeleton />
+      ) : !ready || !filtered.length ? (
         <div className="empty-state">
           <span className="pending-star" aria-hidden="true">
             ✧
