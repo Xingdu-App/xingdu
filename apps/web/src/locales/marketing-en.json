@@ -380,5 +380,10 @@
   "默认选择托管模式，需明确授权 root 权限，可执行固定的协议安装与卸载任务，不开放任意远程命令。只需采集状态时可选择使用专用低权限用户和 systemd 限制的探针模式。": "Managed mode is selected by default and requires explicit root authorization. It runs predefined protocol installation and removal tasks without arbitrary remote commands. For monitoring only, choose probe mode with a dedicated low-privilege user and systemd restrictions.",
   "默认托管，按需探针": "Managed by default, monitoring when needed",
   "免费版可管理 1 台服务器，付费套餐可管理 10 台。": "Manage 1 server for free, or 10 with a paid plan.",
-  "当前服务器额度：{0} 台": "Current server allowance: {0}"
+  "当前服务器额度：{0} 台": "Current server allowance: {0}",
+  "准备一台你有权管理的 Linux 服务器；使用 TLS 协议时，还需准备域名和有效证书。": "Prepare a Linux server you are authorized to manage. TLS protocols also require a domain and a valid certificate.",
+  "托管 Agent 可安装九种协议，包括 Shadowsocks、Trojan、Hysteria 2 与 AnyTLS。按协议准备配置，确认授权后查看任务进度。": "The managed Agent can install nine protocols, including Shadowsocks, Trojan, Hysteria 2 and AnyTLS. Prepare the required configuration, authorize deployment and track its progress.",
+  "已提供九种协议的部署、受限客户端导出、配置版本恢复和单层 TCP 中转。客户端版本与协议组合需分别验证；公网连接效果取决于实际网络。": "Nine protocol deployments, constrained client exports, configuration restore and single-hop TCP relays are implemented. Each client version and protocol combination needs verification; public connectivity depends on the actual network.",
+  "托管 Agent 可部署 Trojan、VLESS、VMess、Hysteria 2、TUIC、Shadowsocks、SS2022、AnyTLS 和 HTTPS。支持范围内可导出客户端配置，配置更新与单层 TCP 中转需新版 Agent。自动证书需要运营者另行配置，实际客户端兼容范围以验收记录为准。": "The managed Agent can deploy Trojan, VLESS, VMess, Hysteria 2, TUIC, Shadowsocks, SS2022, AnyTLS and HTTPS. Supported configurations can be exported to clients. Updates and single-hop TCP relays require a recent Agent. Automatic certificates need operator setup; consult acceptance records for verified client compatibility.",
+  "当前版本处于早期预览，功能与接口可能调整。自动证书和外部探测需要单独配置，客户端兼容与公网部署仍需逐项验收。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。": "This is an early preview; features and interfaces may change. Automatic certificates and external probes require separate setup. Client compatibility and public deployments need individual acceptance checks. No formal SLA is offered. Back up your data and read the release notes before upgrading."
 }

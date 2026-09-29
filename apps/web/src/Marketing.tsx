@@ -146,7 +146,7 @@ function GettingStarted() {
     <section className="site-section site-container">
       <SectionTitle eyebrow="GET STARTED" title={t("三步，建立你的工作空间。")}>
         {t(
-          "准备一台你有权管理的 Linux 服务器；部署协议服务时，还需准备域名和有效的 TLS 证书。",
+          "准备一台你有权管理的 Linux 服务器；使用 TLS 协议时，还需准备域名和有效证书。",
         )}
       </SectionTitle>
       <div className="site-feature-grid">
@@ -321,7 +321,7 @@ function Home() {
             <h3>{t("从机器，到协议服务")}</h3>
             <p>
               {t(
-                "托管 Agent 可安装 Trojan、VLESS、VMess、Hysteria 2 与 TUIC。提供 TLS 证书，确认授权后查看任务进度。",
+                "托管 Agent 可安装九种协议，包括 Shadowsocks、Trojan、Hysteria 2 与 AnyTLS。按协议准备配置，确认授权后查看任务进度。",
               )}
             </p>
             <div className="feature-tags">
@@ -417,7 +417,7 @@ function Home() {
           <h2>{t("从服务部署，到客户端配置。")}</h2>
           <p>
             {t(
-              "五种协议的安装与卸载、Stash、Mihomo、Surge、Loon 配置及 Hysteria 2 分享链接已提供。各格式支持的协议和证书要求不同，实际 App 导入与联网仍需验证；线路编排尚未开放。",
+              "已提供九种协议的部署、受限客户端导出、配置版本恢复和单层 TCP 中转。客户端版本与协议组合需分别验证；公网连接效果取决于实际网络。",
             )}
           </p>
         </div>
@@ -520,7 +520,7 @@ function Pricing() {
           <summary>{t("支持一键部署协议和客户端订阅吗？")}</summary>
           <p>
             {t(
-              "已实现托管 Agent 安装与卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC v5，须提供 TLS 证书并明确授权。可按支持范围导出 Stash、Mihomo、Surge、Loon 配置及 Hysteria 2 分享链接。自动证书签发、线路编排与真实客户端验收尚未完成。",
+              "托管 Agent 可部署 Trojan、VLESS、VMess、Hysteria 2、TUIC、Shadowsocks、SS2022、AnyTLS 和 HTTPS。支持范围内可导出客户端配置，配置更新与单层 TCP 中转需新版 Agent。自动证书需要运营者另行配置，实际客户端兼容范围以验收记录为准。",
             )}
           </p>
         </details>
@@ -857,7 +857,7 @@ function Service() {
           <h2>{t("预览范围与后续变化")}</h2>
           <p>
             {t(
-              "当前版本处于早期预览，功能与接口可能调整。自动证书签发与续期、配置回滚、线路编排和客户端 App 全量兼容验收尚未完成。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。",
+              "当前版本处于早期预览，功能与接口可能调整。自动证书和外部探测需要单独配置，客户端兼容与公网部署仍需逐项验收。当前没有正式服务等级（SLA）承诺；升级前请备份并核对版本说明。",
             )}
           </p>
         </section>

@@ -25,13 +25,13 @@
 - **用户登录：** 邮箱验证注册、邮箱/密码登录，以及可选 Google / GitHub 登录与账号绑定；支持本地创建账号和可撤销会话。第三方应用配置与验收边界见 [登录说明](docs/SOCIAL-LOGIN.md)。
 - **机器接入：** 主动安装 Agent，或通过 SSH 密码 / 私钥安装；校验主机指纹，可选长期加密保存凭据。配置与验收边界见 [机器接入](docs/MACHINE-ACCESS.md)。
 - **节点列表：** 按组织汇总已成功部署的节点，支持搜索、协议筛选与节点详情；卸载成功后移出列表，操作结果保留在部署记录中。
-- **协议部署：** 托管 Agent 可安装和卸载 Trojan、VLESS、VMess、Hysteria 2、TUIC v5；使用用户提供的 TLS 证书，查看执行进度，由管理员主动获取连接凭据。前提与验收边界见 [协议部署](docs/PROTOCOL-DEPLOYMENT.md)。
+- **协议部署：** 托管 Agent 可安装和卸载 无需域名和证书的 Shadowsocks / Shadowsocks 2022（当前仅 TCP），以及使用用户提供 TLS 证书的 Trojan、VLESS、VMess、Hysteria 2、TUIC v5，查看执行进度，由管理员主动获取连接凭据。前提与验收边界见 [协议部署](docs/PROTOCOL-DEPLOYMENT.md)。
 - **真实服务状态：** 查看 API 和数据库是否可用，连接失败时显示错误并支持重试。
 - **基础订阅：** 选择已部署节点、添加有序的域名/CIDR 规则，生成可重置或停用的 Stash（默认）、Mihomo、Surge 或 Loon 配置链接，或 Hysteria 2 URI；不同格式有明确的协议与证书限制。权限和客户端兼容边界见[订阅说明](docs/SUBSCRIPTIONS.md)。
 - **本地 Docker 环境：** 一次启动控制台、API、PostgreSQL、数据库迁移和 Worker 进程。
 - **开发基础：** Go 与 TypeScript 代码、自动化检查，以及独立的 Worker 和 Agent 程序入口。
 
-Worker 已执行 SSH Agent 安装任务，Agent 可以注册、上报状态并执行固定的协议安装与卸载任务；不开放任意远程命令，已在 [Docker 实验室](docs/AGENT-LAB.md) 验证 Ubuntu 24.04、Debian 13、Amazon Linux 2023（arm64）的 systemd 安装；真实 VPS/EC2 验收仍待完成。五种协议也已在上述三个 arm64 Docker 系统中使用 sing-box 客户端验证实际转发、错误认证拒绝、私有目标阻止、重启恢复与卸载；不代表具体客户端应用或真实 VPS/EC2 的兼容性。控制台目前提供简体中文界面。
+Worker 已执行 SSH Agent 安装任务，Agent 可以注册、上报状态并执行固定的协议安装与卸载任务；不开放任意远程命令，已在 [Docker 实验室](docs/AGENT-LAB.md) 验证 Ubuntu 24.04、Debian 13、Amazon Linux 2023（arm64）的 systemd 安装；真实 VPS/EC2 验收仍待完成。五种 TLS 协议也已在上述三个 arm64 Docker 系统中使用 sing-box 客户端验证实际转发、错误认证拒绝、私有目标阻止、重启恢复与卸载；Shadowsocks 和 Shadowsocks 2022 也已在这三个系统验证 TCP 转发、错误密钥拒绝、私有目标拦截、重启和卸载，UDP 已明确关闭。不代表具体客户端应用或真实 VPS/EC2 的兼容性。控制台目前提供简体中文界面。
 
 ## 我们希望实现的体验
 
