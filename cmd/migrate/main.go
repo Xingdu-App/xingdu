@@ -15,7 +15,7 @@ func main() {
 		slog.Error("migration configuration failed")
 		os.Exit(1)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	store, err := storage.Open(ctx, cfg.DatabaseURL)
 	if err != nil {

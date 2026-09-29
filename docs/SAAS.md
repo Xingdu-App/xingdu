@@ -44,13 +44,13 @@ flowchart LR
 
 ## 数据库隔离
 
-API 与 Worker 使用独立 `xingdu_app` 登录角色，无超级用户、BYPASSRLS、建库、建角色、建表权限，也不是表所有者。API 启动时拒绝特权连接。仅迁移服务持有数据库管理凭据。
+API 与 Worker 使用独立 `xingdu_app` 登录角色，无超级用户、BYPASSRLS、建库、建角色、建表权限，也不是表所有者。API 启动时拒绝特权连接。API 容器启动阶段由独立迁移子进程使用管理连接；启动脚本在执行 API 前移除迁移专用环境变量，Worker 不接收管理连接。
 
 组织相关表启用 `ENABLE ROW LEVEL SECURITY` 与 `FORCE ROW LEVEL SECURITY`。每次业务操作开启事务，通过 `set_config(..., true)` 设置本次用户和组织；提交或回滚后上下文自动清除，避免连接池串租户。HTTP 中的组织 ID 只是选择器，用户 ID 始终来自服务端会话，写操作同时经过成员权限校验和数据库策略。
 
 成员 RLS 使用固定 search_path 的只读 SECURITY DEFINER 函数读取当前用户的角色，避免策略递归。函数由专用 `xingdu_policy` NOLOGIN 角色拥有：仅有成员表 SELECT 权限和 BYPASSRLS；运行账号没有该角色的成员资格，不能切换至该角色。函数不接受用户 ID 参数、不执行动态 SQL，并撤销 PUBLIC 执行权限。
 
-全局身份与会话表属于认证子系统，不通过租户 RLS 隔离；不得将其查询接口暴露为通用数据 API。RLS 保护业务行访问，不能替代应用认证或防御运行数据库凭据泄漏。PostgreSQL 的超级用户可绕过 RLS，因此迁移凭据不得进入 API/Worker。参见 [PostgreSQL 17 官方文档](https://www.postgresql.org/docs/17/ddl-rowsecurity.html)。
+全局身份与会话表属于认证子系统，不通过租户 RLS 隔离；不得将其查询接口暴露为通用数据 API。RLS 保护业务行访问，不能替代应用认证或防御运行数据库凭据泄漏。PostgreSQL 的超级用户可绕过 RLS，因此业务 API/Worker 不得使用迁移连接。自动迁移需要平台 API 服务配置持有独立管理连接，不构成容器级凭据隔离；需要严格隔离时使用独立发布任务，见 [部署说明](ZEABUR.md)。参见 [PostgreSQL 17 官方文档](https://www.postgresql.org/docs/17/ddl-rowsecurity.html)。
 
 当前使用组织级事务 advisory lock 串行化权限变更与业务访问，确保成员移除提交后的请求立即失去权限；后续高并发场景可细化锁粒度，不能破坏撤权与邀请消费的原子性。
 

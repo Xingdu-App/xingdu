@@ -39,6 +39,12 @@ func run() error {
 		return err
 	}
 	defer store.Close()
+	readiness, readyCancel := context.WithTimeout(ctx, 10*time.Second)
+	readyErr := store.Ready(readiness)
+	readyCancel()
+	if readyErr != nil {
+		return errors.New("database migrations incomplete or database unavailable; apply migrations before starting API")
+	}
 	connector, credentialVault, agentOrigin, err := bootstrap.Configuration(cfg.PublicOrigin)
 	if err != nil {
 		return err

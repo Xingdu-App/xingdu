@@ -21,5 +21,7 @@ COPY --from=build /out/ /usr/local/bin/
 COPY --from=build /agents/ /opt/xingdu/agents/
 COPY --from=protocol-assets /runtimes/ /opt/xingdu/agents/
 COPY LICENSE /usr/share/licenses/xingdu/LICENSE
+COPY --chmod=0755 deploy/api-entrypoint.sh /usr/local/bin/xingdu-entrypoint
 USER xingdu
+ENTRYPOINT ["/usr/local/bin/xingdu-entrypoint"]
 CMD ["server"]

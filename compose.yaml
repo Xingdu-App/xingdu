@@ -16,6 +16,7 @@ services:
       timeout: 3s
       retries: 20
   migrate:
+    profiles: ["tools"]
     build:
       context: .
       dockerfile: deploy/Dockerfile
@@ -35,6 +36,9 @@ services:
     command: ["server"]
     environment:
       DATABASE_URL: postgres://xingdu_app:${XINGDU_APP_DATABASE_PASSWORD}@db:5432/xingdu?sslmode=disable
+      XINGDU_MIGRATION_DATABASE_URL: postgres://xingdu:${POSTGRES_PASSWORD}@db:5432/xingdu?sslmode=disable
+      XINGDU_APP_DATABASE_PASSWORD: ${XINGDU_APP_DATABASE_PASSWORD:?Set a separate runtime database password in .env}
+      XINGDU_WORKER_DATABASE_PASSWORD: ${XINGDU_WORKER_DATABASE_PASSWORD:?Set a worker database password in .env}
       XINGDU_HTTP_ADDR: 0.0.0.0:8080
       XINGDU_PUBLIC_ORIGIN: ${XINGDU_PUBLIC_ORIGIN:-http://127.0.0.1:15173}
       MODE: ${MODE:-self_hosted}
@@ -56,12 +60,13 @@ services:
     ports:
       - "127.0.0.1:18080:8080"
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/health/ready"]
       interval: 5s
       timeout: 5s
+      start_period: 5m
       retries: 12
   worker:
     build:
@@ -75,8 +80,8 @@ services:
       XINGDU_SSH_ALLOWED_CIDRS: ${XINGDU_SSH_ALLOWED_CIDRS:-}
       DATABASE_URL: postgres://xingdu_worker:${XINGDU_WORKER_DATABASE_PASSWORD}@db:5432/xingdu?sslmode=disable
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      api:
+        condition: service_healthy
   web:
     build:
       context: .
