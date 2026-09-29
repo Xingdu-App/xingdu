@@ -318,9 +318,32 @@ export type Protocol =
   | "shadowsocks"
   | "shadowsocks2022"
   | "anytls"
-  | "http";
+  | "http"
+  | "socks"
+  | "mixed"
+  | "hysteria"
+  | "shadowtls"
+  | "snell"
+  | "snell6";
 export const isShadowsocks = (p: string) =>
   p === "shadowsocks" || p === "shadowsocks2022";
+export const requiresTLS = (p: string) =>
+  ![
+    "shadowsocks",
+    "shadowsocks2022",
+    "socks",
+    "mixed",
+    "shadowtls",
+    "snell",
+    "snell6",
+  ].includes(p);
+export const isQUIC = (p: string) =>
+  ["hysteria", "hysteria2", "tuic"].includes(p);
+export const handshakeHosts = [
+  "www.microsoft.com",
+  "www.apple.com",
+  "cloud.tencent.com",
+];
 export type Deployment = {
   runtime_version?: string;
   id: string;
@@ -353,6 +376,7 @@ export type Deployment = {
   finished_at: string | null;
 };
 export type DeploymentConnection = {
+  username?: string;
   cipher?: string;
   protocol: Protocol;
   server: string;
@@ -501,6 +525,12 @@ export const rotateSubscription = (id: string, signal: AbortSignal) =>
   );
 
 export const protocolNames: Record<Protocol, string> = {
+  socks: "SOCKS5",
+  mixed: "HTTP / SOCKS5",
+  hysteria: "Hysteria 1",
+  shadowtls: "ShadowTLS v3 + SS 2022",
+  snell: "Snell v4 compatible",
+  snell6: "Snell v6 (beta)",
   shadowsocks: "Shadowsocks",
   shadowsocks2022: "Shadowsocks 2022",
   anytls: "AnyTLS",

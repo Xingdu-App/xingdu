@@ -18,7 +18,7 @@ module_spec = importlib.util.spec_from_file_location('agent_lab', Path(__file__)
 lab = importlib.util.module_from_spec(module_spec)
 module_spec.loader.exec_module(lab)
 ROOT, LOCAL = lab.ROOT, lab.LOCAL
-PROTOCOLS = ['trojan', 'vless', 'vmess', 'hysteria2', 'tuic', 'shadowsocks', 'shadowsocks2022', 'anytls', 'http']
+PROTOCOLS = ['trojan', 'vless', 'vmess', 'hysteria2', 'tuic', 'shadowsocks', 'shadowsocks2022', 'anytls', 'http', 'socks', 'mixed', 'hysteria', 'shadowtls', 'snell', 'snell6']
 TLS_NAME = 'node.xingdu.test'
 # Assigned to loopback INSIDE the isolated containers, never routed externally.
 TARGET = '93.184.216.34'
@@ -102,7 +102,7 @@ with socket.create_connection(('127.0.0.1',19080),timeout=5) as control:
         raise AssertionError('UDP probe failed on ' + system + '; inspect local probe diagnostic')
 
 
-def connection_test(system, connection, expect_success=True):
+def connection_test(system, connection, expect_success=True, mixed_http=False):
     p = connection['protocol']
     outbound = {'type': p, 'tag': 'proxy', 'server': '127.0.0.1', 'server_port': connection['port'], 'tls': {'enabled': True, 'server_name': connection['server_name'], 'certificate': connection['certificate'].splitlines()}}
     if p in ('shadowsocks', 'shadowsocks2022'):
@@ -119,7 +119,25 @@ def connection_test(system, connection, expect_success=True):
         outbound.update(password=connection['password'], congestion_control='bbr')
     if p in ('hysteria2', 'tuic'):
         outbound['tls']['alpn'] = ['h3']
-    config = {'log': {'disabled': True}, 'inbounds': [{'type': 'mixed', 'listen': '127.0.0.1', 'listen_port': 19080}], 'outbounds': [outbound], 'route': {'final': 'proxy'}}
+    outbounds = [outbound]
+    if p in ('socks', 'mixed'):
+        outbound.clear()
+        outbound.update(type='socks', tag='proxy', server='127.0.0.1', server_port=connection['port'], version='5', username='xingdu', password=connection['credential'])
+    if p == 'mixed' and mixed_http:
+        outbound['type'] = 'http'
+        outbound.pop('version', None)
+    if p in ('snell', 'snell6'):
+        outbound.clear()
+        outbound.update(type='snell', tag='proxy', server='127.0.0.1', server_port=connection['port'], version=6 if p == 'snell6' else 4, psk=connection['credential'])
+    if p == 'hysteria':
+        outbound.pop('uuid', None)
+        outbound.update(auth_str=connection['credential'], up_mbps=100, down_mbps=100)
+        outbound['tls']['alpn'] = ['hysteria']
+    if p == 'shadowtls':
+        outbound.clear()
+        outbound.update(type='shadowsocks', tag='proxy', method=connection['cipher'], password=connection['credential'], detour='transport')
+        outbounds.append({'type':'shadowtls','tag':'transport','server':'127.0.0.1','server_port':connection['port'],'version':3,'password':connection['password'],'tls':{'enabled':True,'server_name':connection['server_name'],'certificate':(LOCAL/'ca.crt').read_text().splitlines(),'utls':{'enabled':True,'fingerprint':'chrome'}}})
+    config = {'log': {'disabled': True}, 'inbounds': [{'type': 'mixed', 'listen': '127.0.0.1', 'listen_port': 19080}], 'outbounds': outbounds, 'route': {'final': 'proxy'}}
     lab.execute(system, 'sh', '-c', 'umask 077; cat > /run/xingdu-protocol-client.json', data=json.dumps(config).encode())
     lab.execute(system, 'systemd-run', '--quiet', '--collect', '--unit=xingdu-lab-protocol-client', '/usr/local/lib/xingdu/sing-box-1.14.2', 'run', '-c', '/run/xingdu-protocol-client.json')
     try:
@@ -135,12 +153,30 @@ def connection_test(system, connection, expect_success=True):
                 assert blocked.returncode != 0, 'Private destination was reachable through proxy'
         else:
             assert not forwarded(), 'Invalid protocol credentials were accepted'
-        if p in ('shadowsocks', 'shadowsocks2022'):
+        if expect_success and p in ('shadowsocks', 'shadowsocks2022', 'socks', 'mixed', 'snell', 'snell6', 'shadowtls'):
             udp_disabled_test(system)
     finally:
         lab.execute(system, 'systemctl', 'stop', 'xingdu-lab-protocol-client', check=False)
         lab.execute(system, 'rm', '-f', '/run/xingdu-protocol-client.json')
         lab.eventually(lambda: lab.execute(system, 'systemctl', 'show', 'xingdu-lab-protocol-client', '-p', 'LoadState', '--value', check=False).stdout.strip() == b'not-found', 15)
+
+
+def prepare_handshake(system):
+    # The lab network is internal. Use a CA-signed TLS 1.3 fixture for the
+    # approved handshake hostname, resolved only inside disposable containers.
+    if not (LOCAL/'handshake.crt').exists():
+        (LOCAL/'handshake.cnf').write_text('[server]\nsubjectAltName=DNS:www.microsoft.com\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth\n')
+        lab.command(['openssl','req','-new','-newkey','rsa:2048','-nodes','-subj','/CN=www.microsoft.com','-keyout',str(LOCAL/'handshake.key'),'-out',str(LOCAL/'handshake.csr')])
+        lab.command(['openssl','x509','-req','-in',str(LOCAL/'handshake.csr'),'-CA',str(LOCAL/'ca.crt'),'-CAkey',str(LOCAL/'ca.key'),'-CAcreateserial','-days','14','-extfile',str(LOCAL/'handshake.cnf'),'-extensions','server','-out',str(LOCAL/'handshake.crt')])
+        (LOCAL/'handshake.key').chmod(0o600)
+    for name in ('handshake.crt','handshake.key'):
+        lab.execute(system,'sh','-c','umask 077; cat > /run/xingdu-'+name,data=(LOCAL/name).read_bytes())
+    lab.execute(system,'sh','-c', 'grep -q "www.microsoft.com" /etc/hosts || printf "127.0.0.1 www.microsoft.com\\n" >> /etc/hosts')
+    active = lab.execute(system,'systemctl','is-active','--quiet','xingdu-lab-handshake',check=False)
+    if active.returncode:
+        server = "import socket,ssl,threading\nc=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)\nc.minimum_version=ssl.TLSVersion.TLSv1_3\nc.load_cert_chain('/run/xingdu-handshake.crt','/run/xingdu-handshake.key')\ns=socket.socket()\ns.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)\ns.bind(('127.0.0.1',443))\ns.listen()\ndef handle(raw):\n try:\n  with c.wrap_socket(raw,server_side=True) as conn: conn.recv(4096)\n except (OSError,ssl.SSLError): raw.close()\nwhile True:\n raw,_=s.accept()\n threading.Thread(target=handle,args=(raw,),daemon=True).start()\n"
+        lab.execute(system,'sh','-c','umask 077; cat > /run/xingdu-handshake.py',data=server.encode())
+        lab.execute(system,'systemd-run','--quiet','--collect','--unit=xingdu-lab-handshake','python3','/run/xingdu-handshake.py')
 
 
 def main():
@@ -166,15 +202,19 @@ def main():
         lab.reset_install(system)
         enrollment = api.action(host, 'enrollment', {'mode': 'manage', 'confirm_manage': True})
         lab.execute(system, 'sh', '-c', 'curl -fsS ' + lab.CONTROL + '/api/v1/agent/install.sh -o /tmp/xingdu-install.sh && sh /tmp/xingdu-install.sh manage', data=(enrollment['token'] + '\n').encode())
-        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.11.0-dev')
+        lab.eventually(lambda: api.host(host)['status'] == 'online' and api.machine(host)['agent']['metrics']['version'] == '0.14.0-dev')
         lab.verify_service(system, 'manage')
         prepare_target(system)
+        if 'shadowtls' in PROTOCOLS:
+            prepare_handshake(system)
         deployments = []
         findings = {}
         for index, p in enumerate(PROTOCOLS):
             body = {'name': p.upper() + ' · Protocol Lab', 'protocol': p, 'port': 24430 + index, 'confirm_install': True}
-            if p not in ('shadowsocks', 'shadowsocks2022'):
+            if p not in ('shadowsocks', 'shadowsocks2022', 'socks', 'mixed', 'snell', 'snell6', 'shadowtls'):
                 body.update(server_name=TLS_NAME, certificate=certificate, private_key=key)
+            if p == 'shadowtls':
+                body['server_name'] = 'www.microsoft.com'
             d = queue(api, host, body)
             deployments.append(d['id'])
             wait_deployment(api, host, d['id'], 'succeeded')
@@ -186,11 +226,19 @@ def main():
             connection = api.action(host, 'deployments/' + d['id'] + '/connection')
             assert 'private_key' not in connection
             connection_test(system, connection)
+            if p == 'mixed':
+                connection_test(system, connection, mixed_http=True)
             invalid = dict(connection)
             invalid['credential'] = '00000000-0000-4000-8000-000000000001' if p in ('vless', 'vmess', 'tuic') else 'invalid-password'
-            if p == 'shadowsocks2022':
+            if p in ('shadowsocks2022', 'shadowtls'):
                 invalid['credential'] = base64.b64encode(os.urandom(32)).decode()
             connection_test(system, invalid, expect_success=False)
+            if p == 'mixed':
+                connection_test(system, invalid, expect_success=False, mixed_http=True)
+            if p == 'shadowtls':
+                bad_outer = dict(connection)
+                bad_outer['password'] = 'invalid-outer-password'
+                connection_test(system, bad_outer, expect_success=False)
             if p in ('shadowsocks', 'shadowsocks2022'):
                 api.action(host, 'deployments/' + d['id'] + '/restart', {'confirm': True})
                 restarted = wait_deployment(api, host, d['id'], 'succeeded')
@@ -203,6 +251,8 @@ def main():
         lab.compose('restart', 'lab-' + system)
         lab.eventually(lambda: lab.execute(system, 'systemctl', 'is-active', '--quiet', 'xingdu-agent', check=False).returncode == 0, 60)
         prepare_target(system)
+        if 'shadowtls' in PROTOCOLS:
+            prepare_handshake(system)
         lab.eventually(lambda: api.host(host)['status'] == 'online')
         for d in deployments:
             lab.execute(system, 'systemctl', 'is-active', 'xingdu-protocol-' + d + '.service')
@@ -223,6 +273,7 @@ def main():
         findings['uninstall'] = 'All selected services stopped, files removed, API connection secrets cleared'
         lab.execute(system, 'systemctl', 'stop', 'xingdu-lab-protocol-target', check=False)
         lab.execute(system, 'systemctl', 'stop', 'xingdu-lab-udp-target', check=False)
+        lab.execute(system, 'systemctl', 'stop', 'xingdu-lab-handshake', check=False)
         api.call('POST', '/api/v1/auth/logout')
         lab.progress(lab.SYSTEMS[system] + ': restart / occupied port / uninstall PASS')
         return findings
@@ -258,7 +309,10 @@ if __name__ == '__main__':
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--protocol', action='append', choices=PROTOCOLS, help='Test only selected protocols; repeat to select several')
+    parser.add_argument('--system', action='append', choices=list(lab.SYSTEMS), help='Limit the disposable Linux systems')
     args = parser.parse_args()
+    if args.system:
+        lab.SYSTEMS = {k: lab.SYSTEMS[k] for k in dict.fromkeys(args.system)}
     if args.protocol:
         PROTOCOLS = list(dict.fromkeys(args.protocol))
     try:

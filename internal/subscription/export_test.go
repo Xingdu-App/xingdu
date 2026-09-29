@@ -27,8 +27,12 @@ import (
 
 func fixture(t *testing.T, kind string, index int) Node {
 	t.Helper()
-	if protocol.IsShadowsocks(kind) {
-		spec, err := protocol.NewSpec(protocol.Input{Name: "Demo", Protocol: kind, Port: 8388})
+	if !protocol.RequiresTLS(kind) {
+		in := protocol.Input{Name: "Demo", Protocol: kind, Port: 8388}
+		if kind == "shadowtls" {
+			in.ServerName = "www.microsoft.com"
+		}
+		spec, err := protocol.NewSpec(in)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,7 +160,7 @@ func TestMihomoParser(t *testing.T) {
 		t.Skip("XINGDU_TEST_MIHOMO_BINARY not set")
 	}
 	var nodes []Node
-	for i, kind := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http"} {
+	for i, kind := range []string{"trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls"} {
 		nodes = append(nodes, fixture(t, kind, i))
 	}
 	b, err := RenderClash("Parser check", nodes, []Rule{{"domain", "example.com", "proxy"}, {"domain_suffix", "example.org", "direct"}, {"ip_cidr", "2001:db8::/32", "reject"}}, "proxy")

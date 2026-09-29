@@ -110,3 +110,51 @@ Agent 0.13.0-dev 起，在服务状态上报中附带 `runtime_version`，取自
 发布时先升级 API 并应用迁移 038，再升级 Agent；旧 API 不接受新增状态字段。
 
 旧 Agent、缺失的二进制或无法确认的受管路径上报空值，界面显示“未上报”。升级 Agent 后，已有节点会在下一轮状态上报时补齐，无需重新部署。版本跟随 `service_checked_at` 的最后检查时间；离线时不代表当前运行状态。
+
+## 扩展代理协议（Agent 0.14.0-dev）
+
+| API 协议值 | 服务端与客户端配置 | 证书 / 传输 |
+| --- | --- | --- |
+| `socks` | SOCKS5，固定用户名 `xingdu` 与随机密码 | 无 TLS，明文认证，仅 TCP 转发 |
+| `mixed` | 同端口 HTTP CONNECT 与 SOCKS5，固定用户名 `xingdu` | 无 TLS，明文认证，仅 TCP 转发 |
+| `hysteria` | Hysteria 1，`auth_str`，上下行带宽提示均为 100 Mbps | 自备 TLS 证书，QUIC / UDP，ALPN `hysteria` |
+| `shadowtls` | ShadowTLS v3 + SS2022 AES-256-GCM；独立内外层凭据 | 不上传证书；公共握手域名；仅 TCP 转发 |
+| `snell` | sing-box Snell v5 服务端，客户端指定 v4 | 无需证书；加密 TCP；不启用 v5 QUIC Proxy Mode |
+| `snell6` | Snell v6 测试版，默认加密流量整形 | 无需证书；仅 TCP 转发；需要兼容 v6 的客户端 |
+
+这些协议支持托管部署、连接信息、更新/轮换、重启、卸载与单层 TCP 中转的
+配置生成。旧 Agent 不能领取新增协议任务；配置更新也同时检查入口、出口
+协议所需版本。SOCKS5 和 Mixed 不提供链路加密，应通过可信网络或加密隧道
+使用；不要把它们当作 HTTPS 代理。客户端导出能力见订阅文档。
+
+ShadowTLS 的 `server_name` 只能选择 `www.microsoft.com`、`www.apple.com`
+或 `cloud.tencent.com`，服务器必须能访问该域名的 TCP 443。固定目标和
+关闭通配 SNI 避免用户指定任意内部握手目标；不接受自定义端口、IP、证书
+或运行时 JSON。启用 v3 strict mode，解密后的流量进入无独立监听端口的
+SS2022 inbound，继续经过私网目标阻止规则。`credential` 是 SS2022 密钥，
+`password` 是独立 ShadowTLS 密码，客户端仍正常校验握手域名的公共证书。
+
+SOCKS5、Mixed、ShadowTLS、Snell 的 UDP 转发在服务端显式拒绝，订阅也
+标记 TCP-only。Hysteria 1 的 100 Mbps 是拥塞控制参数，不是套餐限速。
+Snell v6 尚处于上游测试阶段，可能有协议变动。Naive 按当前范围暂不接入；
+TUN、透明代理、Cloudflare Tunnel 及 VPN endpoint 需要独立的接入模型。
+
+实现依据：固定 [sing-box 1.14.2 入站文档](https://github.com/SagerNet/sing-box/tree/v1.14.2/docs/configuration/inbound)、
+[Snell 版本说明](https://sing-box.sagernet.org/configuration/inbound/snell/)。
+
+2026-09-29 新增协议验收：Debian 13 / arm64 的六个选项均通过托管安装、
+真实 TCP 流量转发、错误凭据拒绝、私有 IP/域名拦截、非 root 运行、容器
+重启恢复、端口冲突保护和卸载。Mixed 同时测试 HTTP 和 SOCKS5 入口；
+ShadowTLS 分别测试错误的内层与外层凭据，握手使用隔离实验室 CA 签发的
+TLS 1.3 目标，不是公共握手域名的网络可达性测试。除 Hysteria 1 外的新增
+选项均实测拒绝 UDP 转发。Hysteria 1 本轮证明 QUIC 传输承载 TCP 流量，
+不据此宣称完成 UDP 应用或各客户端 App 验收。
+
+新增 Mihomo 配置通过本地官方 Mihomo 解析测试；Snell 的 Stash / Surge
+导出仍是字段测试，未完成对应 App 联网验收。其他 Linux 发行版、amd64、
+公网 VPS 和新增协议中转仍需分别验收，不能由此处的单机容器结果替代。
+
+```sh
+python3 scripts/protocol-lab.py --system debian --protocol socks --protocol mixed \
+  --protocol hysteria --protocol shadowtls --protocol snell --protocol snell6
+```

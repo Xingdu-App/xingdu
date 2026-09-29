@@ -123,3 +123,27 @@ Surge 采用独立 INI 适配：VMess AEAD + TLS、TUIC v5 的 UUID/密码分别
 不直接执行外部脚本，不把订阅令牌发送到公共转换服务，也不静默忽略不支持的
 RULE-SET/GEOIP/GEOSITE/多策略组。完整社区模板接入应另行增加规则源更新、
 格式能力校验、版本固定/失败保留、策略组映射和许可证检查。
+
+## 新增代理协议导出
+
+| 协议 | Stash | Mihomo | Surge | Loon / HY2 URI |
+| --- | --- | --- | --- | --- |
+| SOCKS5 / Mixed | `socks5` | `socks5` | `socks5` | 拒绝 |
+| Hysteria 1 | `hysteria` / `up-speed` / `down-speed` | `hysteria` / `up` / `down` | 拒绝 | 拒绝 |
+| ShadowTLS v3 + SS2022 | SS + `shadow-tls` 插件 | SS + `shadow-tls` 插件 | 拒绝 | 拒绝 |
+| Snell v4 兼容 | `snell`, `version: 4` | 拒绝 | `snell`, `version=4` | 拒绝 |
+| Snell v6 测试版 | 拒绝 | 拒绝 | `snell`, `version=6` | 拒绝 |
+
+Mixed 订阅选择同端口的 SOCKS5 入口；手动配置也可使用 HTTP CONNECT。
+ShadowTLS 订阅分别输出内层 SS2022 密钥和外层密码，使用系统 CA 验证公共
+握手域名，不输出错误的自签名证书固定字段。Snell v4 兼容模式对应固定
+运行时的 v5 服务端，不支持 v5 QUIC Proxy Mode，因此客户端明确使用 v4。
+Snell v6 需要支持 v6 的 Surge 版本，不能当作旧版客户端兼容选项。
+
+此表表示导出器实现和字段测试，不代表这些新增协议已完成各 App 的真实
+联网验收。不支持的组合明确返回兼容性错误，包含多个节点时也不会静默
+丢弃不支持的节点。
+
+字段依据：[Stash 协议文档](https://stash.wiki/en/proxy-protocols/proxy-types)、
+[Mihomo SS 插件](https://wiki.metacubex.one/en/config/proxies/ss/)、
+[Surge Snell](https://manual.nssurge.com/policies/snell.html)。

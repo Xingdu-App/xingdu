@@ -51,11 +51,22 @@ var uuidPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89a
 var dnsPattern = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$`)
 
 func ValidID(s string) bool       { return id.ValidID(s) }
-func IsQUIC(p string) bool        { return p == "hysteria2" || p == "tuic" }
+func IsQUIC(p string) bool        { return p == "hysteria" || p == "hysteria2" || p == "tuic" }
 func IsShadowsocks(p string) bool { return p == "shadowsocks" || p == "shadowsocks2022" }
-func RequiresTLS(p string) bool   { return !IsShadowsocks(p) }
+func RequiresTLS(p string) bool {
+	return !IsShadowsocks(p) && p != "socks" && p != "mixed" && p != "snell" && p != "snell6" && p != "shadowtls"
+}
+func ValidHandshakeHost(host string) bool {
+	return host == "www.microsoft.com" || host == "www.apple.com" || host == "cloud.tencent.com"
+}
+func SnellClientVersion(p string) int {
+	if p == "snell6" {
+		return 6
+	}
+	return 4
+}
 func Username(p string) string {
-	if p == "http" {
+	if p == "http" || p == "socks" || p == "mixed" {
 		return "xingdu"
 	}
 	return ""
@@ -64,12 +75,16 @@ func Cipher(p string) string {
 	switch p {
 	case "shadowsocks":
 		return "chacha20-ietf-poly1305"
-	case "shadowsocks2022":
+	case "shadowsocks2022", "shadowtls":
 		return "2022-blake3-aes-256-gcm"
 	}
 	return ""
 }
 func MinimumAgentVersion(p string) string {
+	switch p {
+	case "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
+		return "0.14.0-dev"
+	}
 	if p == "anytls" || p == "http" {
 		return "0.10.0-dev"
 	}
@@ -83,16 +98,22 @@ func ValidateInput(in Input) error {
 		return errors.New("name must contain 1-80 printable characters")
 	}
 	switch in.Protocol {
-	case "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http":
+	case "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
 	default:
 		return errors.New("unsupported protocol")
 	}
 	if in.Port < 1 || in.Port > 65535 {
 		return errors.New("port must be between 1 and 65535")
 	}
-	if IsShadowsocks(in.Protocol) {
+	if in.Protocol == "shadowtls" {
+		if !ValidHandshakeHost(in.ServerName) || in.Certificate != "" || in.PrivateKey != "" {
+			return errors.New("ShadowTLS requires an approved handshake domain and no certificate")
+		}
+		return nil
+	}
+	if !RequiresTLS(in.Protocol) {
 		if in.ServerName != "" || in.Certificate != "" || in.PrivateKey != "" {
-			return errors.New("Shadowsocks does not accept TLS configuration")
+			return errors.New("this protocol does not accept TLS configuration")
 		}
 		return nil
 	}
@@ -158,14 +179,14 @@ func NewSpec(in Input) (Spec, error) {
 		return Spec{}, err
 	}
 	s := Spec{Input: in, Credential: randomPassword()}
-	if in.Protocol == "shadowsocks2022" {
+	if in.Protocol == "shadowsocks2022" || in.Protocol == "shadowtls" {
 		raw, _ := base64.RawURLEncoding.DecodeString(s.Credential)
 		s.Credential = base64.StdEncoding.EncodeToString(raw)
 	}
 	if in.Protocol == "vless" || in.Protocol == "vmess" || in.Protocol == "tuic" {
 		s.Credential = randomUUID()
 	}
-	if in.Protocol == "tuic" {
+	if in.Protocol == "tuic" || in.Protocol == "shadowtls" {
 		s.Password = randomPassword()
 	}
 	return s, nil
@@ -183,7 +204,7 @@ func ValidateSpec(s Spec) error {
 		if !uuidPattern.MatchString(s.Credential) {
 			return errors.New("invalid UUID credential")
 		}
-	} else if s.Protocol == "shadowsocks2022" {
+	} else if s.Protocol == "shadowsocks2022" || s.Protocol == "shadowtls" {
 		raw, err := base64.StdEncoding.DecodeString(s.Credential)
 		if err != nil || len(raw) != 32 || base64.StdEncoding.EncodeToString(raw) != s.Credential {
 			return errors.New("invalid Shadowsocks 2022 key")
@@ -191,9 +212,9 @@ func ValidateSpec(s Spec) error {
 	} else if !validPassword(s.Credential) {
 		return errors.New("invalid password credential")
 	}
-	if s.Protocol == "tuic" {
+	if s.Protocol == "tuic" || s.Protocol == "shadowtls" {
 		if !validPassword(s.Password) {
-			return errors.New("invalid TUIC password")
+			return errors.New("invalid secondary password")
 		}
 	} else if s.Password != "" {
 		return errors.New("unexpected password")
@@ -220,7 +241,7 @@ func Render(s Spec) ([]byte, error) {
 	if s.Protocol == "tuic" {
 		user["password"] = s.Password
 	}
-	if s.Protocol == "http" {
+	if Username(s.Protocol) != "" {
 		delete(user, "name")
 		user["username"] = "xingdu"
 	}
@@ -243,12 +264,35 @@ func Render(s Spec) ([]byte, error) {
 	if s.Protocol == "tuic" {
 		inbound["congestion_control"] = "bbr"
 	}
+	var inbounds = []any{inbound}
+	switch s.Protocol {
+	case "socks", "mixed":
+		delete(inbound, "tls")
+	case "hysteria":
+		delete(user, "password")
+		user["auth_str"] = s.Credential
+		inbound["up_mbps"], inbound["down_mbps"] = 100, 100
+		tlsConfig["alpn"] = []string{"hysteria"}
+	case "snell", "snell6":
+		delete(inbound, "tls")
+		delete(inbound, "users")
+		inbound["type"], inbound["psk"], inbound["version"] = "snell", s.Credential, 5
+		if s.Protocol == "snell6" {
+			inbound["version"] = 6
+		}
+	case "shadowtls":
+		delete(inbound, "tls")
+		inbound["version"], inbound["strict_mode"], inbound["detour"] = 3, true, "xingdu-inner"
+		inbound["users"] = []any{map[string]any{"name": "xingdu", "password": s.Password}}
+		inbound["handshake"] = map[string]any{"server": s.ServerName, "server_port": 443}
+		inbounds = append(inbounds, map[string]any{"type": "shadowsocks", "tag": "xingdu-inner", "method": Cipher(s.Protocol), "password": s.Credential, "network": "tcp"})
+	}
 	// Block private destinations before direct egress to protect host metadata and
 	// private services from otherwise authenticated proxy clients.
 	cfg := map[string]any{
 		"log":       map[string]any{"disabled": true},
 		"dns":       map[string]any{"servers": []any{map[string]any{"type": "local", "tag": "local", "prefer_go": true}}},
-		"inbounds":  []any{inbound},
+		"inbounds":  inbounds,
 		"outbounds": []any{map[string]any{"type": "direct", "tag": "direct"}},
 		"route": map[string]any{"rules": []any{
 			map[string]any{"action": "resolve", "server": "local"},
@@ -257,10 +301,10 @@ func Render(s Spec) ([]byte, error) {
 		}, "final": "direct"},
 	}
 	if s.Relay != nil {
-		cfg["outbounds"] = []any{s.Relay.Outbound()}
+		cfg["outbounds"] = s.Relay.Outbounds()
 		cfg["route"].(map[string]any)["final"] = "exit"
 	}
-	if s.Protocol == "anytls" || s.Relay != nil {
+	if s.Protocol == "anytls" || s.Protocol == "socks" || s.Protocol == "mixed" || s.Protocol == "snell" || s.Protocol == "snell6" || s.Protocol == "shadowtls" || s.Relay != nil {
 		route := cfg["route"].(map[string]any)
 		route["rules"] = append([]any{map[string]any{"network": "udp", "action": "reject"}}, route["rules"].([]any)...)
 	}

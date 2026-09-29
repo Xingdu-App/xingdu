@@ -283,8 +283,14 @@ export default function APIDocsPage({ onKeys }: { onKeys: () => void }) {
         </ol>
         <p>
           {copy(
-            "协议值：shadowsocks、shadowsocks2022、trojan、vless、vmess、hysteria2、tuic、anytls、http。Shadowsocks 两种模式无需 TLS 字段；http 为 HTTPS 代理，仍需要证书。可用性取决于 Agent 版本与服务端运行时。",
-            "Protocol values: shadowsocks, shadowsocks2022, trojan, vless, vmess, hysteria2, tuic, anytls, http. Both Shadowsocks modes omit TLS fields; http is an HTTPS proxy and requires a certificate. Availability depends on the Agent version and server runtime.",
+            "协议值：shadowsocks、shadowsocks2022、trojan、vless、vmess、hysteria2、tuic、anytls、http、socks、mixed、hysteria、shadowtls、snell、snell6。最后六项需要 Agent 0.14.0-dev。Shadowsocks、SOCKS5、Mixed 和 Snell 无需 TLS 字段；http 为 HTTPS 代理，hysteria 为 Hysteria 1，均需要证书。SOCKS5 / Mixed 不加密，仅限可信网络或加密隧道接入。",
+            "Protocol values: shadowsocks, shadowsocks2022, trojan, vless, vmess, hysteria2, tuic, anytls, http, socks, mixed, hysteria, shadowtls, snell, snell6. The last six require Agent 0.14.0-dev. Shadowsocks, SOCKS5, Mixed and Snell omit TLS fields; http (HTTPS) and hysteria (Hysteria 1) require certificates. SOCKS5 / Mixed are unencrypted: use a trusted network or encrypted tunnel.",
+          )}
+        </p>
+        <p>
+          {copy(
+            "ShadowTLS 的 server_name 选择 www.microsoft.com、www.apple.com 或 cloud.tencent.com，不上传证书；连接信息的 credential 为 SS2022 密钥，password 为独立的 ShadowTLS v3 密码。snell 使用 v4 客户端兼容模式；snell6 是 v6 测试版。除 Hysteria 1 外，新增协议仅开放 TCP 转发，订阅按客户端能力筛选。",
+            "ShadowTLS accepts www.microsoft.com, www.apple.com or cloud.tencent.com as server_name, with no uploaded certificate. Connection credential is the SS2022 key; password is the separate ShadowTLS v3 secret. snell uses v4 client compatibility; snell6 is the v6 beta. New protocols other than Hysteria 1 forward TCP only. Subscription formats are limited to supported client combinations.",
           )}
         </p>
         <p>

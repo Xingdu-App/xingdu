@@ -363,7 +363,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		t.Fatal("demoted initiator claimed", e)
 	}
 	// New protocols require a capable Agent at both queue and claim time.
-	for i, kind := range []string{"shadowsocks", "shadowsocks2022"} {
+	for i, kind := range []string{"shadowsocks", "shadowsocks2022", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6"} {
 		candidate := next(24440 + i)
 		candidate.Protocol, candidate.ServerName = kind, ""
 		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
@@ -373,7 +373,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		if e := s.QueueDeployment(ca, candidate); !errors.Is(e, ErrConflict) {
 			t.Fatal("old agent accepted new protocol", kind, e)
 		}
-		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.8.0-dev", CPUs: 1})
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: protocol.MinimumAgentVersion(kind), CPUs: 1})
 		if e := s.DeploymentPreflight(ca, h.ID, candidate.Port, kind); e != nil {
 			t.Fatal("capable agent preflight", e)
 		}
@@ -384,7 +384,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		if _, e := s.ClaimDeployment(ctx, hash); !errors.Is(e, ErrConflict) {
 			t.Fatal("downgraded agent claimed new protocol", e)
 		}
-		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.9.0", CPUs: 1})
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: machine.Version, CPUs: 1})
 		claimed, e := s.ClaimDeployment(ctx, hash)
 		if e != nil || claimed == nil || claimed.Protocol != kind {
 			t.Fatal("newer agent claim", e)
@@ -399,7 +399,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		if e = s.RemoveDeployment(ca, h.ID, candidate.ID); !errors.Is(e, ErrConflict) {
 			t.Fatal("old Agent removed SS", e)
 		}
-		s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.9.0", CPUs: 1})
+		s.Heartbeat(ctx, hash, machine.Metrics{Version: machine.Version, CPUs: 1})
 		if e = s.RestartDeployment(ca, h.ID, candidate.ID); e != nil {
 			t.Fatal("newer Agent restart", e)
 		}

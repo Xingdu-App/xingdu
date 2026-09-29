@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"time"
+	"xingdu.app/xingdu/internal/machine"
+	"xingdu.app/xingdu/internal/protocol"
 )
 
 type Revision struct {
@@ -71,7 +73,20 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 			return err
 		}
 	}
-	hash, err := managingAgent(ctx, tx, d.HostID, "0.12.0-dev")
+	minimum := "0.12.0-dev"
+	if required := protocol.MinimumAgentVersion(d.Protocol); !machine.VersionAtLeast(minimum, required) {
+		minimum = required
+	}
+	if d.RelayExitID != "" {
+		var exitKind string
+		if err := tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1`, d.RelayExitID).Scan(&exitKind); err != nil {
+			return mapError(err)
+		}
+		if required := protocol.MinimumAgentVersion(exitKind); !machine.VersionAtLeast(minimum, required) {
+			minimum = required
+		}
+	}
+	hash, err := managingAgent(ctx, tx, d.HostID, minimum)
 	if err != nil {
 		return err
 	}

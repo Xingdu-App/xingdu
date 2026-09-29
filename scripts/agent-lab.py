@@ -148,8 +148,8 @@ def up():
 
 def reset_install(system):
     # Only these known disposable containers; never a user-supplied host/path.
-    execute(system, 'systemctl', 'disable', '--now', 'xingdu-agent', check=False)
-    execute(system, 'sh', '-c', 'rm -f /etc/systemd/system/xingdu-agent.service /usr/local/bin/xingdu-agent; rm -rf /var/lib/xingdu-agent; systemctl daemon-reload; systemctl reset-failed', check=True)
+    execute(system, 'systemctl', 'disable', '--now', 'xingdu-agent-update.timer', 'xingdu-agent-update.service', 'xingdu-agent', check=False)
+    execute(system, 'sh', '-c', 'rm -f /etc/systemd/system/xingdu-agent.service /etc/systemd/system/xingdu-agent-update.service /etc/systemd/system/xingdu-agent-update.timer /usr/local/bin/xingdu-agent; rm -rf /var/lib/xingdu-agent /etc/xingdu-agent; systemctl daemon-reload; systemctl reset-failed', check=True)
 
 
 def verify_service(system, mode):

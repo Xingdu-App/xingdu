@@ -41,10 +41,21 @@ function supportsFormat(format: string, protocol: string) {
     return ["stash", "mihomo"].includes(format);
   if (isShadowsocks(protocol))
     return ["stash", "mihomo", "surge"].includes(format);
-  if (format === "surge") return protocol !== "vless";
-  if (format === "loon") return protocol !== "tuic";
+  if (["socks", "mixed"].includes(protocol))
+    return ["stash", "mihomo", "surge"].includes(format);
+  if (["hysteria", "shadowtls"].includes(protocol))
+    return ["stash", "mihomo"].includes(format);
+  if (protocol === "snell") return ["stash", "surge"].includes(format);
+  if (protocol === "snell6") return format === "surge";
+  if (format === "surge")
+    return ["trojan", "vmess", "hysteria2", "tuic"].includes(protocol);
+  if (format === "loon")
+    return ["trojan", "vless", "vmess", "hysteria2"].includes(protocol);
   if (format === "hysteria2_uri") return protocol === "hysteria2";
-  return true;
+  return (
+    ["stash", "mihomo"].includes(format) &&
+    ["trojan", "vless", "vmess", "hysteria2", "tuic"].includes(protocol)
+  );
 }
 
 const emptyInput = (): SubscriptionInput => ({

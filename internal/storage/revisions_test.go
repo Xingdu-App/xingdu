@@ -103,10 +103,10 @@ func TestRevisionAcknowledgementAndIsolation(t *testing.T) {
 	if err = s.EnrollAgent(f.ctx, enrollment, exitIdentity, "manage"); err != nil {
 		t.Fatal(err)
 	}
-	if err = s.Heartbeat(f.ctx, exitIdentity, machine.Metrics{Version: "0.12.0-dev", CPUs: 1}); err != nil {
+	if err = s.Heartbeat(f.ctx, exitIdentity, machine.Metrics{Version: machine.Version, CPUs: 1}); err != nil {
 		t.Fatal(err)
 	}
-	exit := Deployment{ID: NewID("node"), OperationID: NewID("op"), HostID: h2.ID, Name: "exit", Protocol: "shadowsocks", Port: 24499, Encrypted: []byte("exit-cipher")}
+	exit := Deployment{ID: NewID("node"), OperationID: NewID("op"), HostID: h2.ID, Name: "exit", Protocol: "socks", Port: 24499, Encrypted: []byte("exit-cipher")}
 	if err = s.QueueDeployment(ctx, exit); err != nil {
 		t.Fatal(err)
 	}
@@ -122,6 +122,12 @@ func TestRevisionAcknowledgementAndIsolation(t *testing.T) {
 	d.RelayExitID = exit.ID
 	d.ExitCipher = exit.Encrypted
 	d.Port = 24498
+	if err = s.UpdateDeployment(ctx, d, previous); !errors.Is(err, ErrConflict) {
+		t.Fatal("old entry Agent accepted new exit protocol", err)
+	}
+	if err = s.Heartbeat(f.ctx, identity, machine.Metrics{Version: machine.Version, CPUs: 1}); err != nil {
+		t.Fatal(err)
+	}
 	if err = s.UpdateDeployment(ctx, d, previous); err != nil {
 		t.Fatal(err)
 	}
@@ -130,6 +136,15 @@ func TestRevisionAcknowledgementAndIsolation(t *testing.T) {
 	}
 	if err = s.DeleteHost(ctx, h2.ID); !errors.Is(err, ErrConflict) {
 		t.Fatal("pending exit host can be deleted", err)
+	}
+	if err = s.Heartbeat(f.ctx, identity, machine.Metrics{Version: "0.13.0-dev", CPUs: 1}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.ClaimDeployment(f.ctx, identity); !errors.Is(err, ErrConflict) {
+		t.Fatal("downgraded entry claimed new exit protocol", err)
+	}
+	if err = s.Heartbeat(f.ctx, identity, machine.Metrics{Version: machine.Version, CPUs: 1}); err != nil {
+		t.Fatal(err)
 	}
 	task, err = s.ClaimDeployment(f.ctx, identity)
 	if err != nil {

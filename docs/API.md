@@ -99,8 +99,18 @@ Preflight uses the same body without `confirm_install`.
 ```
 
 Protocol values: `shadowsocks`, `shadowsocks2022`, `trojan`, `vless`,
-`vmess`, `hysteria2`, `tuic`, `anytls`, `http`. Shadowsocks modes omit TLS
-fields; `http` is an HTTPS proxy and requires a certificate.
+`vmess`, `hysteria2`, `tuic`, `anytls`, `http`, `socks`, `mixed`, `hysteria`,
+`shadowtls`, `snell`, `snell6`. The last six require Agent 0.14.0-dev.
+Shadowsocks, SOCKS5, Mixed and Snell omit TLS fields. `http` is an HTTPS proxy
+and requires a certificate; `mixed` supports plain HTTP and SOCKS5 on one port.
+Hysteria 1 also requires a certificate and uses fixed 100 Mbps bandwidth hints.
+ShadowTLS requires an approved `server_name` (`www.microsoft.com`,
+`www.apple.com` or `cloud.tencent.com`) with no certificate/private key.
+Its connection response contains the SS2022 key in `credential` and a separate
+ShadowTLS v3 secret in `password`. `snell` exports client version 4 for the
+runtime's v5 server without QUIC proxy mode; `snell6` is the v6 beta mode.
+See [deployment prerequisites](PROTOCOL-DEPLOYMENT.md) and the explicit
+[client format matrix](SUBSCRIPTIONS.md).
 Do not blindly retry installation after a timeout: check the deployment list
 first, because a queued job might have been accepted before the response was
 lost.

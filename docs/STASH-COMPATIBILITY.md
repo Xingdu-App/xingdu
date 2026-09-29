@@ -14,7 +14,7 @@
 | AnyTLS | sing-box | `type: anytls`、密码、SNI、证书指纹 | Agent 0.10.0-dev 起；本轮仅 TCP |
 | HTTPS 代理 | sing-box HTTP inbound + TLS | `type: http`、`tls: true`、用户名/密码 | Agent 0.10.0-dev 起；仅 TCP；用户名为 `xingdu` |
 
-新增协议也可导出为 Mihomo。Surge、Loon 与 HY2 URI 对新增协议明确拒绝，
+AnyTLS 与 HTTPS 也可导出为 Mihomo。Surge、Loon 与 HY2 URI 对这两种协议明确拒绝，
 不套用其他客户端语法，不静默剔除节点。TLS 私钥不进入订阅；客户端收到
 叶证书 SHA-256 指纹，不关闭服务端身份验证。AnyTLS 的 UDP 在服务端拒绝，
 不会仅靠客户端的 `udp: false` 作为网络隔离措施。
@@ -28,11 +28,11 @@
 | --- | --- |
 | VLESS Vision / Reality | 独立密钥、short ID、握手目标限制、TLS 模式与导出字段；不能把普通 TLS 节点标成 Reality |
 | WebSocket / gRPC / HTTP2 / XHTTP | 传输参数、路径校验和运行时支持矩阵；协议类型与承载网络分开建模 |
-| Snell | 固定运行时的版本/授权核查，以及独立服务端与客户端握手验收 |
+| Snell v6 的 Stash 导出 | 服务端和 Surge 导出已实现；Stash v6 字段与客户端验收待确认 |
 | Mieru / TrustTunnel / Juicity | 固定运行时或独立运行时适配、校验和、安装/卸载及安全出口验证 |
 | WireGuard / Tailscale / MASQUE | 密钥、路由、权限和生命周期不同，需要专用接入模型 |
-| SOCKS5 / 明文 HTTP | 不直接开放公网明文凭据；本轮优先提供 HTTPS |
-| Hysteria 1 / ShadowsocksR | 旧协议维护与运行时适配成本较高，现阶段优先 HY2 与 AEAD SS |
+| SOCKS5 / Mixed 的 UDP | TCP 部署和导出已实现；UDP 仍由服务端拒绝 |
+| ShadowsocksR | 固定运行时没有该入站；Hysteria 1 已实现 |
 | SS 插件 / UDP over TCP / QUIC 混淆 | 需要客户端、服务端一致的参数与逐包目标隔离测试 |
 
 ## 验证边界
@@ -52,3 +52,5 @@ Linux 容器验证实际转发、错误密码拒绝、私网地址与私网域�
 的 arm64 容器上共六组验收通过：真实 TCP 转发、错误密码拒绝、私网 IP/
 域名拦截、非 root 运行、容器重启恢复、端口冲突保护与卸载。测试后恢复
 本地实验组织原有计费状态。该结果不涵盖发布版 Stash App 或真实 VPS。
+
+新增 SOCKS5、Mixed、Hysteria 1、ShadowTLS v3 + SS2022、Snell v4 兼容模式的 Stash 导出；完整传输和格式限制见 [部署文档](PROTOCOL-DEPLOYMENT.md#扩展代理协议agent-0140-dev) 与 [订阅矩阵](SUBSCRIPTIONS.md#新增代理协议导出)。Naive 暂不接入。

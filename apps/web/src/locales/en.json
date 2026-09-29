@@ -1038,5 +1038,16 @@
   "功能范围与版本更新": "Feature scope and version updates",
   "星渡是适合个人与团队的开源 VPS 管理面板，集中管理服务器、部署协议节点并生成客户端配置。自托管免费，Xingdu Cloud 提供托管服务。": "Xingdu is an open-source VPS management panel for individuals and teams. Manage servers, deploy protocol nodes and generate client configurations. Self-hosting is free; Xingdu Cloud offers managed hosting.",
   "了解星渡的功能范围、资源要求、费用说明与停止使用时的数据处理边界。": "Learn about Xingdu features, resource requirements, pricing and data handling when you stop using the service.",
-  "Xingdu Cloud 已正式上线。付费套餐通过 Stripe 结算，将产生真实扣款；金额与计费周期请以结账页面为准。": "Xingdu Cloud is now available. Paid plans are billed through Stripe and incur real charges. Review the amount and billing interval at checkout."
+  "Xingdu Cloud 已正式上线。付费套餐通过 Stripe 结算，将产生真实扣款；金额与计费周期请以结账页面为准。": "Xingdu Cloud is now available. Paid plans are billed through Stripe and incur real charges. Review the amount and billing interval at checkout.",
+  "用户名与密码认证 · 不加密 · TCP": "Username and password · Unencrypted · TCP",
+  "同一端口接入 HTTP 和 SOCKS5 · 不加密 · TCP": "HTTP and SOCKS5 on one port · Unencrypted · TCP",
+  "TLS 握手伪装 + AES-256-GCM · TCP": "TLS handshake camouflage + AES-256-GCM · TCP",
+  "无需证书 · 客户端使用 v4 · TCP": "No certificate required · Use v4 in clients · TCP",
+  "无需证书 · 默认流量整形 · TCP": "No certificate required · Default traffic shaping · TCP",
+  "ShadowTLS 密码": "ShadowTLS password",
+  "握手域名": "Handshake domain",
+  "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入；UDP 转发已关闭。": "This protocol does not encrypt credentials or traffic. Connect only through a trusted network or an encrypted tunnel. UDP forwarding is disabled.",
+  "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。": "Uses the selected public domain for the TLS handshake; no certificate upload is needed. The server must reach that domain on port 443. Clients need ShadowTLS v3 and Shadowsocks 2022 support.",
+  "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。": "Snell v6 is in beta and requires a v6-compatible client. TCP forwarding only.",
+  "由托管 Agent 安装并管理独立服务。Hysteria 1、Hysteria 2 和 TUIC 使用 QUIC / UDP；请按所选协议查看证书和客户端要求。": "A managed Agent installs and manages each service. Hysteria 1, Hysteria 2 and TUIC use QUIC / UDP. Check the certificate and client requirements for your chosen protocol."
 }

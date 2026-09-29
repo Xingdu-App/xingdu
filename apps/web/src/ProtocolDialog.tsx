@@ -1,5 +1,5 @@
 import RevisionEditor from "./RevisionEditor";
-import { isShadowsocks } from "./api";
+import { requiresTLS, isQUIC, handshakeHosts } from "./api";
 import { agentVersionAtLeast } from "./agent-version";
 import {
   restartNode,
@@ -28,6 +28,46 @@ import type {
 } from "./api";
 
 const protocols = [
+  {
+    value: "socks",
+    label: "SOCKS5",
+    get description() {
+      return t("用户名与密码认证 · 不加密 · TCP");
+    },
+  },
+  {
+    value: "mixed",
+    label: "HTTP / SOCKS5",
+    get description() {
+      return t("同一端口接入 HTTP 和 SOCKS5 · 不加密 · TCP");
+    },
+  },
+  {
+    value: "hysteria",
+    label: "Hysteria 1",
+    description: "QUIC / UDP + TLS · 100 Mbps",
+  },
+  {
+    value: "shadowtls",
+    label: "ShadowTLS v3 + SS 2022",
+    get description() {
+      return t("TLS 握手伪装 + AES-256-GCM · TCP");
+    },
+  },
+  {
+    value: "snell",
+    label: "Snell v4 compatible",
+    get description() {
+      return t("无需证书 · 客户端使用 v4 · TCP");
+    },
+  },
+  {
+    value: "snell6",
+    label: "Snell v6 (beta)",
+    get description() {
+      return t("无需证书 · 默认流量整形 · TCP");
+    },
+  },
   {
     value: "anytls",
     label: "AnyTLS",
@@ -280,7 +320,8 @@ export default function ProtocolDialog({
   }, [host.id]);
 
   const agent = machine?.agent;
-  const needsTLS = !isShadowsocks(protocol);
+  const needsTLS = requiresTLS(protocol);
+  const [handshakeHost, setHandshakeHost] = useState(handshakeHosts[0]);
   const selectedProtocol = creating
     ? protocol
     : rows.find((row) => row.id === nodeID)?.protocol;
@@ -354,7 +395,12 @@ export default function ProtocolDialog({
             name,
             protocol,
             port: Number(port),
-            server_name: needsTLS ? serverName : "",
+            server_name:
+              protocol === "shadowtls"
+                ? handshakeHost
+                : needsTLS
+                  ? serverName
+                  : "",
             certificate: needsTLS ? certificate : "",
             private_key: needsTLS ? privateKey : "",
             confirm_install: confirmed,
@@ -406,7 +452,7 @@ export default function ProtocolDialog({
       <div className="machine-content">
         <p className="form-hint">
           {t(
-            "由托管 Agent 安装并管理独立服务。Shadowsocks 系列无需域名或证书；Hysteria 2 和 TUIC 使用 QUIC / UDP。",
+            "由托管 Agent 安装并管理独立服务。Hysteria 1、Hysteria 2 和 TUIC 使用 QUIC / UDP；请按所选协议查看证书和客户端要求。",
           )}
         </p>
         {error && (
@@ -483,10 +529,8 @@ export default function ProtocolDialog({
               </div>
               <p>
                 {protocolName(row.protocol)} · {row.port}/
-                {row.protocol === "hysteria2" || row.protocol === "tuic"
-                  ? "UDP"
-                  : "TCP"}{" "}
-                · {row.server_name || t("无需域名")}
+                {isQUIC(row.protocol) ? "UDP" : "TCP"} ·{" "}
+                {row.server_name || t("无需域名")}
               </p>
               <small>
                 {new Date(row.created_at).toLocaleString(localeTag())}
@@ -494,7 +538,7 @@ export default function ProtocolDialog({
               <p>
                 {t("本机服务")}：{t(localServiceLabel(row))} · {t("证书有效期")}
                 ：
-                {isShadowsocks(row.protocol)
+                {!requiresTLS(row.protocol)
                   ? t("无需证书")
                   : certificateLabel(row.certificate_expires_at)}
               </p>
@@ -714,7 +758,7 @@ export default function ProtocolDialog({
                     <br />
                     {connection.data.server_name || t("无需域名")}
                   </p>
-                  {row.protocol === "http" && <p>{t("用户名")}：xingdu</p>}
+                  {connection.data.username && <p>{t("用户名")}：xingdu</p>}
                   {connection.data.cipher && (
                     <p>
                       {t("加密方式")}：{connection.data.cipher}
@@ -733,7 +777,9 @@ export default function ProtocolDialog({
                   {connection.data.password && (
                     <>
                       <label htmlFor={`password-${row.id}`}>
-                        {t("TUIC 密码")}
+                        {row.protocol === "shadowtls"
+                          ? t("ShadowTLS 密码")
+                          : t("TUIC 密码")}
                       </label>
                       <input
                         id={`password-${row.id}`}
@@ -833,6 +879,18 @@ export default function ProtocolDialog({
                   </label>
                 )}
               </div>
+              {protocol === "shadowtls" && (
+                <Select
+                  id="handshake-host"
+                  label={t("握手域名")}
+                  value={handshakeHost}
+                  onChange={setHandshakeHost}
+                  options={handshakeHosts.map((value) => ({
+                    value,
+                    label: value,
+                  }))}
+                />
+              )}
               {needsTLS && (
                 <>
                   <label htmlFor="deployment-cert">
@@ -865,20 +923,29 @@ export default function ProtocolDialog({
                 </>
               )}
               <p className="form-hint">
-                {needsTLS
+                {["socks", "mixed"].includes(protocol)
                   ? t(
-                      "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                      "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入；UDP 转发已关闭。",
                     )
-                  : t(
-                      "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
-                    )}
+                  : protocol === "shadowtls"
+                    ? t(
+                        "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。",
+                      )
+                    : protocol === "snell6"
+                      ? t(
+                          "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
+                        )
+                      : needsTLS
+                        ? t(
+                            "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                          )
+                        : t(
+                            "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
+                          )}
               </p>
               <p className="form-hint">
                 {t("请自行在云安全组和机器防火墙放行")}
-                {port || t("所选端口")}/
-                {protocol === "hysteria2" || protocol === "tuic"
-                  ? "UDP"
-                  : "TCP"}
+                {port || t("所选端口")}/{isQUIC(protocol) ? "UDP" : "TCP"}
                 {t("。星渡不会自动修改防火墙。")}
               </p>
               <label className="check-row">
@@ -905,7 +972,12 @@ export default function ProtocolDialog({
                         name,
                         protocol,
                         port: Number(port),
-                        server_name: needsTLS ? serverName : "",
+                        server_name:
+                          protocol === "shadowtls"
+                            ? handshakeHost
+                            : needsTLS
+                              ? serverName
+                              : "",
                         certificate: needsTLS ? certificate : "",
                         private_key: needsTLS ? privateKey : "",
                       },

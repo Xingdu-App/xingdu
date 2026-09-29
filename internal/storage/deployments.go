@@ -218,7 +218,7 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 	var d Deployment
 	d.OrgID = org
 	d.HostID = host
-	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,''),protocol FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease, &d.Protocol)
+	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,''),protocol,COALESCE(relay_exit_id,'') FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease, &d.Protocol, &d.RelayExitID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, tx.Commit(ctx)
 	}
@@ -232,12 +232,21 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 		if !machine.VersionAtLeast(version, "0.12.0-dev") {
 			return nil, ErrConflict
 		}
-		if err = tx.QueryRow(ctx, `SELECT r.encrypted FROM protocol_revisions r JOIN protocol_deployments d ON d.id=r.node_id AND d.organization_id=r.organization_id WHERE d.id=$1 AND r.revision=d.pending_revision`, d.ID).Scan(&d.Encrypted); err != nil {
+		if err = tx.QueryRow(ctx, `SELECT r.encrypted,COALESCE(r.relay_exit_id,'') FROM protocol_revisions r JOIN protocol_deployments d ON d.id=r.node_id AND d.organization_id=r.organization_id WHERE d.id=$1 AND r.revision=d.pending_revision`, d.ID).Scan(&d.Encrypted, &d.RelayExitID); err != nil {
 			return nil, err
 		}
 	}
 	if err = setScope(ctx, tx, d.UserID, org); err != nil {
 		return nil, err
+	}
+	if d.RelayExitID != "" {
+		var exitKind string
+		if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1`, d.RelayExitID).Scan(&exitKind); err != nil {
+			return nil, err
+		}
+		if !machine.VersionAtLeast(version, protocol.MinimumAgentVersion(exitKind)) {
+			return nil, ErrConflict
+		}
 	}
 	var allowed bool
 	err = tx.QueryRow(ctx, `SELECT COALESCE(tenant_role(request_org_id()) IN ('owner','admin'),false) AND EXISTS(SELECT 1 FROM protocol_deployments WHERE id=$1 AND agent_hash=$2)`, d.ID, hash).Scan(&allowed)

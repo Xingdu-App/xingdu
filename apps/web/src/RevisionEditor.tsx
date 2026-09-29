@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request, isShadowsocks, type Deployment } from "./api";
+import { request, requiresTLS, handshakeHosts, type Deployment } from "./api";
 import { t } from "./i18n";
 
 type Revision = {
@@ -119,7 +119,20 @@ export default function RevisionEditor({
               onChange={(e) => setPort(Number(e.target.value))}
             />
           </label>
-          {!isShadowsocks(node.protocol) && (
+          {node.protocol === "shadowtls" && (
+            <label>
+              {t("握手域名")}
+              <select
+                value={serverName}
+                onChange={(e) => setServerName(e.target.value)}
+              >
+                {handshakeHosts.map((host) => (
+                  <option key={host}>{host}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {requiresTLS(node.protocol) && (
             <>
               <label>
                 {t("TLS 域名")}

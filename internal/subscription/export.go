@@ -93,6 +93,42 @@ func RenderClash(name string, nodes []Node, rules []Rule, final string) ([]byte,
 	return Render("mihomo", name, nodes, rules, final)
 }
 
+func validateExport(name string, nodes []Node, rules []Rule, final string) error {
+	if err := ValidateRules(rules, final); err != nil {
+		return err
+	}
+	if len(nodes) == 0 {
+		return ErrNoNodes
+	}
+	if len(nodes) > 100 {
+		return errors.New("too many nodes")
+	}
+	if strings.TrimSpace(name) == "" || len([]rune(name)) > 80 || strings.ContainsFunc(name, unicode.IsControl) {
+		return errors.New("invalid subscription name")
+	}
+	seen := map[string]bool{}
+	for _, node := range nodes {
+		if !id.Valid("node", node.ID) || seen[node.ID] {
+			return errors.New("invalid or duplicate node ID")
+		}
+		seen[node.ID] = true
+		if ip, err := netip.ParseAddr(node.Server); err != nil {
+			if !domain(node.Server) {
+				return errors.New("invalid node server")
+			}
+		} else if ip.Zone() != "" {
+			return errors.New("invalid node server")
+		}
+		if strings.TrimSpace(node.Name) == "" || len([]rune(node.Name)) > 80 || strings.ContainsFunc(node.Name, unicode.IsControl) {
+			return errors.New("invalid node name")
+		}
+		if err := protocol.ValidateSpec(node.Spec); err != nil {
+			return errors.New("invalid node configuration")
+		}
+	}
+	return nil
+}
+
 // Render uses explicit client adapters: Stash and Mihomo do not share all fields.
 func Render(format, name string, nodes []Node, rules []Rule, final string) ([]byte, error) {
 	if !ValidFormat(format) {
@@ -102,39 +138,15 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 	if format != "stash" && format != "mihomo" {
 		return renderOther(format, name, nodes, rules, final)
 	}
-	if err := ValidateRules(rules, final); err != nil {
+	if err := validateExport(name, nodes, rules, final); err != nil {
 		return nil, err
-	}
-	if len(nodes) == 0 {
-		return nil, ErrNoNodes
-	}
-	if len(nodes) > 100 {
-		return nil, errors.New("too many nodes")
-	}
-	if strings.TrimSpace(name) == "" || len([]rune(name)) > 80 || strings.ContainsFunc(name, unicode.IsControl) {
-		return nil, errors.New("invalid subscription name")
 	}
 	proxies := make([]map[string]any, 0, len(nodes))
 	names := make([]string, 0, len(nodes))
-	seen := map[string]bool{}
 	exportNames := nodeLabels(nodes, false)
 	for i, node := range nodes {
-		if !id.Valid("node", node.ID) || seen[node.ID] {
-			return nil, errors.New("invalid or duplicate node ID")
-		}
-		seen[node.ID] = true
-		if ip, err := netip.ParseAddr(node.Server); err != nil {
-			if !domain(node.Server) {
-				return nil, errors.New("invalid node server")
-			}
-		} else if ip.Zone() != "" {
-			return nil, errors.New("invalid node server")
-		}
-		if strings.TrimSpace(node.Name) == "" || len([]rune(node.Name)) > 80 || strings.ContainsFunc(node.Name, unicode.IsControl) {
-			return nil, errors.New("invalid node name")
-		}
-		if err := protocol.ValidateSpec(node.Spec); err != nil {
-			return nil, errors.New("invalid node configuration")
+		if !Supports(format, node.Spec.Protocol) {
+			return nil, &CompatibilityError{format, node.Spec.Protocol, "所选客户端格式不支持该协议"}
 		}
 		s := node.Spec
 		label := exportNames[i]
@@ -149,11 +161,31 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			p["fingerprint"] = hex.EncodeToString(digest[:])
 		}
 		switch s.Protocol {
-		case "shadowsocks", "shadowsocks2022":
+		case "shadowsocks", "shadowsocks2022", "shadowtls":
 			p["type"] = "ss"
 			p["udp"] = false
 			p["cipher"] = protocol.Cipher(s.Protocol)
 			p["password"] = s.Credential
+			if s.Protocol == "shadowtls" {
+				p["plugin"] = "shadow-tls"
+				p["plugin-opts"] = map[string]any{"host": s.ServerName, "password": s.Password, "version": 3}
+				if format == "stash" {
+					p["plugin-opts"].(map[string]any)["skip-cert-verify"] = false
+				} else {
+					p["client-fingerprint"] = "chrome"
+				}
+			}
+		case "socks", "mixed":
+			p["type"], p["username"], p["password"], p["udp"] = "socks5", "xingdu", s.Credential, false
+		case "snell":
+			p["type"], p["psk"], p["version"], p["udp"] = "snell", s.Credential, 4, false
+		case "hysteria":
+			p["auth-str"], p["sni"], p["alpn"] = s.Credential, s.ServerName, []string{"hysteria"}
+			if format == "stash" {
+				p["up-speed"], p["down-speed"], p["protocol"] = 100, 100, "udp"
+			} else {
+				p["up"], p["down"] = "100 Mbps", "100 Mbps"
+			}
 		case "anytls", "http":
 			p["password"] = s.Credential
 			p["sni"] = s.ServerName

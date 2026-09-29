@@ -46,7 +46,7 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 	}
 	port := l.Addr().(*net.TCPAddr).Port
 	l.Close()
-	cfg := map[string]any{"log": map[string]any{"disabled": true}, "inbounds": []any{map[string]any{"type": "socks", "listen": "127.0.0.1", "listen_port": port}}, "outbounds": []any{peer.Outbound()}, "route": map[string]any{"final": "exit"}}
+	cfg := map[string]any{"log": map[string]any{"disabled": true}, "inbounds": []any{map[string]any{"type": "socks", "listen": "127.0.0.1", "listen_port": port}}, "outbounds": peer.Outbounds(), "route": map[string]any{"final": "exit"}}
 	b, _ := json.Marshal(cfg)
 	defer clear(b)
 	run, cancel := context.WithTimeout(ctx, 30*time.Second)

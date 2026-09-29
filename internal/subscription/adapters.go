@@ -29,6 +29,16 @@ func ValidFormat(format string) bool {
 	return false
 }
 func Supports(format, kind string) bool {
+	switch kind {
+	case "socks", "mixed":
+		return format == "stash" || format == "mihomo" || format == "surge"
+	case "hysteria", "shadowtls":
+		return format == "stash" || format == "mihomo"
+	case "snell":
+		return format == "stash" || format == "surge"
+	case "snell6":
+		return format == "surge"
+	}
 	if kind == "anytls" || kind == "http" {
 		return format == "stash" || format == "mihomo"
 	}
@@ -99,7 +109,7 @@ func verifyPublicCertificate(n Node) error {
 
 func renderOther(format, name string, nodes []Node, rules []Rule, final string) ([]byte, error) {
 	// Reuse the established strict boundary before translating any grammar.
-	if _, err := Render("mihomo", name, nodes, rules, final); err != nil {
+	if err := validateExport(name, nodes, rules, final); err != nil {
 		return nil, err
 	}
 	for _, n := range nodes {
@@ -131,6 +141,14 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		label := labels[i]
 		if protocol.IsShadowsocks(s.Protocol) {
 			fmt.Fprintf(&out, "%s = ss, %s, %d, encrypt-method=%s, password=%s, udp-relay=false\n", label, n.Server, s.Port, protocol.Cipher(s.Protocol), s.Credential)
+			continue
+		}
+		if s.Protocol == "socks" || s.Protocol == "mixed" {
+			fmt.Fprintf(&out, "%s = socks5, %s, %d, username=xingdu, password=%s, udp-relay=false\n", label, n.Server, s.Port, s.Credential)
+			continue
+		}
+		if s.Protocol == "snell" || s.Protocol == "snell6" {
+			fmt.Fprintf(&out, "%s = snell, %s, %d, psk=%s, version=%d, udp-relay=false\n", label, n.Server, s.Port, s.Credential, protocol.SnellClientVersion(s.Protocol))
 			continue
 		}
 		kind := s.Protocol
