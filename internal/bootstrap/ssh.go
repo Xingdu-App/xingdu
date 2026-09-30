@@ -229,6 +229,9 @@ func (c *Connector) applyChecked(ctx context.Context, s machine.Secret, origin s
 	default:
 		return errors.New("unsupported_platform")
 	}
+	if _, err = run(client, preflightCommand(s.Target.User), nil); err != nil {
+		return preflightError(err)
+	}
 	binary, err := os.ReadFile(filepath.Join(c.ArtifactDir, "xingdu-agent-linux-"+arch))
 	if err != nil {
 		return errors.New("agent_artifact_unavailable")
@@ -263,24 +266,13 @@ func (c *Connector) applyChecked(ctx context.Context, s machine.Secret, origin s
 	}
 	defer clear(buf.Bytes())
 	// All paths and commands are fixed. Credentials and tokens travel in encrypted stdin, not argv.
-	command := `umask 077; mkdir -p -m 0755 /usr/local/bin || exit 1; d=$(mktemp -d /usr/local/bin/.xingdu-install.XXXXXXXX) || exit 1; trap 'rm -rf "$d"' EXIT HUP INT TERM; cd "$d" || exit 1; tar -xf - || exit 1; sh ./install.sh`
-	if s.Target.User != "root" {
-		command = "sudo -n sh -c " + shellQuote(command)
-	} else {
-		command = "sh -c " + shellQuote(command)
-	}
+	command := `umask 077; mkdir -p -m 0755 /usr/local/bin || exit 80; d=$(mktemp -d /usr/local/bin/.xingdu-install.XXXXXXXX) || exit 80; trap 'rm -rf "$d"' EXIT HUP INT TERM; cd "$d" || exit 80; tar -xf - || exit 81; sh ./install.sh`
+	command = privilegedCommand(s.Target.User, command)
 	if check != nil {
 		if err = check(); err != nil {
 			return errors.New("authorization_revoked")
 		}
 	}
-	_, err = run(client, command, bytes.NewReader(buf.Bytes()))
-	if err != nil {
-		if upgrading {
-			return errors.New("upgrade_failed_check_vps")
-		}
-		return errors.New("install_failed_check_vps")
-	}
-	return nil
+	return runInstallation(client, command, bytes.NewReader(buf.Bytes()), upgrading)
 }
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'" }

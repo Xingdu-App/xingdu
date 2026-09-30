@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 	"xingdu.app/xingdu/internal/machine"
 	"xingdu.app/xingdu/internal/storage"
@@ -102,6 +103,10 @@ func WorkOnce(ctx context.Context, s *storage.Store, v *vault.Vault, c *Connecto
 	finish = storage.WithTenant(finish, claim.UserID, claim.OrgID)
 	if err = s.FinishMachineJob(finish, job, state, result); errors.Is(err, storage.ErrForbidden) {
 		return s.FailUnauthorizedJob(finish, claim)
+	}
+	if err == nil && state == "failed" {
+		slog.Warn("machine installation failed", "job_id", job.ID, "host_id", job.HostID,
+			"action", job.Action, "result", result)
 	}
 	return err
 }

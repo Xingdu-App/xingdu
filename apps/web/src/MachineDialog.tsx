@@ -78,6 +78,61 @@ const failures: Record<string, string> = {
   get agent_artifact_unavailable() {
     return t("控制端缺少 Agent 构建产物。");
   },
+  get ssh_sudo_required() {
+    return t("SSH 用户无法执行免密 sudo。请配置免密 sudo 或使用 root 账号。");
+  },
+  get agent_enrollment_unreachable() {
+    return t(
+      "Agent 无法连接控制端，请检查 VPS 的 DNS、HTTPS 出站网络与证书信任。",
+    );
+  },
+  get agent_enrollment_rejected() {
+    return t("控制端拒绝 Agent 注册，请检查部署配置和服务状态。");
+  },
+  get agent_enrollment_revoked() {
+    return t("Agent 注册令牌已失效或被撤销，请核对残留状态后重新签发。");
+  },
+  get ssh_tar_missing() {
+    return t("VPS 缺少 tar，无法解压安装包。请安装 tar 后重新提交。");
+  },
+  get ssh_shell_missing() {
+    return t("VPS 缺少 sh，无法执行安装脚本。");
+  },
+  get ssh_systemd_missing() {
+    return t("VPS 缺少 systemd，无法安装 Agent 服务。");
+  },
+  get ssh_root_required() {
+    return t("安装需要 root 权限，请检查 SSH 用户和免密 sudo 配置。");
+  },
+  get ssh_preflight_failed() {
+    return t("安装前置检查失败，请检查 SSH 用户的免密 sudo 权限及系统命令。");
+  },
+  get ssh_install_directory_failed() {
+    return t("无法创建安装临时目录，请检查 /usr/local/bin 的权限和磁盘空间。");
+  },
+  get ssh_bundle_extract_failed() {
+    return t("安装包解压失败，请检查 tar、磁盘空间和文件系统权限。");
+  },
+  get ssh_install_session_failed() {
+    return t("无法创建 SSH 安装会话，请检查 SSH 服务的会话限制。");
+  },
+  get agent_installation_exists() {
+    return t("检测到已有 Agent 文件或状态目录。请核对现有安装，避免直接覆盖。");
+  },
+  get agent_state_directory_failed() {
+    return t("无法创建 Agent 状态目录，请检查 /var/lib 的权限和磁盘空间。");
+  },
+  get agent_systemd_reload_failed() {
+    return t(
+      "systemd 配置重新加载失败，请在 VPS 检查 systemctl daemon-reload。",
+    );
+  },
+  get agent_service_start_failed() {
+    return t("Agent 服务启动失败，请在 VPS 检查 journalctl -u xingdu-agent。");
+  },
+  get agent_user_creation_failed() {
+    return t("无法创建 Agent 专用用户，请检查 useradd 和系统用户配置。");
+  },
   get install_failed_check_vps() {
     return t("请在 VPS 检查 systemd、sudo 权限、已有安装及控制端连通性。");
   },
@@ -660,6 +715,11 @@ export default function MachineDialog({
                 <small>
                   {new Date(j.created_at).toLocaleString(localeTag())}
                 </small>
+                {j.state === "failed" && j.result && (
+                  <small>
+                    {t("错误代码")}：{j.result}
+                  </small>
+                )}
                 {j.result && (
                   <p>
                     {failures[j.result] ??

@@ -44,6 +44,7 @@ func TestSSHAuthenticationAndInstallBundle(t *testing.T) {
 	pub, private, _ := ed25519.GenerateKey(rand.Reader)
 	clientKey, _ := ssh.NewPublicKey(pub)
 	var auths atomic.Int32
+	var preflightExit atomic.Uint32
 	bundles := make(chan map[string]string, 4)
 	cfg := &ssh.ServerConfig{PasswordCallback: func(_ ssh.ConnMetadata, p []byte) (*ssh.Permissions, error) {
 		auths.Add(1)
@@ -95,6 +96,12 @@ func TestSSHAuthenticationAndInstallBundle(t *testing.T) {
 							req.Reply(true, nil)
 							if p.Command == "uname -sm" {
 								ch.Write([]byte("Linux x86_64\n"))
+							} else if strings.Contains(p.Command, installPreflight) {
+								if status := preflightExit.Load(); status != 0 {
+									ch.Stderr().Write([]byte("untrusted output: test-password\n"))
+									ch.SendRequest("exit-status", false, ssh.Marshal(struct{ Status uint32 }{status}))
+									return
+								}
 							} else {
 								files := map[string]string{"command": p.Command}
 								tr := tar.NewReader(ch)
@@ -145,6 +152,16 @@ func TestSSHAuthenticationAndInstallBundle(t *testing.T) {
 	if bundle["enrollment.token"] != secret.EnrollmentToken+"\n" || strings.Contains(bundle["command"], secret.EnrollmentToken) || strings.Contains(bundle["command"], secret.Password) {
 		t.Fatal("unsafe installation transport")
 	}
+	preflightExit.Store(70)
+	if e = c.Install(ctx, secret, "https://control.example.invalid"); e == nil || e.Error() != "ssh_tar_missing" {
+		t.Fatal("missing tar was not recorded safely", e)
+	}
+	select {
+	case <-bundles:
+		t.Fatal("credentials uploaded after failed preflight")
+	default:
+	}
+	preflightExit.Store(0)
 	digest := sha256.Sum256([]byte("test-agent-binary"))
 	job := machine.Job{Action: "upgrade", TargetVersion: machine.Version, AgentHash: machine.Hash(machine.Token()), Arch: "amd64", ArtifactSHA256: hex.EncodeToString(digest[:])}
 	if e = c.UpgradeChecked(ctx, secret, "https://control.example.invalid", job, nil); e != nil {
