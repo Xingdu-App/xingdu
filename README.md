@@ -25,29 +25,27 @@ Built for individuals and small teams, Xingdu is designed to work with different
 - **User sign-in:** verified email registration, email/password login, optional Google / GitHub sign-in and explicit account linking, local account provisioning, and revocable sessions. See [provider setup and verification limits](docs/SOCIAL-LOGIN.md).
 - **Machine access:** manual Agent enrollment or SSH password/private-key installation, with pinned host keys and optional encrypted credential retention. See [machine access](docs/MACHINE-ACCESS.md) for setup and current validation limits.
 - **Node inventory:** browse successfully deployed nodes across your organization, search and filter by protocol, and open node details. Nodes remain listed until uninstall succeeds; operation results stay in deployment records.
-- **Protocol deployment:** install and uninstall Shadowsocks and Shadowsocks 2022 over TCP using a server IP without certificates, plus Trojan, VLESS, VMess, Hysteria 2 and TUIC v5 with user-provided TLS certificates through a managed Agent. View task progress and explicitly reveal client credentials as an administrator. See [protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) for prerequisites and validation limits.
-- **Basic subscriptions:** select deployed nodes, add ordered domain/CIDR rules, and generate a revocable Stash (default), Mihomo, Surge or Loon configuration link, or a Hysteria 2 URI, subject to each format’s protocol and certificate restrictions. See [subscriptions](docs/SUBSCRIPTIONS.md) for access controls and client compatibility limits.
+- **Protocol deployment and maintenance:** managed deployment of SS/SS2022, Trojan, VLESS, VMess, HY1/HY2, TUIC, AnyTLS, HTTPS, SOCKS5/Mixed, ShadowTLS and Snell options, with preflight, restart, configuration editing, credential rotation and revision recovery. See [protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) and [reliable changes](docs/RELIABLE-DEPLOYMENTS.md) for transport, certificate, Agent version and validation limits.
+- **Client subscriptions:** revocable Stash (default), Mihomo, Surge or Loon configuration links, or HY2 URIs, with custom rules, reusable templates and routing presets with multiple policy groups. Unsupported combinations are explicitly rejected. See [subscriptions](docs/SUBSCRIPTIONS.md) and [routing templates](docs/SUBSCRIPTION-TEMPLATES.md).
 - **Live service status:** API and database availability, with error messages and retry when the connection fails.
 - **Local Docker setup:** starts the web console, API, PostgreSQL, database migrations, and a worker process.
 - **Development foundation:** Go and TypeScript code, automated checks, and separate worker and agent entry points.
 
-The worker executes SSH Agent installation jobs. The agent reports machine status and executes fixed, authorized protocol deployment tasks; arbitrary remote commands are not exposed. The [Docker lab](docs/AGENT-LAB.md) verifies systemd installation on Ubuntu 24.04, Debian 13 and Amazon Linux 2023 (arm64); real VPS/EC2 acceptance testing is still required. The five TLS protocols have also passed real forwarding, authentication rejection, private-destination blocking, restart recovery and uninstall checks on those three arm64 Docker systems using a sing-box client. Shadowsocks and Shadowsocks 2022 have additionally passed TCP forwarding, authentication rejection, private-destination blocking, restart and removal tests on the same three systems; UDP is explicitly disabled. This does not establish compatibility with specific client apps or real VPS/EC2 deployments. The current console UI is in Simplified Chinese.
+The worker handles SSH bootstrap, and Agents poll for fixed, authorized tasks; arbitrary remote commands are not exposed. The console supports Simplified Chinese and English. Recorded container and selected real-machine checks include SS2022 on AlmaLinux 10.2 / amd64 / SELinux Enforcing and a Stash macOS 4.3.0 node test after policy repair. These results do not establish compatibility for every protocol, distribution or client version. See [implementation status](docs/IMPLEMENTATION-STATUS.md) for evidence and source versus released-artifact boundaries.
 
-## Where Xingdu is heading
+## Workflow and next steps
 
 ```text
 Connect a VPS → Choose a protocol and route → Deploy and verify → Import into your client
 ```
 
-| Area | Planned capabilities |
-| --- | --- |
-| Server management | Onboard existing Linux VPS instances and track their health |
-| Protocol deployment | Extend transport options and certificate lifecycle management |
-| Route management | Direct connections and single-relay routes |
-| Reliable changes | Versioned deployments, progress tracking, retries, and rollback |
-| Client subscriptions | Dedicated export adapters for Stash, Surge, Loon, and Shadowrocket |
-
-This table describes development areas; consult the current feature documentation for implemented capabilities and limitations. Protocol and client-version compatibility will be documented as combinations are tested. See the [development plan](docs/PLAN.md) for milestones.
+Configuration revisions, failure recovery, single TCP relays and an operator-run
+probe process are implemented. Automatic certificates use an operator-run
+ACME DNS-01 / Cloudflare process; tenant self-service authorization is not available.
+Next steps focus on real client combinations, public-network recovery and
+certificate renewal acceptance, plus Passkey, notifications and more transports.
+See [implementation status](docs/IMPLEMENTATION-STATUS.md) and the
+[development plan](docs/PLAN.md).
 
 ## Try it locally
 
@@ -60,7 +58,7 @@ cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-Open the public website at **[http://127.0.0.1:15173](http://127.0.0.1:15173)** and the console at **[/app](http://127.0.0.1:15173/app)**. The website includes pricing, privacy and security pages; hosted service pricing is not yet announced. The first build downloads dependencies and container images, so it may take a few minutes.
+Open the public website at **[http://127.0.0.1:15173](http://127.0.0.1:15173)** and the console at **[/app](http://127.0.0.1:15173/app)**. The website includes pricing, privacy and security pages; hosted plans are Starter, Premium and Enterprise; see [billing](docs/BILLING.md). The first build downloads dependencies and container images, so it may take a few minutes.
 
 Create your initial user and organization from a local terminal. The command prompts for a hidden password of 12–72 bytes; there is no default password. It refuses to overwrite an existing username.
 
@@ -100,6 +98,7 @@ The [development guide](docs/DEVELOPMENT.md) covers hot reload, database setup, 
 
 | Resource | Contents |
 | --- | --- |
+| [Implementation status](docs/IMPLEMENTATION-STATUS.md) | Current capabilities, releases and acceptance evidence |
 | [Management API](docs/API.md) | Organization API keys, scopes and server/node automation |
 | [Protocol deployment](docs/PROTOCOL-DEPLOYMENT.md) | Supported protocols, TLS, Agent requirements and lifecycle |
 | [SaaS architecture](docs/SAAS.md) | Tenant boundaries, roles, invitations, and RLS |

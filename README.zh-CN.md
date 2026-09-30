@@ -25,29 +25,25 @@
 - **用户登录：** 邮箱验证注册、邮箱/密码登录，以及可选 Google / GitHub 登录与账号绑定；支持本地创建账号和可撤销会话。第三方应用配置与验收边界见 [登录说明](docs/SOCIAL-LOGIN.md)。
 - **机器接入：** 主动安装 Agent，或通过 SSH 密码 / 私钥安装；校验主机指纹，可选长期加密保存凭据。配置与验收边界见 [机器接入](docs/MACHINE-ACCESS.md)。
 - **节点列表：** 按组织汇总已成功部署的节点，支持搜索、协议筛选与节点详情；卸载成功后移出列表，操作结果保留在部署记录中。
-- **协议部署：** 托管 Agent 可安装和卸载 无需域名和证书的 Shadowsocks / Shadowsocks 2022（当前仅 TCP），以及使用用户提供 TLS 证书的 Trojan、VLESS、VMess、Hysteria 2、TUIC v5，查看执行进度，由管理员主动获取连接凭据。前提与验收边界见 [协议部署](docs/PROTOCOL-DEPLOYMENT.md)。
+- **协议部署与维护：** 托管 Agent 提供 SS/SS2022、Trojan、VLESS、VMess、HY1/HY2、TUIC、AnyTLS、HTTPS、SOCKS5/Mixed、ShadowTLS 和 Snell 选项，支持预检、重启、配置编辑、凭据轮换及版本恢复。传输、证书、最低 Agent 版本与验收范围见 [协议部署](docs/PROTOCOL-DEPLOYMENT.md) 和 [可靠部署](docs/RELIABLE-DEPLOYMENTS.md)。
 - **真实服务状态：** 查看 API 和数据库是否可用，连接失败时显示错误并支持重试。
-- **基础订阅：** 选择已部署节点、添加有序的域名/CIDR 规则，生成可重置或停用的 Stash（默认）、Mihomo、Surge 或 Loon 配置链接，或 Hysteria 2 URI；不同格式有明确的协议与证书限制。权限和客户端兼容边界见[订阅说明](docs/SUBSCRIPTIONS.md)。
+- **客户端订阅：** 生成可撤销的 Stash（默认）、Mihomo、Surge、Loon 配置链接或 HY2 URI。支持自定义规则、可复用模板与多策略组路由方案；各格式明确拒绝不兼容组合。详见 [订阅](docs/SUBSCRIPTIONS.md) 与 [路由模板](docs/SUBSCRIPTION-TEMPLATES.md)。
 - **本地 Docker 环境：** 一次启动控制台、API、PostgreSQL、数据库迁移和 Worker 进程。
 - **开发基础：** Go 与 TypeScript 代码、自动化检查，以及独立的 Worker 和 Agent 程序入口。
 
-Worker 已执行 SSH Agent 安装任务，Agent 可以注册、上报状态并执行固定的协议安装与卸载任务；不开放任意远程命令，已在 [Docker 实验室](docs/AGENT-LAB.md) 验证 Ubuntu 24.04、Debian 13、Amazon Linux 2023（arm64）的 systemd 安装；真实 VPS/EC2 验收仍待完成。五种 TLS 协议也已在上述三个 arm64 Docker 系统中使用 sing-box 客户端验证实际转发、错误认证拒绝、私有目标阻止、重启恢复与卸载；Shadowsocks 和 Shadowsocks 2022 也已在这三个系统验证 TCP 转发、错误密钥拒绝、私有目标拦截、重启和卸载，UDP 已明确关闭。不代表具体客户端应用或真实 VPS/EC2 的兼容性。控制台目前提供简体中文界面。
+Worker 执行 SSH 引导安装，Agent 主动领取授权的固定任务，不开放任意远程命令。控制台支持简体中文与英文。已有容器和部分实机验收，包括 AlmaLinux 10.2 / amd64 / SELinux Enforcing 的 SS2022 修复及 Stash macOS 4.3.0 节点测试；这些结果不代表所有协议、发行版或客户端版本均兼容。完整范围与源码／发布包区别见 [功能状态](docs/IMPLEMENTATION-STATUS.md)。
 
-## 我们希望实现的体验
+## 使用流程与后续方向
 
 ```text
 接入 VPS → 选择协议与线路 → 部署并验证 → 导入客户端
 ```
 
-| 方向 | 规划能力 |
-| --- | --- |
-| 服务器管理 | 接入已有 Linux VPS，查看服务器健康状态 |
-| 协议部署 | 扩展传输方式与证书生命周期管理 |
-| 线路管理 | 直连与单层中转线路 |
-| 可靠变更 | 版本化部署、进度追踪、失败重试与配置回滚 |
-| 客户端订阅 | 为 Stash、Surge、Loon、Shadowrocket 分别提供配置输出 |
-
-以上为持续发展的方向，已实现能力与限制请以当前功能文档为准。协议和客户端版本的兼容范围将随实际验证逐步公布。阶段安排见 [开发计划](docs/PLAN.md)。
+已实现节点配置版本、失败恢复、单层 TCP 中转和运营者独立探测程序。
+自动证书使用运营者部署的 ACME DNS-01 / Cloudflare 程序，尚无租户自助授权。
+后续重点是实际客户端组合、公网故障恢复与证书续期验收，以及 Passkey、
+通知告警和更多传输方式。见 [功能状态](docs/IMPLEMENTATION-STATUS.md)
+与 [开发计划](docs/PLAN.md)。
 
 ## 本地体验
 
@@ -60,7 +56,7 @@ cp .env.example .env
 docker compose up --build -d --wait
 ```
 
-启动后打开官网 **[http://127.0.0.1:15173](http://127.0.0.1:15173)**，控制台入口为 **[/app](http://127.0.0.1:15173/app)**。官网提供价格、隐私和安全说明；托管版价格尚未公布。首次构建需要下载依赖和容器镜像，可能耗时数分钟。
+启动后打开官网 **[http://127.0.0.1:15173](http://127.0.0.1:15173)**，控制台入口为 **[/app](http://127.0.0.1:15173/app)**。官网提供价格、隐私和安全说明；托管版提供 Starter、Premium 与 Enterprise 套餐，见 [账单说明](docs/BILLING.md)。首次构建需要下载依赖和容器镜像，可能耗时数分钟。
 
 先在本地终端创建用户及初始组织，按提示输入 12–72 字节的密码。密码输入不会回显，没有默认密码；该命令不会覆盖已有用户名。
 
@@ -100,6 +96,7 @@ make check
 
 | 文档 | 内容 |
 | --- | --- |
+| [功能状态](docs/IMPLEMENTATION-STATUS.md) | 当前能力、发布范围与实际验收证据 |
 | [管理 API](docs/API.md) | 组织 API 密钥、授权范围及服务器／节点自动化 |
 | [协议部署](docs/PROTOCOL-DEPLOYMENT.md) | 协议支持、TLS、Agent 要求与服务生命周期 |
 | [SaaS 架构](docs/SAAS.md) | 租户边界、成员角色、邀请与 RLS |
@@ -116,5 +113,3 @@ make check
 星渡采用 [MIT 许可证](LICENSE)，允许个人和商业用途的使用、修改与再分发。分发软件副本或重要部分时，请保留版权及许可声明。
 
 第三方依赖与协议引擎遵循各自的许可证。当前运行时为独立进程运行的 sing-box 1.14.2，遵循其上游 GPL-3.0-or-later 许可证；星渡的 MIT 许可证不改变该运行时的许可。见 [第三方声明](THIRD_PARTY_NOTICES.md)。
-
-当前六项开发的实现、验证与剩余工作见[交付状态](docs/IMPLEMENTATION-STATUS.md)。

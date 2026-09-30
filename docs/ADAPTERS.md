@@ -1,6 +1,6 @@
 # 适配器边界
 
-运行时已在 `internal/protocol` / `internal/agent` 实现 sing-box 的五种 TLS 协议部署。客户端适配器位于 `internal/subscription`，包含 Stash、Mihomo、Surge、Loon 和 Hysteria 2 URI；各格式的支持范围及证书限制见 [订阅说明](SUBSCRIPTIONS.md)。实际 App 验收仍待完成。以下描述保留完整目标边界，版本化更新与回滚尚待实现。
+运行时适配器位于 `internal/protocol` / `internal/agent`，使用独立 sing-box 进程，支持范围见 [协议部署](PROTOCOL-DEPLOYMENT.md)。客户端适配器位于 `internal/subscription`，包含 Stash、Mihomo、Surge、Loon 和 Hysteria 2 URI；格式与证书限制见 [订阅说明](SUBSCRIPTIONS.md)。配置修订、启动失败恢复和历史恢复已实现，见 [可靠部署](RELIABLE-DEPLOYMENTS.md)；它们不等于运行时引擎升级。实际客户端验收按组合记录于 [实现状态](IMPLEMENTATION-STATUS.md)。
 
 ## 运行时适配器
 

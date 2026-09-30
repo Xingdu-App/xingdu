@@ -5,6 +5,13 @@ Docker 镜像将同一版本注入 API、Worker 与 Agent；直接 `go run` 保�
 标签。GitHub 发布包不再固定显示 `-dev`。候选版使用 `0.14.0-rc.1` 形式，
 稳定版使用 `0.14.0`，发布 tag 对应 `agent-v0.14.0-rc.1` 或 `agent-v0.14.0`。
 
+## 源码与发布包的边界
+
+同一个 VERSION 下仍可能有 tag 之后的新提交。判断发布包包含哪些功能，
+须核对 tag 指向的源码提交，不能只看版本文本。当前 `agent-v0.14.0-rc.1`
+之后加入的 SELinux 修复尚需新版本发布；新功能验收与旧包可用性分开记录。
+不要覆盖已公开的包或重复使用同一个 tag，见 [功能状态](IMPLEMENTATION-STATUS.md)。
+
 ## 发布步骤
 
 1. 更新 VERSION，将改动提交并合入 main；本地执行 `make check`。

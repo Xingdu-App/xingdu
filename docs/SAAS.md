@@ -40,7 +40,7 @@ flowchart LR
 | 修改/移除管理员 | 是 | 否 | 否 | 否 |
 | 修改/移除所有者 | 否 | 否 | 否 | 否 |
 
-任何已登录用户可创建自己的组织。所有者转移、组织删除、账号恢复和邮箱验证尚未实现。
+Cloud 模式下已登录用户可创建组织；self-hosted 模式的单组织限制见下方部署模式说明。所有权转移、邮件密码找回和邮箱验证已实现，见 [账户安全](ACCOUNT-SECURITY.md) 与 [邮箱注册](EMAIL-REGISTRATION.md)。组织删除及远端资源清理闭环仍待实现。
 
 ## 数据库隔离
 
@@ -79,7 +79,7 @@ Xingdu Cloud 已正式上线。自托管部署需按实际环境配置邮件、�
 
 ## 云端计费
 
-组织级 Stripe 月付/年付、签名回调、账单管理和五台服务器限额的配置与验证边界见 [BILLING.md](BILLING.md)。自部署模式默认免费；代码实现不代表真实支付或公网托管服务已验收。
+组织级 Stripe 月付/年付、签名回调、账单管理及 Starter 10 台 / Premium 50 台服务器限额的配置与验证边界见 [BILLING.md](BILLING.md)。自部署模式默认免费；代码实现不代表真实支付或公网托管服务已验收。
 # Deployment mode
 
 Set `MODE=cloud` for the hosted service: multiple organizations and Stripe

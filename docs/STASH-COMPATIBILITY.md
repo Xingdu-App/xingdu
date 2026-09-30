@@ -1,6 +1,6 @@
 # Stash 协议兼容范围
 
-对照日期：2026-09-29。客户端能连接某种协议，不等于星渡已具备该协议的
+对照日期：2026-09-30。客户端能连接某种协议，不等于星渡已具备该协议的
 服务端安装、凭据生成、重启、卸载和订阅导出能力。星渡保持独立运行时和
 客户端适配器，不引入 Stash 的私有实现作为服务端依赖。
 
@@ -13,6 +13,11 @@
 | Hysteria 2 / TUIC v5 | sing-box | 独立 YAML 字段 | QUIC + TLS；需要 UDP 端口可达 |
 | AnyTLS | sing-box | `type: anytls`、密码、SNI、证书指纹 | Agent 0.10.0-dev 起；本轮仅 TCP |
 | HTTPS 代理 | sing-box HTTP inbound + TLS | `type: http`、`tls: true`、用户名/密码 | Agent 0.10.0-dev 起；仅 TCP；用户名为 `xingdu` |
+| SOCKS5 / Mixed | sing-box | 同端口 SOCKS5 导出 | 仅 TCP；明文认证，需可信网络/加密隧道 |
+| Hysteria 1 | sing-box | auth 与带宽字段 | QUIC + TLS；需匹配证书 |
+| ShadowTLS v3 + SS2022 | sing-box | SS + shadow-tls 插件 | 仅 TCP；固定公共握手域名；独立内外层凭据 |
+| Snell v4 兼容 | sing-box v5 服务端 | version: 4 | 加密 TCP；不支持 v5 QUIC Proxy Mode |
+| Snell v6 测试版 | sing-box v6 | 明确拒绝 | Surge 导出已实现；不推断 Stash 支持 |
 
 AnyTLS 与 HTTPS 也可导出为 Mihomo。Surge、Loon 与 HY2 URI 对这两种协议明确拒绝，
 不套用其他客户端语法，不静默剔除节点。TLS 私钥不进入订阅；客户端收到
@@ -54,3 +59,5 @@ Linux 容器验证实际转发、错误密码拒绝、私网地址与私网域�
 本地实验组织原有计费状态。该结果不涵盖发布版 Stash App 或真实 VPS。
 
 新增 SOCKS5、Mixed、Hysteria 1、ShadowTLS v3 + SS2022、Snell v4 兼容模式的 Stash 导出；完整传输和格式限制见 [部署文档](PROTOCOL-DEPLOYMENT.md#扩展代理协议agent-0140-dev) 与 [订阅矩阵](SUBSCRIPTIONS.md#新增代理协议导出)。Naive 暂不接入。
+
+2026-09-30：AlmaLinux 10.2 / amd64 / SELinux Enforcing 的 SS2022 节点修复后，通过 Stash macOS 4.3.0 节点测试；自动策略安装与进程域检查另有实机记录。此项不覆盖完整订阅导入、其他协议和客户端版本，详见 [SELinux 验收](PROTOCOL-DEPLOYMENT.md#selinux-检测与修复)。

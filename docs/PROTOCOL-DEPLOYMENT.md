@@ -2,21 +2,38 @@
 
 星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
 
-| 协议 | 当前传输方式 | 认证 | 需要放行 |
-| --- | --- | --- | --- |
-| Shadowsocks | TCP，无 TLS | 随机密码；`chacha20-ietf-poly1305` | 所选 TCP 端口 |
-| Shadowsocks 2022 | TCP，无 TLS | 随机 32 字节 Base64 密钥；`2022-blake3-aes-256-gcm` | 所选 TCP 端口 |
-| Trojan | TCP + TLS | 随机密码 | 所选 TCP 端口 |
-| VLESS | TCP + TLS | 随机 UUID | 所选 TCP 端口 |
-| VMess | TCP + TLS | 随机 UUID | 所选 TCP 端口 |
-| Hysteria 2 | QUIC + TLS | 随机密码 | 所选 UDP 端口 |
-| TUIC v5 | QUIC + TLS | 随机 UUID 与密码 | 所选 UDP 端口 |
+## 协议与最低 Agent 版本
 
-QUIC 是传输方式，当前由 Hysteria 2 和 TUIC 提供；没有单独名为 QUIC 的通用代理协议。当前不提供 Reality、WebSocket 或 gRPC 选项。Shadowsocks 系列当前仅开放 TCP：固定运行时的 UDP 会话复用未能保证逐报文的私有目标拦截，因此服务端不监听 UDP，订阅也明确禁用 UDP。
+以下为 15 个 API 协议选项的实现矩阵，不代表全部系统或客户端均已验收。
+最低版本来自 `internal/protocol.MinimumAgentVersion`；dev 标签表示能力门槛，
+不是建议使用未发布构建。源码与已发布产物的区别见 [功能状态](IMPLEMENTATION-STATUS.md)。
+
+| 协议（API 值） | 传输 / 认证 | 域名与证书 | 最低 Agent |
+| --- | --- | --- | --- |
+| Shadowsocks (`shadowsocks`) | TCP；chacha20-ietf-poly1305 密码 | 无需 | 0.8.0-dev |
+| SS2022 (`shadowsocks2022`) | TCP；2022-blake3-aes-256-gcm 密钥 | 无需 | 0.8.0-dev |
+| Trojan (`trojan`) | TCP + TLS；密码 | 自备匹配 PEM | 0.7.0-dev |
+| VLESS (`vless`) | TCP + TLS；UUID | 自备匹配 PEM | 0.7.0-dev |
+| VMess (`vmess`) | TCP + TLS；UUID | 自备匹配 PEM | 0.7.0-dev |
+| Hysteria 2 (`hysteria2`) | QUIC / UDP + TLS；密码 | 自备匹配 PEM | 0.7.0-dev |
+| TUIC v5 (`tuic`) | QUIC / UDP + TLS；UUID 与密码 | 自备匹配 PEM | 0.7.0-dev |
+| AnyTLS (`anytls`) | TCP + TLS；密码 | 自备匹配 PEM | 0.10.0-dev |
+| HTTPS (`http`) | TCP + TLS；用户名/密码 | 自备匹配 PEM | 0.10.0-dev |
+| SOCKS5 (`socks`) | TCP；明文用户名/密码 | 无需；仅用于可信网络/加密隧道 | 0.14.0-dev |
+| Mixed (`mixed`) | 同端口 HTTP CONNECT / SOCKS5；明文用户名/密码；TCP | 无需；仅用于可信网络/加密隧道 | 0.14.0-dev |
+| Hysteria 1 (`hysteria`) | QUIC / UDP + TLS；auth_str | 自备匹配 PEM | 0.14.0-dev |
+| ShadowTLS v3 (`shadowtls`) | TCP；外层密码 + 内层 SS2022 密钥 | 固定公共握手域名；不上传证书 | 0.14.0-dev |
+| Snell v4 兼容 (`snell`) | 加密 TCP；PSK；v5 服务端 / v4 客户端 | 无需 | 0.14.0-dev |
+| Snell v6 测试版 (`snell6`) | 加密 TCP；PSK；需 v6 客户端 | 无需 | 0.14.0-dev |
+
+TCP 协议需放行所选 TCP 端口；QUIC 协议需放行所选 UDP 端口。
+QUIC 是传输方式，没有独立的通用 QUIC 代理选项。Reality、WebSocket、gRPC
+尚未接入。SS/SS2022 当前仅开放 TCP：运行时 UDP 会话复用无法保证逐报文
+私网目标隔离，因此服务端和订阅均关闭 UDP。其他选项的限制见下文。
 
 ## 安装前提
 
-- Linux amd64 / arm64 与 systemd；托管 Agent 已接入并在最近 90 秒内上报心跳。现有 TLS 协议至少需要 **0.7.0-dev**；Shadowsocks 系列至少需要 **0.8.0-dev**。控制端按语义版本检查最低版本，较新版本可用；预检、任务创建和领取都会检查。
+- Linux amd64 / arm64 与 systemd；托管 Agent 已接入并在最近 90 秒内上报心跳。各协议最低版本见上表；配置更新与恢复还要求 **0.12.0-dev**。控制端按语义版本检查最低版本，较新版本可用；预检、任务创建和领取都会检查。
 - 操作者为该组织的所有者或管理员。成员与只读成员可查看部署记录，不能安装、卸载或读取连接凭据。
 - 控制端配置 `XINGDU_CREDENTIAL_KEY`，与现有凭据加密配置一致，密钥不得进入数据库或 Git。
 - Shadowsocks 系列直接使用服务器 IP，不需要域名或证书；固定使用上表加密方式，不支持自定义插件或密码。
@@ -43,7 +60,7 @@ make dev-api
 ## 控制台流程
 
 1. 打开服务器的「协议部署」，确认托管 Agent 就绪。
-2. 新建节点，填写名称、协议和端口；仅 TLS 协议需要域名、证书和私钥。
+2. 新建节点，填写名称、协议和端口；TLS 协议填写匹配的域名、证书与私钥；ShadowTLS 选择允许的公共握手域名但不上传证书，其余无 TLS 选项不填写证书。
 3. 明确确认安装运行时、创建系统服务并启动端口监听。
 4. 等待 Agent 领取任务，观察排队、执行、完成或失败状态。
 5. 管理员主动点击「连接信息」获取服务器、端口、TLS 域名、客户端凭据和公开证书。TLS 私钥不会回显。
@@ -88,7 +105,7 @@ python3 scripts/protocol-lab.py --protocol shadowsocks --protocol shadowsocks202
 
 `GET /api/v1/nodes` 在 PostgreSQL RLS 范围内读取，不返回凭据或 TLS 私钥。安装成功时保存 `installed_at`，等待安装和安装失败不会创建节点；卸载排队、执行中、失败或中断时保留节点，只有收到卸载成功回报才从列表移除。撤销 Agent 不会停止服务，节点仍保留。删除服务器资料会级联删除相关元数据，但不会停止机器上已有服务。
 
-节点的「已部署」是任务结果，Agent 在线是机器心跳，均不代表协议服务当前健康或公网可达。实时协议健康探测尚未实现。
+节点的「已部署」是任务结果，Agent 在线是机器心跳，均不代表协议服务当前健康或公网可达。已实现独立运营者协议探测程序，但不是默认全球探测服务；未运行探测进程时没有实连结果，详见 [外部探测](RELIABLE-DEPLOYMENTS.md#独立外部探测)。
 
 升级迁移会将现有 `succeeded / deploy` 记录回填为节点。升级前已进入卸载流程的旧记录无法可靠证明先前安装成功，因此不会猜测回填；仍可在部署记录中查看和处理。
 

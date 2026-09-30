@@ -56,7 +56,7 @@ make check
 make build
 ```
 
-`make check` 包括 Go vet、race 测试、前端 lint 与生产构建。`make build` 生成 `bin/` 下五个 Go 程序及 `apps/web/dist/`。
+`make check` 包括 Go vet、race 测试、前端 lint、单元测试与生产构建（含 SEO 校验）。`make build` 构建 `cmd/` 下的 Go 程序至 `bin/`，并生成 `apps/web/dist/`。数据库测试仍需单独配置测试连接。
 
 数据库集成测试需使用专用测试数据库：
 
@@ -129,7 +129,7 @@ git config --local user.name Xingdu
 git config --local user.email noreply@xingdu.app
 ```
 
-提交前核对 author 和 committer；CI 发布流程尚未建立，不会自动发布包。真实 `.env`、运行数据和本机路径不应提交。外部贡献者可使用自己的公开身份；贡献继续适用 MIT。
+提交前核对 author 和 committer；普通 CI 执行检查，匹配版本的 Agent tag 触发 [发布工作流](AGENT-RELEASE.md)。普通分支推送不会创建 Agent Release，发布也不会自动升级机器。真实 `.env`、运行数据和本机路径不应提交。外部贡献者可使用自己的公开身份；贡献继续适用 MIT。
 
 ## 机器接入配置
 

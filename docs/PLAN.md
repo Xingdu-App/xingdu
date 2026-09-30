@@ -1,14 +1,16 @@
 # 星渡开发计划
 
-状态：六个近期方向均已开始实现，仍未达到公网 SaaS 正式发布标准。当前实现、验证证据与剩余工作见 [本轮交付状态](IMPLEMENTATION-STATUS.md)。
-
-已有多租户控制台、机器主动接入/SSH 安装、九种协议部署、节点与订阅。协议数据面已完成 Ubuntu / Debian / Amazon Linux 的本地容器验收；真实 VPS/EC2 和客户端 App 验收仍待完成。新增部署预检、节点重启与服务状态、客户端导出适配、账户安全、组织所有权转移、配额审计及备份恢复。
+本页区分产品目标与后续工作。当前代码、发布包与验收证据统一记录于
+[功能状态](IMPLEMENTATION-STATUS.md)，不再用阶段目标代替交付说明。
+Xingdu Cloud 已提供托管入口；已实现能力包括多租户、机器接入、协议部署、
+配置版本恢复、单层 TCP 中转、订阅路由模板、组织计费及发布 CI。
+公网恢复、公共 CA 与各客户端组合仍需分别验收。
 
 ## 产品目标与边界
 
 建设独立的 VPS 与线路自动化管理平台，兼容 Stash、Surge、Loon、Shadowrocket 等客户端。首版面向个人及小团队，采用支持自托管的 SaaS 架构，组织作为租户，支持多用户协作与已有 VPS 接入。
 
-项目采用 [MIT 许可证](../LICENSE)，允许免费商用；源码仓库未来用于公开协作和发布，不采用仅公开二进制的产品模式。真实运维配置、凭据和用户数据不进入源码仓库。
+项目采用 [MIT 许可证](../LICENSE)，允许免费商用；源码仓库用于公开协作和发布，不采用仅公开二进制的产品模式。真实运维配置、凭据和用户数据不进入源码仓库。
 
 客户端格式和服务端引擎分别适配，不因使用某客户端而强制绑定某引擎。首版用最少的引擎覆盖经验证的协议组合。
 
@@ -26,8 +28,8 @@
 flowchart TB
     Web[Web 控制台] --> API[控制端 API]
     API --> DB[PostgreSQL]
-    API --> Worker[部署与巡检 Worker]
-    Agent[VPS Agent] -->|主动 HTTPS 心跳 / 后续 mTLS| API
+    API --> Worker[SSH 安装 Worker]
+    Agent[VPS Agent] -->|独立机器身份 / HTTPS| API
     Worker -->|SSH 安装| Agent
     Agent --> Adapter[运行时适配器]
     Adapter --> Engine[协议引擎]
@@ -38,25 +40,23 @@ flowchart TB
 
 控制端保存期望配置、任务与配置版本。Agent 执行受限、可审计的管理操作，控制端不可用时继续运行最后一版有效配置。
 
-建议技术栈：React + TypeScript、Go API/Worker/Agent、PostgreSQL 持久化任务、SSE 进度推送、Linux systemd、Docker Compose 自托管。先做模块化单体。
+当前技术栈：React + TypeScript、Go API/Worker/Agent、PostgreSQL 持久化任务、Linux systemd、Docker Compose 自托管，采用模块化单体。外部探测和自动证书使用独立运营者进程。
 
-代码布局（业务目录按实现进度创建，暂不堆放空目录）：
+当前主要代码布局：
 
 ```text
-apps/web/
-cmd/server/
-cmd/worker/
-cmd/agent/
-internal/hosts/
-internal/routes/
-internal/deployments/
-internal/subscriptions/
-internal/credentials/
-internal/adapters/runtimes/
-internal/adapters/clients/
-migrations/
-deploy/
-docs/
+apps/web/                  官网与控制台
+cmd/                       API、Worker、Agent 及运营工具
+internal/httpapi/          认证与管理 API
+internal/storage/          事务、RLS 与 migrations/
+internal/machine/          机器接入、SSH 和升级契约
+internal/agent/            机器任务与系统服务操作
+internal/protocol/         协议配置与运行时规格
+internal/subscription/     客户端导出及路由模板
+internal/billing/          Stripe 计费
+internal/certificates/     ACME 与 DNS 集成
+deploy/                    部署配置
+docs/                      操作说明与验收边界
 ```
 
 ## 数据模型
@@ -81,7 +81,7 @@ docs/
 
 - 支持项正常输出，不兼容项明确显示并拒绝输出该订阅，避免悄悄漏掉节点。
 - 不静默丢弃关键参数，不自动降低安全配置。
-- 首版优先节点、订阅、分享链接；完整分流规则与 DNS 模板后置。
+- 已提供节点、订阅、分享链接、自定义规则和多策略组路由模板；完整 DNS 配置、任意外部脚本与公共转换服务不在当前范围。
 - 验收需要真实客户端导入并连接，不能仅用配置生成成功代替。
 
 ## 部署可靠性
@@ -92,12 +92,12 @@ docs/
 - 对同一主机的冲突操作串行化，并防止过期执行者覆盖新配置。
 - 部署绑定配置版本，失败恢复上一版有效配置。
 - 分别呈现进程运行、节点可连接、整条线路可用三类状态。
-- 防火墙仅管理星渡规则，保留 SSH/管理链路。
+- 防火墙自动管理仍属目标，当前由管理员配置；未来接入时须保留 SSH/管理链路。
 - 卸载和回滚考虑共享引擎、证书与其他线路依赖。
 - 私钥和令牌不进入日志；备份中的敏感字段也需加密。
-- Agent 使用一次性注册令牌和独立设备身份，支持撤销与证书轮换。
+- Agent 使用一次性注册令牌和独立机器 bearer 身份，支持撤销；不把当前认证描述为已实现 mTLS 或设备证书轮换。
 
-## 开发阶段与验收
+## 阶段目标与验收（不是完成状态）
 
 | 阶段 | 内容 | 验收 |
 | --- | --- | --- |
@@ -110,33 +110,27 @@ docs/
 
 首个里程碑：接入一台干净 VPS，一键部署已验证的线路，生成四类客户端订阅，证明配置更新失败后能够恢复。
 
-## 首版暂缓
+## 后续工作与暂缓范围
 
-自动购买 VPS、云厂商计费、商业套餐、支付、任意多跳、自动最优线路、拖拽拓扑、完整分流规则托管、大范围自动修复。
+优先补齐公共 CA 签发续期、真实客户端导入/转发、公网升级与断网恢复、
+生产备份恢复以及邮件/OAuth/支付的部署验收。Passkey、MFA、通知渠道、
+主密钥轮换、分布式限流和组织销毁仍需实现。运营验收见
+[检查清单](LAUNCH-CHECKLIST.md)。
 
-## 开源发布前事项
+自动购买 VPS、云厂商计费、任意多跳、UDP 中转、自动最优线路、拖拽拓扑、
+服务端规则集镜像和大范围自动修复暂缓。商业套餐与 Stripe 支付已实现，
+不再列为暂缓；计划及额度见 [账单](BILLING.md)。
 
-- 已选定 MIT 并添加 LICENSE；发布前检查依赖、协议引擎及二进制再分发要求，并在分发包中保留所需版权和许可声明。
-- 确定 GitHub 组织与公开仓库地址，不沿用 Stash 的项目身份。
-- 确认贡献者公开身份与仓库级 Git 作者设置；noreply 只隐藏邮箱，不隐藏关联账号。
-- 在首次公开前检查 Git 历史、构建元数据、绝对路径、配置示例和 CI 日志。
-- 配置私密漏洞报告渠道、最小权限 CI、发布校验和及可验证构建来源。
-- 注册并配置 xingdu.app；组织名、域名归属和联系邮箱均需实际核实。
+## 已确定的基础与维护要求
 
-## 待确定
-
-已确定首版使用 sing-box，覆盖 Trojan、VLESS、VMess、Hysteria 2、TUIC。仍需确定公网测试 VPS、DNS/ACME 接入方式、通知与邮件提供商、实际客户端版本和公开发布环境。
+- MIT、独立 GitHub 组织/公开仓库和 xingdu.app 项目域名已确定。
+- 固定 sing-box 运行时、Cloudflare DNS-01 程序、Resend 邮件与 Google/GitHub 登录已接入；依赖凭据配置和部署验收。
+- CI 与 Agent tag 发布流程已建立，提供校验和及 GitHub OIDC 来源证明；更新器尚不自动验证来源证明。
+- 每次发布继续检查依赖许可、公开身份、历史与构建日志中的敏感数据；保持最小权限和私密漏洞报告渠道。
+- 通知渠道、更多 DNS 提供商和更完整的实际客户端/系统矩阵仍需推进。
 
 ## 登录方式扩展
 
 保留邮箱验证注册与邮箱/密码登录，并接入 Google、GitHub OAuth 登录及已验证同邮箱自动关联；配置与验收边界见 [第三方登录](SOCIAL-LOGIN.md)。第三方凭据缺失时保持禁用；提供方返回相同的已验证邮箱时关联已有账号，不同邮箱需登录后主动绑定。
 
-下一阶段增加 WebAuthn Passkey（包括 Face ID / Touch ID），不是 Sign in with Apple。先确定正式域名与 RP ID，再实现凭据注册、免密码登录、撤销和恢复方案；本轮尚未实现 Passkey。
-
-## 2026-09-29 后续实现
-
-新增节点配置版本、端口/证书编辑、凭据轮换、启动失败恢复与历史恢复；
-已有节点的单层 TCP 中转、依赖保护及独立外部协议探测程序；自动证书
-DNS-01 签发与续期程序。操作与验收边界见
-[可靠部署](RELIABLE-DEPLOYMENTS.md)及[自动证书](AUTOMATIC-CERTIFICATES.md)。
-P2/P4 仍需公网故障演练，不能将进程检查或本地测试视为全部阶段完成。
+下一阶段增加 WebAuthn Passkey（包括 Face ID / Touch ID），不是 Sign in with Apple。在已确定的 xingdu.app 域名下明确 RP ID、自托管域名兼容与恢复策略，再实现凭据注册、免密码登录、撤销和恢复方案；本轮尚未实现 Passkey。
