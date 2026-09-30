@@ -695,8 +695,8 @@ th {
   color: #40596b;
   font-size: 12px;
 }
-.auth-card input,
-.host-dialog input,
+.auth-card input:not([type="checkbox"]):not([type="radio"]),
+.host-dialog input:not([type="checkbox"]):not([type="radio"]),
 .host-dialog textarea {
   width: 100%;
   border: 1px solid #cfdce2;
@@ -1116,6 +1116,8 @@ th {
 .check-row input {
   width: 16px;
   height: 16px;
+  min-height: 0;
+  padding: 0;
   flex: none;
   margin-top: 4px;
 }
@@ -1134,6 +1136,34 @@ th {
 .enrollment-result input,
 .enrollment-result textarea {
   font-family: monospace !important;
+}
+.revision-editor {
+  display: grid;
+  gap: 16px;
+}
+.revision-editor h4,
+.revision-editor p,
+.revision-editor label {
+  margin: 0;
+}
+.revision-editor .revision-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.revision-editor .select-control {
+  width: 100%;
+  min-width: 0;
+}
+.revision-editor input:not([type="checkbox"]) {
+  font-family: inherit !important;
+}
+.revision-editor .deployment-actions {
+  margin-top: 0;
+  align-items: center;
+}
+.revision-editor .deployment-actions .primary {
+  margin-top: 0;
 }
 .machine-job {
   border: 1px solid #e2e9e8;

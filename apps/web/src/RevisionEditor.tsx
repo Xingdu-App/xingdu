@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { request, requiresTLS, handshakeHosts, type Deployment } from "./api";
 import { t } from "./i18n";
+import Select from "./Select";
 
 type Revision = {
   revision: number;
@@ -48,7 +49,7 @@ export default function RevisionEditor({
   }, [path]);
   return (
     <form
-      className="enrollment-result"
+      className="enrollment-result revision-editor"
       onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
@@ -80,26 +81,29 @@ export default function RevisionEditor({
           "更新需要 Agent 0.12.0-dev 或更新版本。启动失败会尝试恢复原配置；任务成功后请更新客户端订阅。",
         )}
       </p>
-      <label>
-        {t("恢复历史版本")}
-        <select
-          value={restore}
-          onChange={(e) => setRestore(Number(e.target.value))}
-        >
-          <option value={0}>{t("编辑当前配置")}</option>
-          {revisions
-            .filter((r) => !r.current && !r.pending)
-            .map((r) => (
-              <option key={r.revision} value={r.revision}>
-                v{r.revision} · {r.name} ·{" "}
-                {new Date(r.created_at).toLocaleString()}
-              </option>
-            ))}
-        </select>
-      </label>
+      <div className="revision-field">
+        <label htmlFor={`revision-${node.id}`}>{t("恢复历史版本")}</label>
+        <Select
+          id={`revision-${node.id}`}
+          label={t("恢复历史版本")}
+          value={String(restore)}
+          onChange={(value) => setRestore(Number(value))}
+          disabled={busy}
+          options={[
+            { value: "0", label: t("编辑当前配置") },
+            ...revisions
+              .filter((r) => !r.current && !r.pending)
+              .map((r) => ({
+                value: String(r.revision),
+                label: `v${r.revision} · ${r.name}`,
+                description: new Date(r.created_at).toLocaleString(),
+              })),
+          ]}
+        />
+      </div>
       {!restore && (
         <>
-          <label>
+          <label className="revision-field">
             {t("名称")}
             <input
               value={name}
@@ -108,7 +112,7 @@ export default function RevisionEditor({
               onChange={(e) => setName(e.target.value)}
             />
           </label>
-          <label>
+          <label className="revision-field">
             {t("端口")}
             <input
               type="number"
@@ -120,35 +124,38 @@ export default function RevisionEditor({
             />
           </label>
           {node.protocol === "shadowtls" && (
-            <label>
-              {t("握手域名")}
-              <select
+            <div className="revision-field">
+              <label htmlFor={`handshake-${node.id}`}>{t("握手域名")}</label>
+              <Select
+                id={`handshake-${node.id}`}
+                label={t("握手域名")}
                 value={serverName}
-                onChange={(e) => setServerName(e.target.value)}
-              >
-                {handshakeHosts.map((host) => (
-                  <option key={host}>{host}</option>
-                ))}
-              </select>
-            </label>
+                onChange={setServerName}
+                disabled={busy}
+                options={handshakeHosts.map((host) => ({
+                  value: host,
+                  label: host,
+                }))}
+              />
+            </div>
           )}
           {requiresTLS(node.protocol) && (
             <>
-              <label>
+              <label className="revision-field">
                 {t("TLS 域名")}
                 <input
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
                 />
               </label>
-              <label>
+              <label className="revision-field">
                 {t("替换证书（留空保留）")}
                 <textarea
                   value={certificate}
                   onChange={(e) => setCertificate(e.target.value)}
                 />
               </label>
-              <label>
+              <label className="revision-field">
                 {t("替换私钥（不会回显）")}
                 <textarea
                   value={privateKey}
@@ -158,7 +165,7 @@ export default function RevisionEditor({
               </label>
             </>
           )}
-          <label>
+          <label className="check-row">
             <input
               type="checkbox"
               checked={rotate}
@@ -168,7 +175,7 @@ export default function RevisionEditor({
           </label>
         </>
       )}
-      <label>
+      <label className="check-row">
         <input
           type="checkbox"
           checked={confirm}
@@ -177,17 +184,19 @@ export default function RevisionEditor({
         {t("确认更新，连接会短暂中断")}
       </label>
       {error && <p role="alert">{error}</p>}
-      <button className="primary" disabled={busy || !confirm}>
-        {t("应用配置")}
-      </button>{" "}
-      <button
-        type="button"
-        className="secondary"
-        disabled={busy}
-        onClick={onClose}
-      >
-        {t("取消")}
-      </button>
+      <div className="deployment-actions">
+        <button className="primary" disabled={busy || !confirm}>
+          {t("应用配置")}
+        </button>{" "}
+        <button
+          type="button"
+          className="secondary"
+          disabled={busy}
+          onClick={onClose}
+        >
+          {t("取消")}
+        </button>
+      </div>
     </form>
   );
 }
