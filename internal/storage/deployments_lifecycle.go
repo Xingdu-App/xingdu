@@ -44,7 +44,7 @@ func (s *Store) ReportServices(ctx context.Context, hash string, reports []proto
 	}
 	seen := map[string]bool{}
 	for _, r := range reports {
-		if (r.RuntimeVersion != "" && !protocol.ValidRuntimeVersion(r.RuntimeVersion)) || !id.Valid("node", r.ID) || seen[r.ID] || (r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
+		if (r.RuntimeVersion != "" && !protocol.ValidRuntimeVersion(r.RuntimeVersion)) || !id.Valid("node", r.ID) || seen[r.ID] || (r.Status != "policy_required" && r.Status != "active" && r.Status != "inactive" && r.Status != "missing" && r.Status != "unknown") {
 			return ErrInvalid
 		}
 		seen[r.ID] = true

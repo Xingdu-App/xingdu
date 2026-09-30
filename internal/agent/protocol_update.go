@@ -70,6 +70,13 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 		os.Remove(backup)
 		return "write_failed"
 	}
+	if code := x.ensureRuntimePolicy(ctx, binary, path); code != "" {
+		if atomicProtocolFile(path, old, 0600) != nil || x.run(ctx, "restorecon", path) != nil {
+			return "rollback_failed"
+		}
+		os.Remove(backup)
+		return code
+	}
 	healthy := func(ctx context.Context) bool {
 		if x.run(ctx, "systemctl", "restart", serviceName(localID)) != nil {
 			return false
@@ -79,7 +86,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 			return false
 		case <-time.After(2 * time.Second):
 		}
-		return x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) == nil
+		return x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) == nil && x.runtimePolicyReady(ctx, t.DeploymentID)
 	}
 	if healthy(ctx) {
 		if os.Remove(backup) != nil {
@@ -89,7 +96,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	}
 	recovery, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if atomicProtocolFile(path, old, 0600) != nil || !healthy(recovery) {
+	if atomicProtocolFile(path, old, 0600) != nil || x.ensureRuntimePolicy(recovery, binary, path) != "" || !healthy(recovery) {
 		return "rollback_failed"
 	}
 	if os.Remove(backup) != nil {

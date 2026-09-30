@@ -202,6 +202,13 @@ const resultLabels: Record<string, string> = {
   get runtime_unavailable() {
     return t("运行时不可用，请检查下载连通性和机器架构。");
   },
+  get selinux_detection_failed() { return t("无法检测 SELinux 状态，操作已停止。"); },
+  get selinux_tools_missing() { return t("缺少 SELinux 策略工具，请安装发行版的 selinux-policy-devel 和 policycoreutils。"); },
+  get selinux_tools_install_failed() { return t("SELinux 策略工具安装失败，请检查系统软件源后重试。"); },
+  get selinux_policy_failed() { return t("SELinux 专用策略安装失败，未关闭系统安全保护。"); },
+  get selinux_label_failed() { return t("SELinux 文件标签修复失败，请检查文件系统和权限。"); },
+  get selinux_label_conflict() { return t("SELinux 文件标签与管理员策略冲突，未覆盖现有策略。"); },
+  get selinux_domain_failed() { return t("协议服务未进入专用 SELinux 域，请检查安全策略后重试。"); },
   get config_rejected() {
     return t("运行时拒绝了此配置。");
   },
@@ -627,7 +634,7 @@ export default function ProtocolDialog({
                           }
                           onClick={() => setRestarting(row.id)}
                         >
-                          {t("重启服务")}
+                          {t(row.service_status === "policy_required" ? "修复安全策略并重启" : "重启服务")}
                         </button>
                       )}
                       {((row.state === "succeeded" &&
@@ -690,7 +697,9 @@ export default function ProtocolDialog({
                     <div className="delete-confirm">
                       <p>
                         {t(
-                          "重启会短暂中断当前连接，需要托管 Agent 0.6.0。确认重启？",
+                          row.service_status === "policy_required"
+                            ? "将安装或修复 Xingdu 专用安全策略并重启此节点，可能需要从系统软件源安装策略工具。当前连接会短暂中断，确认继续？"
+                            : "重启会短暂中断当前连接，需要托管 Agent 0.6.0。确认重启？",
                         )}
                       </p>
                       <button

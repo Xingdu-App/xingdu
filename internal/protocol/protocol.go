@@ -314,7 +314,7 @@ func Render(s Spec) ([]byte, error) {
 // ValidResultCode bounds agent reports to non-sensitive, user-facing codes.
 func ValidResultCode(code string) bool {
 	switch code {
-	case "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
+	case "selinux_detection_failed", "selinux_tools_missing", "selinux_tools_install_failed", "selinux_policy_failed", "selinux_label_failed", "selinux_label_conflict", "selinux_domain_failed", "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
 		return true
 	default:
 		return false

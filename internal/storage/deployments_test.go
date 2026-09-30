@@ -192,6 +192,12 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if n := assertNodes(ca, 1, "succeeded")[0]; n.RuntimeVersion != "" {
 		t.Fatal("legacy report retained an unverified version")
 	}
+	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "policy_required"}}); e != nil {
+		t.Fatal(e)
+	}
+	if n := assertNodes(ca, 1, "succeeded")[0]; n.ServiceStatus != "policy_required" {
+		t.Fatal("security warning lost", n.ServiceStatus)
+	}
 	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "arbitrary output"}}); !errors.Is(e, ErrInvalid) {
 		t.Fatal("unbounded report", e)
 	}

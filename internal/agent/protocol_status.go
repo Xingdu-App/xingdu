@@ -47,6 +47,9 @@ func (x *protocolExecutor) serviceStatus(ctx context.Context, id string) string 
 	}
 	err := x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(x.localDeploymentID(id)))
 	if err == nil {
+		if !x.runtimePolicyReady(ctx, id) {
+			return "policy_required"
+		}
 		return "active"
 	}
 	if ctx.Err() != nil {

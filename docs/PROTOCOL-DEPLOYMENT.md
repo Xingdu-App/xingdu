@@ -158,3 +158,45 @@ TLS 1.3 目标，不是公共握手域名的网络可达性测试。除 Hysteria
 python3 scripts/protocol-lab.py --system debian --protocol socks --protocol mixed \
   --protocol hysteria --protocol shadowtls --protocol snell --protocol snell6
 ```
+
+## SELinux 检测与修复
+
+Agent 检查 `/sys/fs/selinux/enforce`，区分未启用、Permissive 与 Enforcing
+主机；启用 SELinux 时，在部署、配置更新和用户主动重启之前准备专用策略。
+现有节点可使用「重启服务」触发检查与修复。后台服务状态检查只读，不自动
+安装软件、修改策略或重启节点。服务仍运行但没有进入专用域时，上报
+`policy_required`，页面显示「安全策略待修复」并提供「修复安全策略并重启」。
+
+策略源码随 Agent 构建嵌入，使用发行版工具编译并安装共享的
+`xingdu_runtime` 模块。程序进入 `xingdu_runtime_t`，二进制与配置分别标记为
+`xingdu_runtime_exec_t` 和 `xingdu_runtime_conf_t`。保留 DynamicUser、
+NoNewPrivileges、只读系统目录及 capability 限制；不关闭 SELinux，不将域
+设为 Permissive，不使用 `bin_t` / `unconfined_service_t`，不为 `init_t` 全局
+开放网络权限。策略允许代理所需的 TCP/UDP 监听和出站、DNS、证书读取及
+systemd 传入的配置描述符；不授予普通文件写入或执行 Shell 的权限。
+私网和云元数据目的地仍由运行时路由规则拒绝。
+
+工具缺失时，仅支持通过现有 dnf/yum 软件源安装 `selinux-policy-devel` 和
+`policycoreutils`；不添加软件源、执行系统升级或关闭包签名检查。不支持的
+工具环境明确失败。修复只重标记已确认归属的程序与当前节点配置，不递归
+重标记整台机器；管理员的本地 fcontext 覆盖导致标签不一致时，返回
+`selinux_label_conflict`，不删除或覆盖管理员策略。共享模块在卸载单个节点
+时保留，避免影响其他节点。
+
+失败保存固定的 `selinux_*` 结果码，包括检测、工具安装、策略编译/加载、
+文件标签和服务域验证。不上报原始流量日志、审计日志、机器地址或凭据。
+服务启动成功后还检查实际进程域，但这仍不等于公网客户端验收。
+旧 Agent 不具备这些检查；本次代码尚须发布并升级后才能使用自动修复。
+
+实机验收：AlmaLinux 10.2 Enforcing 上的 Shadowsocks 2022 节点，在原有
+systemd 沙箱下复现出站 `name_connect` 拒绝；专用策略加载后，同沙箱下
+HTTP/HTTPS 转发通过，故障节点重启后 Stash 节点测试通过。另通过编译后的
+Agent 测试程序验证自动策略安装、重复修复、文件标签与进程域检查。
+此结果不代表其他发行版、SELinux MLS 策略或全部协议均已实机验收。
+`TestSELinuxRepairOnOwnedNode` 为显式启用的 root/SELinux 实机测试，需设置
+`XINGDU_SELINUX_TEST_NODE_ID` 为管理员已授权的现有节点；测试会安装/修复
+共享策略和标签，不重启节点，也不修改节点配置或凭据。普通 `make check`
+默认跳过该实机用例。
+
+参考：[Red Hat 自定义 SELinux 策略](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_selinux/writing-a-custom-selinux-policy)、
+[SELinux NoNewPrivileges 域转换](https://github.com/SELinuxProject/selinux-notebook/blob/main/src/object_classes_permissions.md)。

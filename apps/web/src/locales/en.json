@@ -1086,5 +1086,15 @@
   "错误详情": "Error details",
   "基础配置": "Basic configuration",
   "更多": "More",
-  "全选": "Select all"
+  "全选": "Select all",
+  "安全策略待修复": "Security policy needs repair",
+  "无法检测 SELinux 状态，操作已停止。": "Cannot detect SELinux state. The operation was stopped.",
+  "缺少 SELinux 策略工具，请安装发行版的 selinux-policy-devel 和 policycoreutils。": "SELinux policy tools are missing. Install selinux-policy-devel and policycoreutils from your distribution.",
+  "SELinux 策略工具安装失败，请检查系统软件源后重试。": "Could not install SELinux policy tools. Check your system repositories and retry.",
+  "SELinux 专用策略安装失败，未关闭系统安全保护。": "Could not install the dedicated SELinux policy. System security remains enabled.",
+  "SELinux 文件标签修复失败，请检查文件系统和权限。": "Could not repair SELinux file labels. Check the filesystem and permissions.",
+  "SELinux 文件标签与管理员策略冲突，未覆盖现有策略。": "SELinux file labels conflict with administrator policy. Existing policy was preserved.",
+  "协议服务未进入专用 SELinux 域，请检查安全策略后重试。": "The protocol service did not enter its dedicated SELinux domain. Check security policy and retry.",
+  "修复安全策略并重启": "Repair security policy and restart",
+  "将安装或修复 Xingdu 专用安全策略并重启此节点，可能需要从系统软件源安装策略工具。当前连接会短暂中断，确认继续？": "Install or repair the dedicated Xingdu security policy and restart this node. Policy tools may be installed from your system repositories. Connections will briefly disconnect. Continue?"
 }

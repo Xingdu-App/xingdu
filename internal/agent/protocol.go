@@ -27,6 +27,8 @@ import (
 type protocolExecutor struct {
 	stateDir, unitDir, binaryDir string
 	run                          func(context.Context, string, ...string) error
+	output                       func(context.Context, string, ...string) ([]byte, error)
+	selinuxEnforcePath           string
 	root                         bool
 	arch                         string
 	client                       *http.Client
@@ -236,6 +238,9 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		if !x.ownedRuntime(localID) {
 			return "ownership_mismatch"
 		}
+		if code := x.repairOwnedRuntimePolicy(ctx, t.DeploymentID); code != "" {
+			return code
+		}
 		if x.run(ctx, "systemctl", "restart", serviceName(localID)) != nil {
 			return "start_failed"
 		}
@@ -246,6 +251,9 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		}
 		if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) != nil {
 			return "start_failed"
+		}
+		if !x.runtimePolicyReady(ctx, t.DeploymentID) {
+			return "selinux_domain_failed"
 		}
 		return "restarted"
 	}
@@ -333,6 +341,9 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if x.run(ctx, binary, "check", "-c", configPath) != nil {
 		return "config_rejected"
 	}
+	if code := x.ensureRuntimePolicy(ctx, binary, configPath); code != "" {
+		return code
+	}
 	// O_EXCL ensures we never replace a service that appeared during preparation.
 	unit, err := os.OpenFile(unitPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
@@ -377,6 +388,9 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	}
 	if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) != nil {
 		return "start_failed"
+	}
+	if !x.runtimePolicyReady(ctx, t.DeploymentID) {
+		return "selinux_domain_failed"
 	}
 	completed = true
 	return "deployed"

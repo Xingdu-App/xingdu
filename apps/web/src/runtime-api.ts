@@ -20,6 +20,7 @@ export function localServiceLabel(
     (
       {
         active: "运行中",
+        policy_required: "安全策略待修复",
         inactive: "未运行",
         missing: "服务缺失",
         unknown: "待核实",
