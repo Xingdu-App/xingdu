@@ -161,6 +161,15 @@ func TestSSHAuthenticationAndInstallBundle(t *testing.T) {
 		t.Fatal("credentials uploaded after failed preflight")
 	default:
 	}
+	preflightExit.Store(75)
+	if e = c.Install(ctx, secret, "https://control.example.invalid"); e == nil || e.Error() != "ssh_tar_install_failed" {
+		t.Fatal("tar installation failure was not recorded safely", e)
+	}
+	select {
+	case <-bundles:
+		t.Fatal("credentials uploaded after package installation failure")
+	default:
+	}
 	preflightExit.Store(0)
 	digest := sha256.Sum256([]byte("test-agent-binary"))
 	job := machine.Job{Action: "upgrade", TargetVersion: machine.Version, AgentHash: machine.Hash(machine.Token()), Arch: "amd64", ArtifactSHA256: hex.EncodeToString(digest[:])}

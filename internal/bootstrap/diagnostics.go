@@ -9,7 +9,25 @@ import (
 )
 
 // Fixed exit codes distinguish prerequisites without storing remote shell output.
-const installPreflight = `command -v tar >/dev/null 2>&1 || exit 70; command -v sh >/dev/null 2>&1 || exit 71; command -v systemctl >/dev/null 2>&1 || exit 72; test "$(id -u)" = 0 || exit 73`
+const installPreflight = `command -v sh >/dev/null 2>&1 || exit 71
+command -v systemctl >/dev/null 2>&1 || exit 72
+test "$(id -u)" = 0 || exit 73
+if ! command -v tar >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 update >/dev/null 2>&1 &&
+      apt-get -o Acquire::Retries=0 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y --no-install-recommends tar >/dev/null 2>&1 || exit 75
+  elif command -v dnf >/dev/null 2>&1; then
+    dnf -y --setopt=timeout=15 --setopt=retries=0 install tar >/dev/null 2>&1 || exit 75
+  elif command -v yum >/dev/null 2>&1; then
+    yum -y --setopt=timeout=15 --setopt=retries=0 install tar >/dev/null 2>&1 || exit 75
+  elif command -v zypper >/dev/null 2>&1; then
+    zypper --non-interactive install --no-recommends tar >/dev/null 2>&1 || exit 75
+  else
+    exit 70
+  fi
+  command -v tar >/dev/null 2>&1 || exit 75
+fi`
 
 func privilegedCommand(user, command string) string {
 	if user != "root" {
@@ -32,6 +50,8 @@ func preflightError(err error) error {
 		switch exit.ExitStatus() {
 		case 70:
 			return errors.New("ssh_tar_missing")
+		case 75:
+			return errors.New("ssh_tar_install_failed")
 		case 71:
 			return errors.New("ssh_shell_missing")
 		case 72:

@@ -9,7 +9,7 @@
 | SSH 私钥 | PEM / OpenSSH 私钥，可选私钥口令、已核实指纹 | 同上；不要求解密私钥后再上传 |
 | 手动二进制 | 自行构建或下载校验过的 Agent | `--init` 后前台运行，适用于调试及自定义服务管理器 |
 
-Linux systemd 安装支持 amd64 / arm64，首批目标为 Debian / Ubuntu 系。需要 curl、sha256sum、systemd、useradd；SSH 安装需要 tar，非 root SSH 用户需要免密 sudo。不会修改 SSH 服务、安全组或防火墙，不接收 sudo 密码，不覆盖已有 Agent。
+Linux systemd 安装支持 amd64 / arm64，首批目标为 Debian / Ubuntu 系。需要 curl、sha256sum、systemd、useradd；SSH 安装缺少 tar 时会通过现有 apt-get、dnf、yum 或 zypper 自动安装 tar，非 root SSH 用户需要免密 sudo。不会修改 SSH 服务、安全组或防火墙，不接收 sudo 密码，不覆盖已有 Agent。
 
 ## 权限模式
 
@@ -115,7 +115,12 @@ SSH 任务租约 3 分钟、操作超时 100 秒。过期的运行任务标记�
 
 ## 安装失败诊断
 
-SSH 安装与升级会先检查 tar、sh、systemctl 和 root 权限，再上传安装包。
+SSH 安装与升级会先检查 sh、systemctl 和 root 权限，再检查 tar。缺少 tar 时，
+通过已有的 apt-get、dnf、yum 或 zypper 安装，仅安装 tar 及包管理器所需依赖，
+不执行全系统升级，不添加软件源，不关闭包签名校验。已有 tar 时跳过包管理器。
+安装后再次确认 tar 可执行，成功才上传安装包；任务仍受原有 SSH 超时限制。
+不支持的包管理器返回 ssh_tar_missing，安装失败返回 ssh_tar_install_failed；
+超时仍可能留下包管理器操作，需要核实 VPS 状态后再提交。
 失败原因作为固定错误码保存在组织隔离的 `machine_jobs.result` 中，与任务 ID、
 机器 ID、操作、创建和结束时间一并保留。页面显示错误说明和错误码，Worker
 记录失败任务 ID、机器 ID、操作及错误码，方便定位和统计重复故障。
@@ -127,9 +132,14 @@ SSH 安装与升级会先检查 tar、sh、systemctl 和 root 权限，再上传
 
 2026-09-30 排障案例：AlmaLinux 8.9 缺少 tar，SSH 认证、root 权限、systemd、
 安装目录权限和控制端 HTTPS 下载均正常，但解包步骤失败，尚未创建 Agent
-状态目录或服务。修复方式为管理员在 VPS 执行 `dnf install -y tar`，再重新
-提交安装。此前仅记录 `install_failed_check_vps`；新流程提前记录
-`ssh_tar_missing`，并在前置检查失败时停止上传安装凭据。
+状态目录或服务。当时修复方式为管理员在 VPS 执行 `dnf install -y tar`，再重新
+提交安装。此前仅记录 `install_failed_check_vps`，随后增加了
+`ssh_tar_missing` 前置诊断；当前版本进一步在权限检查后自动补装 tar，
+补装失败时停止上传安装凭据。
+
+自动化测试覆盖四种包管理器分支、已有 tar 时跳过、权限不足、安装失败与
+安装后仍缺失；SSH 测试确认补装失败不会传送安装凭据。一次性 Amazon Linux
+容器已实际移除 tar 并通过 dnf 自动补装成功；这不代表 AlmaLinux VPS 实机验收。
 
 ## 验收边界
 

@@ -95,6 +95,11 @@ const failures: Record<string, string> = {
   get ssh_tar_missing() {
     return t("VPS 缺少 tar，无法解压安装包。请安装 tar 后重新提交。");
   },
+  get ssh_tar_install_failed() {
+    return t(
+      "自动安装 tar 失败，请检查 VPS 软件源、出站网络、磁盘空间或包管理器锁，处理后重新提交。",
+    );
+  },
   get ssh_shell_missing() {
     return t("VPS 缺少 sh，无法执行安装脚本。");
   },

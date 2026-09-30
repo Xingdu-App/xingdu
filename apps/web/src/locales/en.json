@@ -1067,5 +1067,6 @@
   "SSH 用户无法执行免密 sudo。请配置免密 sudo 或使用 root 账号。": "The SSH user cannot use passwordless sudo. Configure passwordless sudo or use root.",
   "Agent 无法连接控制端，请检查 VPS 的 DNS、HTTPS 出站网络与证书信任。": "The Agent cannot reach the control plane. Check VPS DNS, outbound HTTPS and certificate trust.",
   "控制端拒绝 Agent 注册，请检查部署配置和服务状态。": "The control plane rejected Agent enrollment. Check deployment configuration and service status.",
-  "Agent 注册令牌已失效或被撤销，请核对残留状态后重新签发。": "The Agent enrollment token expired or was revoked. Inspect retained state before issuing a new token."
+  "Agent 注册令牌已失效或被撤销，请核对残留状态后重新签发。": "The Agent enrollment token expired or was revoked. Inspect retained state before issuing a new token.",
+  "自动安装 tar 失败，请检查 VPS 软件源、出站网络、磁盘空间或包管理器锁，处理后重新提交。": "Automatic tar installation failed. Check package repositories, outbound connectivity, disk space or package manager locks, then submit again."
 }
