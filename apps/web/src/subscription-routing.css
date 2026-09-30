@@ -236,3 +236,9 @@ html[lang="en"] .subscription-rule {
   font-weight: 550;
   color: #294d48;
 }
+
+.routing-node-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}

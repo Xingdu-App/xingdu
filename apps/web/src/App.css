@@ -2973,3 +2973,19 @@ html[lang="en"] .subscription-rule {
   border-top: 1px solid #edf0f1;
   border-radius: 0 0 6px 6px;
 }
+
+.subscription-dialog .subscription-step {
+  flex-wrap: wrap;
+}
+.subscription-editor-actions {
+  align-items: center;
+}
+.subscription-editor-actions > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+}

@@ -221,36 +221,60 @@ export function RoutingEditor({
                 {t("包含全部 {0} 个已选节点", { 0: input.node_ids.length })}
               </p>
             ) : (
-              <div className="routing-node-chips">
-                {input.node_ids.map((id) => (
-                  <label
-                    key={id}
-                    className={group.node_ids.includes(id) ? "is-selected" : ""}
+              <div className="routing-node-selection">
+                <div className="routing-node-actions">
+                  <button
+                    type="button"
+                    className="secondary compact"
+                    disabled={
+                      busy ||
+                      !input.node_ids.length ||
+                      input.node_ids.every((id) => group.node_ids.includes(id))
+                    }
+                    onClick={() =>
+                      patchGroup(group.id, {
+                        node_ids: [
+                          ...new Set([...group.node_ids, ...input.node_ids]),
+                        ],
+                      })
+                    }
                   >
-                    <input
-                      type="checkbox"
-                      checked={group.node_ids.includes(id)}
-                      onChange={(e) =>
-                        patchGroup(group.id, {
-                          node_ids: e.target.checked
-                            ? [...group.node_ids, id]
-                            : group.node_ids.filter((n) => n !== id),
-                        })
+                    {t("全选")}
+                  </button>
+                </div>
+                <div className="routing-node-chips">
+                  {input.node_ids.map((id) => (
+                    <label
+                      key={id}
+                      className={
+                        group.node_ids.includes(id) ? "is-selected" : ""
                       }
-                    />
-                    <span>
-                      {nodes.find((n) => n.id === id)?.name ??
-                        t("节点已不可用")}
-                      {group.type === "fallback" &&
-                        group.node_ids.includes(id) && (
-                          <small> #{group.node_ids.indexOf(id) + 1}</small>
-                        )}
-                    </span>
-                  </label>
-                ))}
-                {!group.node_ids.length && (
-                  <span className="routing-inherit">{t("跟随默认代理")}</span>
-                )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={group.node_ids.includes(id)}
+                        onChange={(e) =>
+                          patchGroup(group.id, {
+                            node_ids: e.target.checked
+                              ? [...group.node_ids, id]
+                              : group.node_ids.filter((n) => n !== id),
+                          })
+                        }
+                      />
+                      <span>
+                        {nodes.find((n) => n.id === id)?.name ??
+                          t("节点已不可用")}
+                        {group.type === "fallback" &&
+                          group.node_ids.includes(id) && (
+                            <small> #{group.node_ids.indexOf(id) + 1}</small>
+                          )}
+                      </span>
+                    </label>
+                  ))}
+                  {!group.node_ids.length && (
+                    <span className="routing-inherit">{t("跟随默认代理")}</span>
+                  )}
+                </div>
               </div>
             )}
           </article>

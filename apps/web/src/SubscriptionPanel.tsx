@@ -124,6 +124,9 @@ export default function SubscriptionPanel({
   const selectableNodeIDs = available
     .filter((node) => supportsFormat(input.format, node.protocol))
     .map((node) => node.id);
+  const allNodesSelected =
+    selectableNodeIDs.length > 0 &&
+    selectableNodeIDs.every((id) => input.node_ids.includes(id));
   useEffect(() => {
     const controller = new AbortController();
     lifecycle.current = controller;
@@ -591,20 +594,26 @@ export default function SubscriptionPanel({
               <button
                 type="button"
                 className="secondary compact"
-                disabled={
-                  busy ||
-                  !selectableNodeIDs.length ||
-                  selectableNodeIDs.every((id) => input.node_ids.includes(id))
-                }
+                disabled={busy || !selectableNodeIDs.length}
                 onClick={() =>
                   setInput((current) =>
-                    selectSubscriptionNodes(current, [
-                      ...new Set([...current.node_ids, ...selectableNodeIDs]),
-                    ]),
+                    selectSubscriptionNodes(
+                      current,
+                      allNodesSelected
+                        ? current.node_ids.filter(
+                            (id) => !selectableNodeIDs.includes(id),
+                          )
+                        : [
+                            ...new Set([
+                              ...current.node_ids,
+                              ...selectableNodeIDs,
+                            ]),
+                          ],
+                    ),
                   )
                 }
               >
-                {t("全选")}
+                {allNodesSelected ? t("取消全选") : t("全选")}
               </button>
             </div>
             <div className="subscription-node-options">
@@ -701,7 +710,7 @@ export default function SubscriptionPanel({
               {t("启用订阅链接")}
             </label>
           </fieldset>
-          <div className="deployment-actions">
+          <div className="deployment-actions subscription-editor-actions">
             <button
               className="primary"
               disabled={
