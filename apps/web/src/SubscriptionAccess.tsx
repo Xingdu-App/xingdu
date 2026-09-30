@@ -1,3 +1,5 @@
+import ActionMenu from "./ActionMenu";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { t } from "./i18n";
@@ -11,11 +13,17 @@ export default function SubscriptionAccess({
   name,
   format,
   enabled,
+  primaryActions,
+  moreActions,
+  busy = false,
 }: {
   path: string;
   name: string;
   format: string;
   enabled: boolean;
+  primaryActions?: ReactNode;
+  moreActions?: ReactNode;
+  busy?: boolean;
 }) {
   const [qr, setQR] = useState(false);
   const [notice, setNotice] = useState("");
@@ -39,7 +47,8 @@ export default function SubscriptionAccess({
       </label>
       <div className="subscription-actions">
         <button
-          className="secondary compact"
+          className="primary compact"
+          disabled={busy}
           onClick={async () => {
             const copied = await copySubscriptionURL(value);
             setNotice(
@@ -51,30 +60,34 @@ export default function SubscriptionAccess({
         >
           {t("复制链接")}
         </button>
-        <button
-          className="secondary compact"
-          disabled={!enabled}
-          aria-expanded={qr}
-          onClick={() => setQR((v) => !v)}
-        >
-          {qr ? t("收起二维码") : t("二维码")}
-        </button>
-        {importURL && enabled && (
-          <a
-            className="button secondary compact"
-            href={importURL}
-            rel="noreferrer"
-            onClick={() =>
-              setNotice(
-                t(
-                  "已尝试打开客户端；若没有响应，请先安装客户端，或复制地址手动添加。",
-                ),
-              )
-            }
+        {primaryActions}
+        <ActionMenu disabled={busy}>
+          <button
+            className="secondary compact"
+            disabled={!enabled || busy}
+            aria-expanded={qr}
+            onClick={() => setQR((v) => !v)}
           >
-            {t("导入 {0}", { 0: format === "stash" ? "Stash" : "Surge" })}
-          </a>
-        )}
+            {qr ? t("收起二维码") : t("二维码")}
+          </button>
+          {importURL && enabled && (
+            <a
+              className="button secondary compact"
+              href={importURL}
+              rel="noreferrer"
+              onClick={() =>
+                setNotice(
+                  t(
+                    "已尝试打开客户端；若没有响应，请先安装客户端，或复制地址手动添加。",
+                  ),
+                )
+              }
+            >
+              {t("导入 {0}", { 0: format === "stash" ? "Stash" : "Surge" })}
+            </a>
+          )}
+          {moreActions}
+        </ActionMenu>
       </div>
       {!enabled && (
         <p className="form-hint">{t("订阅已停用，此地址暂时无法获取配置。")}</p>

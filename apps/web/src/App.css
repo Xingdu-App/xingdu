@@ -2890,3 +2890,49 @@ html[lang="en"] .subscription-rule {
     width: 100%;
   }
 }
+
+.action-menu {
+  position: relative;
+}
+.action-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.action-menu > summary::-webkit-details-marker { display: none; }
+.action-menu > summary[aria-disabled="true"] { opacity: .5; cursor: default; }
+.action-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 190px;
+  padding: 6px;
+  border: 1px solid #dce6e8;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 8px 24px #25364924;
+}
+.action-menu:not([open]) > .action-menu-items { display: none; }
+.action-menu-items > button,
+.action-menu-items > a {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: flex-start;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.action-menu-items > button:hover,
+.action-menu-items > a:hover { background: #f1f7f6; }
+.action-menu-items > .text-danger {
+  margin-top: 4px;
+  border-top: 1px solid #edf0f1;
+  border-radius: 0 0 6px 6px;
+}

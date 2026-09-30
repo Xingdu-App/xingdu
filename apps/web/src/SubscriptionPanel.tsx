@@ -1,3 +1,4 @@
+import ActionMenu from "./ActionMenu";
 import { createPortal } from "react-dom";
 import { RoutingPresetPicker, RoutingEditor } from "./SubscriptionRouting";
 import {
@@ -191,6 +192,63 @@ export default function SubscriptionPanel({
       }
     });
   }
+  const editAction = (row: Subscription) => (
+    <button
+      className="secondary compact"
+      disabled={busy}
+      onClick={() => edit(row)}
+    >
+      {t("编辑订阅")}
+    </button>
+  );
+  const secondaryActions = (row: Subscription) => (
+    <>
+      <button
+        className="secondary compact"
+        disabled={busy}
+        onClick={() =>
+          void act(async (signal) => {
+            await updateSubscription(
+              row.id,
+              {
+                name: row.name,
+                format: row.format,
+                node_ids: row.node_ids,
+                rules: row.rules,
+                final_action: row.final_action,
+                enabled: !row.enabled,
+                routing: row.routing,
+              },
+              signal,
+            );
+            if (!signal.aborted) {
+              setNotice(
+                row.enabled
+                  ? t("订阅已停用，链接不再输出配置。")
+                  : t("订阅已启用。"),
+              );
+            }
+          })
+        }
+      >
+        {row.enabled ? t("停用") : t("启用")}
+      </button>
+      <button
+        className="secondary compact"
+        disabled={busy}
+        onClick={() => setConfirmation({ row, action: "rotate" })}
+      >
+        {t("重置链接")}
+      </button>
+      <button
+        className="text-danger"
+        disabled={busy}
+        onClick={() => setConfirmation({ row, action: "delete" })}
+      >
+        {t("删除")}
+      </button>
+    </>
+  );
   return (
     <section className="panel node-panel subscription-panel">
       {manage &&
@@ -279,71 +337,27 @@ export default function SubscriptionPanel({
                     name={row.name}
                     format={row.format}
                     enabled={row.enabled}
+                    busy={busy}
+                    primaryActions={editAction(row)}
+                    moreActions={secondaryActions(row)}
                   />
                 ) : (
-                  <p className="form-hint">
-                    {row.link_state === "legacy"
-                      ? t(
-                          "旧订阅未保存可恢复链接。请重置一次链接，之后可随时查看；重置会使旧链接失效。",
-                        )
-                      : t("订阅链接暂时不可读取，请检查控制端加密配置。")}
-                  </p>
+                  <>
+                    <p className="form-hint">
+                      {row.link_state === "legacy"
+                        ? t(
+                            "旧订阅未保存可恢复链接。请重置一次链接，之后可随时查看；重置会使旧链接失效。",
+                          )
+                        : t("订阅链接暂时不可读取，请检查控制端加密配置。")}
+                    </p>
+                    <div className="subscription-actions">
+                      {editAction(row)}
+                      <ActionMenu disabled={busy}>
+                        {secondaryActions(row)}
+                      </ActionMenu>
+                    </div>
+                  </>
                 ))}
-              {manage && (
-                <div className="subscription-actions">
-                  <button
-                    className="secondary compact"
-                    disabled={busy}
-                    onClick={() => edit(row)}
-                  >
-                    {t("编辑订阅")}
-                  </button>
-                  <button
-                    className="secondary compact"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(async (signal) => {
-                        await updateSubscription(
-                          row.id,
-                          {
-                            name: row.name,
-                            format: row.format,
-                            node_ids: row.node_ids,
-                            rules: row.rules,
-                            final_action: row.final_action,
-                            enabled: !row.enabled,
-                            routing: row.routing,
-                          },
-                          signal,
-                        );
-                        if (!signal.aborted) {
-                          setNotice(
-                            row.enabled
-                              ? t("订阅已停用，链接不再输出配置。")
-                              : t("订阅已启用。"),
-                          );
-                        }
-                      })
-                    }
-                  >
-                    {row.enabled ? t("停用") : t("启用")}
-                  </button>
-                  <button
-                    className="secondary compact"
-                    disabled={busy}
-                    onClick={() => setConfirmation({ row, action: "rotate" })}
-                  >
-                    {t("重置链接")}
-                  </button>
-                  <button
-                    className="text-danger"
-                    disabled={busy}
-                    onClick={() => setConfirmation({ row, action: "delete" })}
-                  >
-                    {t("删除")}
-                  </button>
-                </div>
-              )}
               {confirmation?.row.id === row.id && (
                 <div className="delete-confirm">
                   <p>
