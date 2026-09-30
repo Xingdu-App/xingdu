@@ -15,6 +15,9 @@ type Key = {
   revoked_at: string | null;
 };
 const scopeNames: Record<string, string> = {
+  "subscriptions:read": "查看订阅设置",
+  "subscriptions:write": "管理订阅设置",
+  "subscriptions:export": "导出订阅配置及连接凭据",
   "hosts:read": "查看服务器",
   "hosts:write": "管理服务器",
   "nodes:read": "查看节点",

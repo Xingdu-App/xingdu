@@ -1096,5 +1096,10 @@
   "SELinux 文件标签与管理员策略冲突，未覆盖现有策略。": "SELinux file labels conflict with administrator policy. Existing policy was preserved.",
   "协议服务未进入专用 SELinux 域，请检查安全策略后重试。": "The protocol service did not enter its dedicated SELinux domain. Check security policy and retry.",
   "修复安全策略并重启": "Repair security policy and restart",
-  "将安装或修复 Xingdu 专用安全策略并重启此节点，可能需要从系统软件源安装策略工具。当前连接会短暂中断，确认继续？": "Install or repair the dedicated Xingdu security policy and restart this node. Policy tools may be installed from your system repositories. Connections will briefly disconnect. Continue?"
+  "将安装或修复 Xingdu 专用安全策略并重启此节点，可能需要从系统软件源安装策略工具。当前连接会短暂中断，确认继续？": "Install or repair the dedicated Xingdu security policy and restart this node. Policy tools may be installed from your system repositories. Connections will briefly disconnect. Continue?",
+  "策略组图标（可选）": "Group icon (optional)",
+  "使用 HTTPS 图片地址；Stash 导出图标，Mihomo 是否显示取决于面板，其他格式暂不导出。": "Use an HTTPS image URL. Stash exports icons; Mihomo display depends on the dashboard. Other formats do not export icons yet.",
+  "查看订阅设置": "Read subscription settings",
+  "管理订阅设置": "Manage subscription settings",
+  "导出订阅配置及连接凭据": "Export subscription configs and connection credentials"
 }

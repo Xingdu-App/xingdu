@@ -139,3 +139,17 @@ Snell v6 需要支持 v6 的 Surge 版本，不能当作旧版客户端兼容选
 字段依据：[Stash 协议文档](https://stash.wiki/en/proxy-protocols/proxy-types)、
 [Mihomo SS 插件](https://wiki.metacubex.one/en/config/proxies/ss/)、
 [Surge Snell](https://manual.nssurge.com/policies/snell.html)。
+
+## 配置 API 与策略组图标
+
+单条设置读取、条件 PATCH、配置预览和下载接口见 [API 文档](API.md#subscription-configuration-api)。
+新权限为 subscriptions:read/write/export，旧 API Key 不自动获得新权限。
+读取设置不返回节点密码或 bearer 链接；预览与下载包含连接凭据并需单独导出权限。
+网页编辑携带读取时的 revision，冲突时需刷新列表重新编辑，不自动覆盖他人的修改。
+
+节点选择使用后端 subscription_selectable：更新失败但已恢复有效配置的节点仍可选择；
+结果不确定、有待确认候选配置的节点不能加入新选择。客户端格式兼容性单独判断。
+
+策略组可配置 HTTPS 图标 URL。Stash/Mihomo 输出 icon；Mihomo 显示取决于面板，
+其他格式在预览或下载响应中说明图标未导出。网页编辑、节点选择和模板切换
+保留同 ID 策略组的图标。此项尚未完成真实客户端图标显示验收。

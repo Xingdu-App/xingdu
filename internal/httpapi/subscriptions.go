@@ -19,6 +19,8 @@ type SubscriptionStore interface {
 	RuleTemplates(context.Context) ([]storage.RuleTemplate, error)
 	SaveRuleTemplate(context.Context, storage.RuleTemplate, bool) (storage.RuleTemplate, error)
 	DeleteRuleTemplate(context.Context, string) error
+	Subscription(context.Context, string) (storage.Subscription, error)
+	SubscriptionConfig(context.Context, string, []string) (storage.Subscription, []storage.Deployment, error)
 	Subscriptions(context.Context) ([]storage.Subscription, error)
 	SaveSubscription(context.Context, storage.Subscription, string, bool) (storage.Subscription, error)
 	RotateSubscription(context.Context, string, string, ...[]byte) error
@@ -31,10 +33,12 @@ func subscriptionPath(id, token string) string {
 }
 func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 	a.ruleTemplateRoutes(mux)
+	a.subscriptionConfigRoutes(mux)
 	mux.HandleFunc("GET /api/v1/subscription-presets", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		reply(w, 200, map[string]any{"data": subscription.RoutingCatalog()})
 	}))
 	mux.HandleFunc("GET /api/v1/subscriptions", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		configHeaders(w)
 		out, err := a.store.Subscriptions(r.Context())
 		if err != nil {
 			storeError(w, err)
@@ -48,6 +52,7 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 	}))
 	save := func(create bool) func(http.ResponseWriter, *http.Request, storage.User, string) {
 		return func(w http.ResponseWriter, r *http.Request, u storage.User, _ string) {
+			configHeaders(w)
 			if !create && !validID(w, r) {
 				return
 			}
@@ -61,6 +66,24 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			}
 			in.SubscriptionPath, in.LinkState = "", ""
 			in.ID = r.PathValue("id")
+			if !create {
+				in.ExpectedRevision = in.Revision
+				if _, apiKey := r.Context().Value(apiPrincipal{}).(storage.APIKey); apiKey && r.Header.Get("If-Match") == "" {
+					failure(w, 428, "revision_required", "请先读取订阅，再携带 If-Match 版本修改")
+					return
+				}
+				if r.Header.Get("If-Match") != "" {
+					revision, ok := subscriptionMatch(w, r)
+					if !ok {
+						return
+					}
+					in.ExpectedRevision = revision
+				}
+				if in.ExpectedRevision < 0 {
+					failure(w, 422, "invalid_revision", "版本号无效")
+					return
+				}
+			}
 			token := ""
 			hash := ""
 			if create {
@@ -75,12 +98,18 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 			}
 			out, err := a.store.SaveSubscription(r.Context(), in, hash, create)
 			if err != nil {
-				storeError(w, err)
+				configConflict(w, err)
 				return
 			}
 			if create {
-				reply(w, 201, map[string]any{"data": map[string]any{"subscription": out, "subscription_path": subscriptionPath(out.ID, token)}})
+				data := map[string]any{"subscription": out}
+				if _, apiKey := r.Context().Value(apiPrincipal{}).(storage.APIKey); !apiKey {
+					data["subscription_path"] = subscriptionPath(out.ID, token)
+				}
+				w.Header().Set("ETag", subscriptionETag(out.Revision))
+				reply(w, 201, map[string]any{"data": data})
 			} else {
+				w.Header().Set("ETag", subscriptionETag(out.Revision))
 				reply(w, 200, map[string]any{"data": out})
 			}
 		}
@@ -158,6 +187,9 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 				return
 			}
 			nodes = append(nodes, subscription.Node{ID: d.ID, Name: d.Name, Server: d.Server, Spec: spec})
+		}
+		if warnings := subscription.IconWarnings(sub.Routing, format); len(warnings) > 0 {
+			w.Header().Set("X-Xingdu-Config-Warnings", strings.Join(warnings, ","))
 		}
 		content, err := subscription.RenderRouting(format, sub.Name, nodes, sub.Rules, sub.FinalAction, sub.Routing, sub.NodeIDs)
 		if err != nil {

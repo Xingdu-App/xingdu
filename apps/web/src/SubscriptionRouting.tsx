@@ -197,6 +197,25 @@ export function RoutingEditor({
                 </button>
               )}
             </div>
+            <label className="route-field">
+              {t("策略组图标（可选）")}
+              <input
+                type="url"
+                placeholder="https://assets.example.com/icon.png"
+                aria-label={t("策略组图标（可选）")}
+                value={group.icon ?? ""}
+                disabled={busy}
+                maxLength={2048}
+                onChange={(e) =>
+                  patchGroup(group.id, { icon: e.target.value || undefined })
+                }
+              />
+            </label>
+            <p className="form-hint">
+              {t(
+                "使用 HTTPS 图片地址；Stash 导出图标，Mihomo 是否显示取决于面板，其他格式暂不导出。",
+              )}
+            </p>
             {group.id === "proxy" ? (
               <p className="form-hint">
                 {t("包含全部 {0} 个已选节点", { 0: input.node_ids.length })}

@@ -433,6 +433,7 @@ export const deploymentConnection = (
   );
 
 export type ManagedNode = Deployment & {
+  subscription_selectable?: boolean;
   host_name: string;
   address: string;
   host_status: Host["status"];
@@ -447,6 +448,7 @@ export type SubscriptionRule = {
   target: "proxy" | "direct" | "reject" | `group:${string}`;
 };
 export type RoutingGroup = {
+  icon?: string;
   id: string;
   name: string;
   type: "select" | "url-test" | "fallback";
@@ -482,6 +484,7 @@ export const loadRoutingCatalog = (signal: AbortSignal) =>
     signal,
   );
 export type SubscriptionInput = {
+  revision?: number;
   format: "stash" | "mihomo" | "surge" | "loon" | "hysteria2_uri";
   name: string;
   node_ids: string[];

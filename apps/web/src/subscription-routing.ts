@@ -18,6 +18,7 @@ export function applyRoutingPreset(
           preset: preset.id,
           groups: preset.groups.map((g) => ({
             id: g.id,
+            icon: input.routing?.groups.find((old) => old.id === g.id)?.icon,
             name: english ? g.name_en : g.name,
             type: g.type,
             node_ids:

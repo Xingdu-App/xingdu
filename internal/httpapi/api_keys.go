@@ -24,6 +24,32 @@ type apiPrincipal struct{}
 
 func apiScope(method, path string) string {
 	p := strings.Split(strings.TrimPrefix(path, "/api/v1/"), "/")
+	if len(p) >= 1 && p[0] == "subscriptions" {
+		if len(p) == 1 {
+			if method == "GET" {
+				return "subscriptions:read"
+			}
+			if method == "POST" {
+				return "subscriptions:write"
+			}
+		}
+		if len(p) >= 2 && id.Valid("sub", p[1]) {
+			if len(p) == 2 {
+				if method == "GET" {
+					return "subscriptions:read"
+				}
+				if method == "PUT" || method == "PATCH" || method == "DELETE" {
+					return "subscriptions:write"
+				}
+			}
+			if len(p) == 3 {
+				if p[2] == "config" && method == "GET" || p[2] == "preview" && method == "POST" {
+					return "subscriptions:export"
+				}
+			}
+		}
+		return ""
+	}
 	if path == "/api/v1/nodes" && method == "GET" {
 		return "nodes:read"
 	}

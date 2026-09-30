@@ -37,13 +37,13 @@ func WithAPIKeyTenant(ctx context.Context, k APIKey) context.Context {
 	return context.WithValue(WithTenant(ctx, k.CreatedBy, k.OrganizationID), apiKeyContext{}, k.ID)
 }
 func ValidAPIKeyScopes(scopes []string) bool {
-	if len(scopes) == 0 || len(scopes) > 6 {
+	if len(scopes) == 0 || len(scopes) > 9 {
 		return false
 	}
 	seen := map[string]bool{}
 	for _, v := range scopes {
 		switch v {
-		case "hosts:read", "hosts:write", "nodes:read", "nodes:write", "nodes:credentials", "nodes:probe":
+		case "hosts:read", "hosts:write", "nodes:read", "nodes:write", "nodes:credentials", "nodes:probe", "subscriptions:read", "subscriptions:write", "subscriptions:export":
 		default:
 			return false
 		}

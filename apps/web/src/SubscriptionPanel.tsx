@@ -113,9 +113,13 @@ export default function SubscriptionPanel({
   const dialog = useRef<HTMLDialogElement>(null);
   const available = nodes.filter(
     (n) =>
-      (n.action === "deploy" && n.state === "succeeded") ||
-      (n.action === "restart" &&
-        ["queued", "running", "failed", "interrupted"].includes(n.state)),
+      n.subscription_selectable ??
+      ((n.action === "deploy" && n.state === "succeeded") ||
+        (n.action === "restart" &&
+          ["queued", "running", "failed", "interrupted"].includes(n.state)) ||
+        (n.action === "update" &&
+          n.state === "failed" &&
+          n.pending_revision == null)),
   );
   const selectableNodeIDs = available
     .filter((node) => supportsFormat(input.format, node.protocol))
@@ -150,6 +154,7 @@ export default function SubscriptionPanel({
     setInput(
       row
         ? {
+            revision: row.revision,
             name: row.name,
             format: row.format,
             node_ids: [...row.node_ids],
@@ -214,6 +219,7 @@ export default function SubscriptionPanel({
             await updateSubscription(
               row.id,
               {
+                revision: row.revision,
                 name: row.name,
                 format: row.format,
                 node_ids: row.node_ids,

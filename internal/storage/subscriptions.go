@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/jackc/pgx/v5"
 	"strings"
 	"time"
@@ -13,6 +14,8 @@ import (
 )
 
 type Subscription struct {
+	Revision         int64                 `json:"revision"`
+	ExpectedRevision int64                 `json:"-"`
 	Routing          *subscription.Routing `json:"routing,omitempty"`
 	EncryptedToken   []byte                `json:"-"`
 	TokenHash        string                `json:"-"`
@@ -52,11 +55,11 @@ func (s Subscription) Validate() error {
 	return nil
 }
 
-const subscriptionColumns = `s.id::text,s.name,s.format,s.rules,s.final_action,s.enabled,s.created_at,s.updated_at,COALESCE((SELECT array_agg(n.node_id::text ORDER BY n.position) FROM subscription_nodes n WHERE n.subscription_id=s.id),'{}'),s.routing`
+const subscriptionColumns = `s.id::text,s.name,s.format,s.rules,s.final_action,s.enabled,s.created_at,s.updated_at,COALESCE((SELECT array_agg(n.node_id::text ORDER BY n.position) FROM subscription_nodes n WHERE n.subscription_id=s.id),'{}'),s.routing,s.revision`
 
 func scanSubscription(row pgx.Row, out *Subscription) error {
 	var rules, routing []byte
-	if err := row.Scan(&out.ID, &out.Name, &out.Format, &rules, &out.FinalAction, &out.Enabled, &out.CreatedAt, &out.UpdatedAt, &out.NodeIDs, &routing); err != nil {
+	if err := row.Scan(&out.ID, &out.Name, &out.Format, &rules, &out.FinalAction, &out.Enabled, &out.CreatedAt, &out.UpdatedAt, &out.NodeIDs, &routing, &out.Revision); err != nil {
 		return err
 	}
 	if err := json.Unmarshal(rules, &out.Rules); err != nil {
@@ -195,7 +198,16 @@ func (s *Store) SaveSubscription(ctx context.Context, in Subscription, hash stri
 		_, err = tx.Exec(ctx, `INSERT INTO subscriptions(id,organization_id,name,rules,final_action,enabled,token_hash,format,encrypted_token,routing) VALUES($1,request_org_id(),$2,$3,$4,$5,$6,$7,$8,$9)`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, hash, in.Format, in.EncryptedToken, routing)
 	} else {
 		var found string
-		err = tx.QueryRow(ctx, `UPDATE subscriptions SET name=$2,rules=$3,final_action=$4,enabled=$5,format=$6,routing=$7,updated_at=now() WHERE id=$1 RETURNING id::text`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, in.Format, routing).Scan(&found)
+		err = tx.QueryRow(ctx, `UPDATE subscriptions SET name=$2,rules=$3,final_action=$4,enabled=$5,format=$6,routing=$7,updated_at=now() WHERE id=$1 AND ($8::bigint=0 OR revision=$8) RETURNING id::text`, in.ID, in.Name, rules, in.FinalAction, in.Enabled, in.Format, routing, in.ExpectedRevision).Scan(&found)
+	}
+	if errors.Is(err, pgx.ErrNoRows) && in.ExpectedRevision > 0 {
+		var exists bool
+		if e := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM subscriptions WHERE id=$1)", in.ID).Scan(&exists); e != nil {
+			return in, e
+		}
+		if exists {
+			return in, ErrConflict
+		}
 	}
 	if err != nil {
 		return in, mapError(err)
@@ -299,4 +311,61 @@ func (s *Store) SubscriptionContent(ctx context.Context, id, hash string) (Subsc
 		return sub, nodes, err
 	}
 	return sub, nodes, tx.Commit(ctx)
+}
+
+// Subscription returns settings only, never bearer links or node credentials.
+func (s *Store) Subscription(ctx context.Context, id string) (Subscription, error) {
+	tx, _, err := s.tenantTx(ctx, false, false)
+	if err != nil {
+		return Subscription{}, err
+	}
+	defer tx.Rollback(ctx)
+	var out Subscription
+	if err = scanSubscription(tx.QueryRow(ctx, "SELECT "+subscriptionColumns+" FROM subscriptions s WHERE s.id=$1", id), &out); err != nil {
+		return out, mapError(err)
+	}
+	return out, tx.Commit(ctx)
+}
+
+// SubscriptionConfig uses a manager's tenant transaction. ids=nil exports the
+// saved selection; a non-nil selection is an unsaved preview. Never resolve a
+// tenant via a user-supplied subscription capability here.
+func (s *Store) SubscriptionConfig(ctx context.Context, id string, ids []string) (Subscription, []Deployment, error) {
+	tx, _, err := s.tenantTx(ctx, true, true)
+	if err != nil {
+		return Subscription{}, nil, err
+	}
+	defer tx.Rollback(ctx)
+	var out Subscription
+	if err = scanSubscription(tx.QueryRow(ctx, "SELECT "+subscriptionColumns+" FROM subscriptions s WHERE s.id=$1", id), &out); err != nil {
+		return out, nil, mapError(err)
+	}
+	if ids == nil {
+		ids = out.NodeIDs
+	}
+	rows, err := tx.Query(ctx, `SELECT d.id::text,d.host_id::text,d.organization_id::text,d.name,d.protocol,d.encrypted,h.address FROM unnest($1::text[]) WITH ORDINALITY AS selected(id,position) JOIN protocol_deployments d ON d.id::text=selected.id JOIN hosts h ON h.id=d.host_id AND h.organization_id=d.organization_id WHERE d.installed_at IS NOT NULL AND d.encrypted IS NOT NULL AND ((d.state='succeeded' AND d.action='deploy') OR (d.action='restart' AND d.state IN ('queued','running','failed','interrupted')) OR (d.action='update' AND d.state='failed' AND d.pending_revision IS NULL)) ORDER BY selected.position`, ids)
+	if err != nil {
+		return out, nil, err
+	}
+	deps := []Deployment{}
+	for rows.Next() {
+		var d Deployment
+		if err = rows.Scan(&d.ID, &d.HostID, &d.OrgID, &d.Name, &d.Protocol, &d.Encrypted, &d.Server); err != nil {
+			rows.Close()
+			return out, nil, err
+		}
+		deps = append(deps, d)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return out, nil, err
+	}
+	if len(deps) != len(ids) || len(deps) == 0 {
+		return out, nil, ErrConflict
+	}
+	if err = subscriptionAudit(ctx, tx, id, "subscription_config_exported"); err != nil {
+		return out, nil, err
+	}
+	return out, deps, tx.Commit(ctx)
 }

@@ -15,6 +15,66 @@ export default function APIDocsPage({
       ? "https://xingdu.app"
       : window.location.origin;
   const endpoints = [
+    [
+      "GET",
+      "/subscriptions",
+      "subscriptions:read",
+      copy(
+        "列出订阅设置（无链接与凭据）",
+        "List subscription settings without links or credentials",
+      ),
+    ],
+    [
+      "GET",
+      "/subscriptions/{sub_id}",
+      "subscriptions:read",
+      copy("读取设置及版本 ETag", "Read settings and revision ETag"),
+    ],
+    [
+      "POST",
+      "/subscriptions",
+      "subscriptions:write",
+      copy("创建订阅", "Create a subscription"),
+    ],
+    [
+      "PATCH",
+      "/subscriptions/{sub_id}",
+      "subscriptions:write",
+      copy("局部修改；需 If-Match", "Patch settings; requires If-Match"),
+    ],
+    [
+      "PUT",
+      "/subscriptions/{sub_id}",
+      "subscriptions:write",
+      copy(
+        "完整替换；API 密钥需 If-Match",
+        "Replace settings; API keys require If-Match",
+      ),
+    ],
+    [
+      "DELETE",
+      "/subscriptions/{sub_id}",
+      "subscriptions:write",
+      copy("删除订阅", "Delete a subscription"),
+    ],
+    [
+      "GET",
+      "/subscriptions/{sub_id}/config",
+      "subscriptions:export",
+      copy(
+        "下载配置（包含连接凭据）",
+        "Download config including connection credentials",
+      ),
+    ],
+    [
+      "POST",
+      "/subscriptions/{sub_id}/preview",
+      "subscriptions:export",
+      copy(
+        "预览局部修改；不保存，包含连接凭据",
+        "Preview a patch without saving; includes connection credentials",
+      ),
+    ],
     ["GET", "/hosts", "hosts:read", copy("列出服务器", "List servers")],
     [
       "POST",
@@ -112,6 +172,12 @@ export default function APIDocsPage({
           )}
         </p>
       )}
+      <p className="form-hint">
+        {copy(
+          "订阅 PATCH 需先读取 ETag，再原样传入 If-Match。409 表示版本或节点状态冲突；预览返回 content 和 warnings，不保存设置。配置导出包含密码，勿公开分享。",
+          "Read the ETag before PATCH and send it unchanged in If-Match. HTTP 409 indicates a revision or node-state conflict. Preview returns content and warnings without saving. Exported configs contain credentials; keep them private.",
+        )}
+      </p>
       <section className="panel">
         <h2>{copy("开始使用", "Getting started")}</h2>
         <p>
@@ -157,8 +223,8 @@ export default function APIDocsPage({
         </p>
         <p>
           {copy(
-            "各权限独立：写入权限不包含读取权限，也不包含连接凭据读取权限。密钥不能用于管理账号、账单、订阅、API 密钥、SSH 凭据或 Agent 身份。",
-            "Scopes are independent: write access does not imply read or credential access. Keys cannot manage accounts, billing, subscriptions, API keys, SSH credentials or Agent identities.",
+            "各权限独立：写入权限不包含读取权限，也不包含连接凭据读取权限。密钥不能用于管理账号、账单、API 密钥、SSH 凭据或 Agent 身份。",
+            "Scopes are independent: write access does not imply read or credential access. Keys cannot manage accounts, billing, API keys, SSH credentials or Agent identities.",
           )}
         </p>
         <p>

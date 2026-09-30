@@ -8,6 +8,7 @@ import (
 // Node is the non-secret inventory of a confirmed installation. HostStatus is
 // Agent connectivity, not a health check of the protocol service.
 type Node struct {
+	SubscriptionSelectable bool `json:"subscription_selectable"`
 	Deployment
 	HostName    string    `json:"host_name"`
 	Address     string    `json:"address"`
@@ -40,6 +41,7 @@ func (s *Store) Nodes(ctx context.Context) ([]Node, error) {
 			rows.Close()
 			return out, err
 		}
+		n.SubscriptionSelectable = n.Action == "deploy" && n.State == "succeeded" || n.Action == "restart" && (n.State == "queued" || n.State == "running" || n.State == "failed" || n.State == "interrupted") || n.Action == "update" && n.State == "failed" && n.PendingRevision == nil
 		out = append(out, n)
 	}
 	err = rows.Err()

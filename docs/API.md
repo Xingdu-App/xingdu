@@ -23,7 +23,7 @@ create, list or revoke keys. The dedicated console reference is available at
   Restoring the creator's admin role re-enables an otherwise valid key; use
   revocation for permanent invalidation.
 - The key selects the organization. An optional `X-Xingdu-Organization` header
-  must match it. API keys cannot manage keys, users, billing, subscriptions,
+  must match it. API keys cannot manage keys, users, billing,
   SSH credentials or Agent identities.
 - Limit: 120 authorized requests per key per minute **per API process**, not a
   distributed quota. HTTP 429 includes `Retry-After: 60`.
@@ -153,3 +153,96 @@ The example requires `hosts:read` and `nodes:read`. Existing inventory,
 organization quotas, pinned SSH and protocol safety restrictions remain in
 effect. This API is an early preview; local tests do not establish real VPS or
 client compatibility.
+
+## Subscription configuration API
+
+New keys can explicitly request `subscriptions:read`, `subscriptions:write`
+and `subscriptions:export`. Existing keys retain their original scopes.
+The export scope authorizes **node connection credentials** in generated files
+and previews; read/write scopes alone do not grant export access. All operations
+retain organization RLS and owner/admin restrictions for changes and exports.
+API keys cannot rotate or reveal bearer subscription links.
+
+| Method and path | Scope | Result |
+| --- | --- | --- |
+| GET /api/v1/subscriptions | subscriptions:read | Settings list without bearer links or node credentials |
+| GET /api/v1/subscriptions/{sub_id} | subscriptions:read | Settings and `ETag` |
+| POST /api/v1/subscriptions | subscriptions:write | Create; key responses omit the bearer link |
+| PATCH /api/v1/subscriptions/{sub_id} | subscriptions:write | Apply only supplied fields; requires `If-Match` |
+| PUT /api/v1/subscriptions/{sub_id} | subscriptions:write | Replace editable settings; API keys require `If-Match` |
+| DELETE /api/v1/subscriptions/{sub_id} | subscriptions:write | Delete the subscription |
+| GET /api/v1/subscriptions/{sub_id}/config?format=stash | subscriptions:export | Download a generated configuration |
+| POST /api/v1/subscriptions/{sub_id}/preview | subscriptions:export | Preview a patch without saving settings |
+
+### Read, patch, preview and download
+
+Read a subscription before modifying it. The response includes `revision: 3`
+and an `ETag: "3"` header. Send that exact header value as `If-Match: "3"`.
+PATCH without it returns 428; malformed values return 400. A stale version or
+unavailable selected node returns 409. Re-read and reconcile changes rather than
+blindly retrying with a newer version. Revision checks happen inside the same
+transaction as the write. Link rotation also advances the settings revision.
+Browser full replacements can carry the `revision` JSON field; the updated
+console does so. Legacy browser PUT without a revision remains supported and
+has no conflict protection. Prefer PATCH for new integrations.
+
+PATCH and preview accept `name`, `format`, `node_ids`, `rules`, `final_action`,
+`enabled`, `routing` and `group_updates`. Omitted fields retain their values.
+Arrays replace the supplied collection; send `[]` to clear it. `routing: null`
+removes the routing template. Arbitrary YAML/CONF uploads are not supported.
+Unknown fields are rejected. Node/group/rule/protocol validation still applies.
+
+For example, change only one existing group's icon:
+
+```http
+PATCH /api/v1/subscriptions/{sub_id}
+Authorization: Bearer <API_KEY>
+Content-Type: application/json
+If-Match: "3"
+```
+
+```json
+{
+  "group_updates": [
+    {"id": "proxy", "icon": "https://assets.example.com/icons/proxy.png"}
+  ]
+}
+```
+
+Group IDs are stable identifiers, not display names. `icon: null` (or `""`)
+clears the icon. Unknown or duplicate group IDs are rejected. Do not combine
+`routing` replacement and `group_updates` in one request. A successful mutation
+returns the updated settings and new ETag; ordinary edits preserve the existing
+client subscription URL. Clients obtain the new config when refreshing it.
+
+POST the same patch body to `/preview`. The JSON `data` contains `format`,
+`revision`, `content` and a `warnings` array. This does not save the draft,
+advance its revision, rotate its token or run a remote deployment. Credential
+access is audited. Preview and download contain real connection credentials
+and use `Cache-Control: no-store`; keep their output private.
+
+Download uses the saved default format unless `?format=` is supplied. It returns
+YAML for Stash/Mihomo or text for Surge/Loon/Hysteria 2 URI, with an attachment
+filename and `X-Xingdu-Subscription-Revision`. That header identifies settings,
+not a complete cache validator: node credentials and configs can change
+independently. Disabled subscriptions can still be exported by an authorized
+manager; their public bearer link remains disabled. Any unavailable selected
+node fails the managed export rather than silently producing a partial file.
+
+### Icon compatibility
+
+Only HTTPS URLs without embedded credentials or fragments are accepted, up to
+2048 characters. Localhost/private literal IPs and control characters are
+rejected. The API stores URLs and never fetches the images. Use a public image
+host; clients fetch images themselves, so host privacy and availability matter.
+
+- Stash YAML emits `proxy-groups[].icon`; JPG/PNG are documented by the client.
+- Mihomo YAML emits the same field; display depends on the client/dashboard.
+- Surge, Loon and URI formats do not export group icons in this implementation.
+  Preview includes `group_icons_not_exported_for_format`; downloads include it
+  in `X-Xingdu-Config-Warnings`. Mihomo reports
+  `icon_display_depends_on_dashboard`.
+
+See [Stash icon documentation](https://stash.wiki/en/configuration/proxy-group-icon)
+and [Mihomo proxy groups](https://wiki.metacubex.one/en/config/proxy-groups/).
+These are format mappings, not a record of real-app display acceptance.

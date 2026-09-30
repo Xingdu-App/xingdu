@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/netip"
+	"net/url"
 	"regexp"
 	"strings"
 	"unicode"
@@ -20,6 +21,7 @@ var catalogJSON []byte
 func RoutingCatalog() json.RawMessage { return append(json.RawMessage(nil), catalogJSON...) }
 
 type RoutingGroup struct {
+	Icon    string   `json:"icon,omitempty"`
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Type    string   `json:"type"`
@@ -91,6 +93,9 @@ func ValidateRouting(r *Routing, nodeIDs []string, rules []Rule, final, format s
 		nodes[id] = true
 	}
 	for _, g := range r.Groups {
+		if !ValidIconURL(g.Icon) {
+			return errors.New("invalid group icon URL")
+		}
 		if !groupID.MatchString(g.ID) || groups[g.ID] || strings.TrimSpace(g.Name) != g.Name || len([]rune(g.Name)) < 1 || len([]rune(g.Name)) > 48 || strings.ContainsAny(g.Name, ",=[]#;/\"\\\u2028\u2029") || strings.ContainsFunc(g.Name, unicode.IsControl) || names[strings.ToLower(g.Name)] || reservedGroupName(g.Name) {
 			return errors.New("invalid routing group")
 		}
@@ -200,6 +205,9 @@ func RenderRouting(format, name string, nodes []Node, rules []Rule, final string
 			mode = "select"
 		}
 		group := map[string]any{"name": groupNames[g.ID], "type": mode, "proxies": members}
+		if g.Icon != "" && (format == "stash" || format == "mihomo") {
+			group["icon"] = g.Icon
+		}
 		fmt.Fprintf(&groupText, "%s = %s, %s", groupNames[g.ID], mode, strings.Join(members, ", "))
 		if mode != "select" {
 			group["url"], group["interval"] = routingTestURL, 300
@@ -285,4 +293,44 @@ func RenderRouting(format, name string, nodes []Node, rules []Rule, final string
 	}
 	config["proxy-groups"], config["rules"], config["rule-providers"] = groups, clientRules, providers
 	return yaml.Marshal(config)
+}
+
+// Icon URLs are metadata fetched by clients, never by the control plane.
+func ValidIconURL(value string) bool {
+	if value == "" {
+		return true
+	}
+	if len(value) > 2048 || strings.TrimSpace(value) != value || strings.ContainsFunc(value, unicode.IsControl) {
+		return false
+	}
+	u, err := url.Parse(value)
+	if err != nil || u.Scheme != "https" || u.User != nil || u.Hostname() == "" || u.Fragment != "" || u.Opaque != "" {
+		return false
+	}
+	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") || !strings.Contains(host, ".") {
+		return false
+	}
+	if ip, err := netip.ParseAddr(host); err == nil {
+		return ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast()
+	}
+	return true
+}
+func IconWarnings(r *Routing, format string) []string {
+	out := []string{}
+	if r == nil {
+		return out
+	}
+	has := false
+	for _, g := range r.Groups {
+		has = has || g.Icon != ""
+	}
+	if has {
+		if format == "mihomo" {
+			out = append(out, "icon_display_depends_on_dashboard")
+		} else if format != "stash" {
+			out = append(out, "group_icons_not_exported_for_format")
+		}
+	}
+	return out
 }

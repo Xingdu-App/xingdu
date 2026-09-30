@@ -15,9 +15,16 @@ import (
 )
 
 func TestAPIKeyScopeAllowlist(t *testing.T) {
+	sub := storage.NewID("sub")
 	host := storage.NewID("srv")
 	node := storage.NewID("node")
 	cases := []struct{ method, path, want string }{
+		{"GET", "/api/v1/subscriptions/" + sub, "subscriptions:read"},
+		{"PATCH", "/api/v1/subscriptions/" + sub, "subscriptions:write"},
+		{"GET", "/api/v1/subscriptions/" + sub + "/config", "subscriptions:export"},
+		{"POST", "/api/v1/subscriptions/" + sub + "/preview", "subscriptions:export"},
+		{"GET", "/api/v1/subscriptions/" + sub + "/content", ""},
+		{"POST", "/api/v1/subscriptions/" + sub + "/rotate", ""},
 		{"GET", "/api/v1/hosts", "hosts:read"}, {"POST", "/api/v1/hosts", "hosts:write"},
 		{"PUT", "/api/v1/hosts/" + host, "hosts:write"}, {"GET", "/api/v1/nodes", "nodes:read"},
 		{"POST", "/api/v1/hosts/" + host + "/deployments", "nodes:write"},
