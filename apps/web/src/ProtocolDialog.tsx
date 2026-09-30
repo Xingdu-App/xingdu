@@ -304,7 +304,6 @@ export default function ProtocolDialog({
       } catch (e) {
         if (!controller.signal.aborted) {
           setConnection(null);
-          setLoaded(false);
           setError(errorMessage(e));
         }
       } finally {
@@ -437,7 +436,11 @@ export default function ProtocolDialog({
             {nodeID ? "NODE DETAILS" : "PROTOCOL DEPLOYMENT"}
           </p>
           <h2 id="protocol-title">
-            {nodeID ? t("节点详情") : t("{0} · 协议部署", { 0: host.name })}
+            {creating
+              ? t("新建节点")
+              : nodeID
+                ? t("节点详情")
+                : t("{0} · 协议部署", { 0: host.name })}
           </h2>
         </div>
         <button
@@ -450,11 +453,13 @@ export default function ProtocolDialog({
         </button>
       </div>
       <div className="machine-content">
-        <p className="form-hint">
-          {t(
-            "由托管 Agent 安装并管理独立服务。Hysteria 1、Hysteria 2 和 TUIC 使用 QUIC / UDP；请按所选协议查看证书和客户端要求。",
-          )}
-        </p>
+        {!creating && (
+          <p className="form-hint">
+            {t(
+              "由托管 Agent 安装并管理独立服务。Hysteria 1、Hysteria 2 和 TUIC 使用 QUIC / UDP；请按所选协议查看证书和客户端要求。",
+            )}
+          </p>
+        )}
         {error && (
           <p className="form-error" role="alert">
             {t(error)}
@@ -464,6 +469,20 @@ export default function ProtocolDialog({
           <p className="notice" role="status">
             {t(notice)}
           </p>
+        )}
+        {pending && !creating && (
+          <section className="task-progress" role="status" aria-live="polite">
+            <span className="task-indicator" aria-hidden="true" />
+            <div>
+              <strong>{t("节点任务进行中")}</strong>
+              <p>
+                {rows.some((r) => r.state === "running")
+                  ? t("任务正在执行，状态每 5 秒更新。")
+                  : t("任务已排队，等待执行。")}
+              </p>
+              <small>{t("可以关闭此窗口，任务会继续执行。")}</small>
+            </div>
+          </section>
         )}
         <section className="machine-summary">
           <strong>
@@ -485,348 +504,362 @@ export default function ProtocolDialog({
             </button>
           )}
         </section>
-        <div className="deployment-heading">
-          <div>
-            <h3>{nodeID ? t("节点状态") : t("部署记录")}</h3>
-            <p className="form-hint">
-              {t("完成状态表示安装任务成功，不代表公网线路已验证。")}
-            </p>
-          </div>
-          {!nodeID && (
-            <button
-              className="primary compact"
-              disabled={busy || !eligible || !manage || pending}
-              onClick={() => {
-                setCreating(true);
-                setConnection(null);
-              }}
-            >
-              {t("＋ 新建节点")}
-            </button>
-          )}
-        </div>
-        {loaded && rows.length === 0 && (
-          <div className="deployment-empty">
-            {t(
-              "还没有节点。选择 Shadowsocks 即可使用服务器 IP 创建，无需准备域名和证书。",
-            )}
-          </div>
-        )}
-        {rows
-          .filter((row) => !nodeID || row.id === nodeID)
-          .map((row) => (
-            <article className="machine-job deployment-row" key={row.id}>
-              <div className="deployment-row-heading">
-                <strong>{row.name}</strong>
-                <span className={`deployment-state deployment-${row.state}`}>
-                  {row.action === "update" ? t("更新 · ") : ""}
-                  {row.action === "restart" ? t("重启 · ") : ""}
-                  {row.action === "remove" && row.state !== "removed"
-                    ? t("卸载 · ")
-                    : ""}
-                  {labels[row.state] ?? row.state}
-                </span>
+        {!creating && (
+          <>
+            <div className="deployment-heading">
+              <div>
+                <h3>{nodeID ? t("节点状态") : t("部署记录")}</h3>
+                <p className="form-hint">
+                  {t("完成状态表示安装任务成功，不代表公网线路已验证。")}
+                </p>
               </div>
-              <p>
-                {protocolName(row.protocol)} · {row.port}/
-                {isQUIC(row.protocol) ? "UDP" : "TCP"} ·{" "}
-                {row.server_name || t("无需域名")}
-              </p>
-              <small>
-                {new Date(row.created_at).toLocaleString(localeTag())}
-              </small>
-              <p>
-                {t("本机服务")}：{t(localServiceLabel(row))} · {t("证书有效期")}
-                ：
-                {!requiresTLS(row.protocol)
-                  ? t("无需证书")
-                  : certificateLabel(row.certificate_expires_at)}
-              </p>
-              <p>
-                {t("服务端版本")}：
-                {row.runtime_version
-                  ? `sing-box ${row.runtime_version}`
-                  : t("未上报")}
-                {!row.runtime_version && (
-                  <small>
-                    {" "}
-                    · {t("升级 Agent 后自动上报，无需重新部署节点。")}
-                  </small>
-                )}
-              </p>
-              {row.result && (
-                <p className="deployment-result">
-                  {t("结果：")}
-                  {resultLabels[row.result] ??
-                    t("任务未完成，请检查机器状态。")}
-                </p>
-              )}
-              {row.state === "interrupted" && (
-                <p>
-                  {t(
-                    "操作结果不确定，请先核实机器状态；不会自动重复执行安装。",
-                  )}
-                </p>
-              )}
-              {manage && (
-                <div className="deployment-actions">
-                  {row.action !== "remove" &&
-                    ["succeeded", "failed"].includes(row.state) && (
-                      <button
-                        className="secondary compact"
-                        disabled={
-                          busy ||
-                          pending ||
-                          !agentVersionAtLeast(
-                            agent?.metrics.version,
-                            "0.12.0-dev",
-                          )
-                        }
-                        onClick={() => setEditing(row.id)}
-                      >
-                        {t("编辑 / 版本恢复")}
-                      </button>
-                    )}
-                  {((row.state === "succeeded" && row.action === "deploy") ||
-                    (row.action === "restart" &&
-                      ["failed", "interrupted"].includes(row.state))) && (
-                    <button
-                      className="secondary compact"
-                      disabled={
-                        busy ||
-                        !eligible ||
-                        !agentVersionAtLeast(
-                          agent?.metrics.version,
-                          requiredVersionFor(row.protocol),
-                        ) ||
-                        pending
-                      }
-                      onClick={() => setRestarting(row.id)}
-                    >
-                      {t("重启服务")}
-                    </button>
-                  )}
-                  {((row.state === "succeeded" && row.action === "deploy") ||
-                    (row.action === "restart" &&
-                      ["failed", "interrupted"].includes(row.state))) && (
-                    <button
-                      className="secondary compact"
-                      disabled={busy}
-                      onClick={() =>
-                        void act(async (signal) => {
-                          const data = await deploymentConnection(
-                            host.id,
-                            row.id,
-                            signal,
-                          );
-                          if (!signal.aborted)
-                            setConnection({ id: row.id, data });
-                        })
-                      }
-                    >
-                      {t("连接信息")}
-                    </button>
-                  )}
-                  {["succeeded", "failed", "interrupted"].includes(
-                    row.state,
-                  ) && (
-                    <button
-                      className="text-danger"
-                      disabled={
-                        busy ||
-                        !eligible ||
-                        !agentVersionAtLeast(
-                          agent?.metrics.version,
-                          requiredVersionFor(row.protocol),
-                        ) ||
-                        pending
-                      }
-                      onClick={() => {
-                        setRemoving(row.id);
-                        setConnection(null);
-                      }}
-                    >
-                      {t("卸载服务")}
-                    </button>
-                  )}
-                </div>
-              )}
-              {editing === row.id && (
-                <RevisionEditor
-                  host={host.id}
-                  node={row}
-                  onClose={() => setEditing(null)}
-                  onSaved={() => {
-                    void act(async () => {});
+              {!nodeID && (
+                <button
+                  className="primary compact"
+                  disabled={busy || !eligible || !manage || pending}
+                  onClick={() => {
+                    setCreating(true);
+                    setConnection(null);
                   }}
-                />
+                >
+                  {t("＋ 新建节点")}
+                </button>
               )}
-              {restarting === row.id && (
-                <div className="delete-confirm">
-                  <p>
-                    {t(
-                      "重启会短暂中断当前连接，需要托管 Agent 0.6.0。确认重启？",
-                    )}
-                  </p>
-                  <button
-                    className="primary"
-                    disabled={busy || pending}
-                    onClick={() =>
-                      void act(async (signal) => {
-                        await restartNode(host.id, row.id, signal);
-                        if (!signal.aborted) {
-                          setRestarting(null);
-                          setNotice(
-                            t("重启任务已提交，请等待 Agent 回报结果。"),
-                          );
-                        }
-                      })
-                    }
-                  >
-                    {t("确认重启")}
-                  </button>
-                  <button
-                    className="secondary"
-                    onClick={() => setRestarting(null)}
-                  >
-                    {t("取消")}
-                  </button>
-                </div>
-              )}
-              {removing === row.id && (
-                <div className="delete-confirm">
-                  <p>
-                    {t("确认停止并卸载「")}
-                    {row.name}
-                    {t(
-                      "」？该服务的现有连接将中断。只删除此部署的服务与配置，不修改其他服务及防火墙。",
-                    )}
-                  </p>
-                  <button
-                    className="danger"
-                    disabled={
-                      busy ||
-                      !eligible ||
-                      !agentVersionAtLeast(
-                        agent?.metrics.version,
-                        requiredVersionFor(row.protocol),
-                      ) ||
-                      pending
-                    }
-                    onClick={() =>
-                      void act(async (signal) => {
-                        await removeDeployment(host.id, row.id, signal);
-                        if (!signal.aborted) {
-                          setRemoving(null);
-                          setNotice(
-                            t("卸载任务已提交，请等待 Agent 回报结果。"),
-                          );
-                        }
-                      })
-                    }
-                  >
-                    {t("确认卸载")}
-                  </button>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => setRemoving(null)}
-                  >
-                    {t("取消")}
-                  </button>
-                </div>
-              )}
-              {connection?.id === row.id && (
-                <div className="enrollment-result deployment-connection">
+            </div>
+            {loaded && rows.length === 0 && (
+              <div className="deployment-empty">
+                {t(
+                  "还没有节点。选择 Shadowsocks 即可使用服务器 IP 创建，无需准备域名和证书。",
+                )}
+              </div>
+            )}
+            {rows
+              .filter((row) => !nodeID || row.id === nodeID)
+              .map((row) => (
+                <article className="machine-job deployment-row" key={row.id}>
                   <div className="deployment-row-heading">
-                    <strong>{t("连接信息")}</strong>
-                    <button
-                      className="secondary compact"
-                      onClick={() => setConnection(null)}
+                    <strong>{row.name}</strong>
+                    <span
+                      className={`deployment-state deployment-${row.state}`}
                     >
-                      {t("隐藏")}
-                    </button>
+                      {row.action === "update" ? t("更新 · ") : ""}
+                      {row.action === "restart" ? t("重启 · ") : ""}
+                      {row.action === "remove" && row.state !== "removed"
+                        ? t("卸载 · ")
+                        : ""}
+                      {labels[row.state] ?? row.state}
+                    </span>
                   </div>
                   <p>
-                    {t(
-                      "包含访问凭据，请仅分享给可信使用者。请在客户端订阅页面选择对应格式，并确认协议与证书要求。",
+                    {protocolName(row.protocol)} · {row.port}/
+                    {isQUIC(row.protocol) ? "UDP" : "TCP"} ·{" "}
+                    {row.server_name || t("无需域名")}
+                  </p>
+                  <small>
+                    {new Date(row.created_at).toLocaleString(localeTag())}
+                  </small>
+                  <p>
+                    {t("本机服务")}：{t(localServiceLabel(row))} ·{" "}
+                    {t("证书有效期")}：
+                    {!requiresTLS(row.protocol)
+                      ? t("无需证书")
+                      : certificateLabel(row.certificate_expires_at)}
+                  </p>
+                  <p>
+                    {t("服务端版本")}：
+                    {row.runtime_version
+                      ? `sing-box ${row.runtime_version}`
+                      : t("未上报")}
+                    {!row.runtime_version && (
+                      <small>
+                        {" "}
+                        · {t("升级 Agent 后自动上报，无需重新部署节点。")}
+                      </small>
                     )}
                   </p>
-                  <label>{t("服务器 / 端口 / TLS SNI")}</label>
-                  <p>
-                    {connection.data.server}:{connection.data.port}
-                    <br />
-                    {connection.data.server_name || t("无需域名")}
-                  </p>
-                  {connection.data.username && <p>{t("用户名")}：xingdu</p>}
-                  {connection.data.cipher && (
-                    <p>
-                      {t("加密方式")}：{connection.data.cipher}
+                  {row.result && (
+                    <p className="deployment-result">
+                      {t("结果：")}
+                      {resultLabels[row.result] ??
+                        t("任务未完成，请检查机器状态。")}
                     </p>
                   )}
-                  <label htmlFor={`credential-${row.id}`}>
-                    {t("认证凭据")}
-                  </label>
-                  <input
-                    id={`credential-${row.id}`}
-                    readOnly
-                    value={connection.data.credential}
-                    onFocus={(e) => e.target.select()}
-                    autoComplete="off"
-                  />
-                  {connection.data.password && (
-                    <>
-                      <label htmlFor={`password-${row.id}`}>
-                        {row.protocol === "shadowtls"
-                          ? t("ShadowTLS 密码")
-                          : t("TUIC 密码")}
+                  {row.state === "interrupted" && (
+                    <p>
+                      {t(
+                        "操作结果不确定，请先核实机器状态；不会自动重复执行安装。",
+                      )}
+                    </p>
+                  )}
+                  {manage && (
+                    <div className="deployment-actions">
+                      {row.action !== "remove" &&
+                        ["succeeded", "failed"].includes(row.state) && (
+                          <button
+                            className="secondary compact"
+                            disabled={
+                              busy ||
+                              pending ||
+                              !agentVersionAtLeast(
+                                agent?.metrics.version,
+                                "0.12.0-dev",
+                              )
+                            }
+                            onClick={() => setEditing(row.id)}
+                          >
+                            {t("编辑 / 版本恢复")}
+                          </button>
+                        )}
+                      {((row.state === "succeeded" &&
+                        row.action === "deploy") ||
+                        (row.action === "restart" &&
+                          ["failed", "interrupted"].includes(row.state))) && (
+                        <button
+                          className="secondary compact"
+                          disabled={
+                            busy ||
+                            !eligible ||
+                            !agentVersionAtLeast(
+                              agent?.metrics.version,
+                              requiredVersionFor(row.protocol),
+                            ) ||
+                            pending
+                          }
+                          onClick={() => setRestarting(row.id)}
+                        >
+                          {t("重启服务")}
+                        </button>
+                      )}
+                      {((row.state === "succeeded" &&
+                        row.action === "deploy") ||
+                        (row.action === "restart" &&
+                          ["failed", "interrupted"].includes(row.state))) && (
+                        <button
+                          className="secondary compact"
+                          disabled={busy}
+                          onClick={() =>
+                            void act(async (signal) => {
+                              const data = await deploymentConnection(
+                                host.id,
+                                row.id,
+                                signal,
+                              );
+                              if (!signal.aborted)
+                                setConnection({ id: row.id, data });
+                            })
+                          }
+                        >
+                          {t("连接信息")}
+                        </button>
+                      )}
+                      {["succeeded", "failed", "interrupted"].includes(
+                        row.state,
+                      ) && (
+                        <button
+                          className="text-danger"
+                          disabled={
+                            busy ||
+                            !eligible ||
+                            !agentVersionAtLeast(
+                              agent?.metrics.version,
+                              requiredVersionFor(row.protocol),
+                            ) ||
+                            pending
+                          }
+                          onClick={() => {
+                            setRemoving(row.id);
+                            setConnection(null);
+                          }}
+                        >
+                          {t("卸载服务")}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {editing === row.id && (
+                    <RevisionEditor
+                      host={host.id}
+                      node={row}
+                      onClose={() => setEditing(null)}
+                      onSaved={() => {
+                        void act(async () => {});
+                      }}
+                    />
+                  )}
+                  {restarting === row.id && (
+                    <div className="delete-confirm">
+                      <p>
+                        {t(
+                          "重启会短暂中断当前连接，需要托管 Agent 0.6.0。确认重启？",
+                        )}
+                      </p>
+                      <button
+                        className="primary"
+                        disabled={busy || pending}
+                        onClick={() =>
+                          void act(async (signal) => {
+                            await restartNode(host.id, row.id, signal);
+                            if (!signal.aborted) {
+                              setRestarting(null);
+                              setNotice(
+                                t("重启任务已提交，请等待 Agent 回报结果。"),
+                              );
+                            }
+                          })
+                        }
+                      >
+                        {t("确认重启")}
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={() => setRestarting(null)}
+                      >
+                        {t("取消")}
+                      </button>
+                    </div>
+                  )}
+                  {removing === row.id && (
+                    <div className="delete-confirm">
+                      <p>
+                        {t("确认停止并卸载「")}
+                        {row.name}
+                        {t(
+                          "」？该服务的现有连接将中断。只删除此部署的服务与配置，不修改其他服务及防火墙。",
+                        )}
+                      </p>
+                      <button
+                        className="danger"
+                        disabled={
+                          busy ||
+                          !eligible ||
+                          !agentVersionAtLeast(
+                            agent?.metrics.version,
+                            requiredVersionFor(row.protocol),
+                          ) ||
+                          pending
+                        }
+                        onClick={() =>
+                          void act(async (signal) => {
+                            await removeDeployment(host.id, row.id, signal);
+                            if (!signal.aborted) {
+                              setRemoving(null);
+                              setNotice(
+                                t("卸载任务已提交，请等待 Agent 回报结果。"),
+                              );
+                            }
+                          })
+                        }
+                      >
+                        {t("确认卸载")}
+                      </button>
+                      <button
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => setRemoving(null)}
+                      >
+                        {t("取消")}
+                      </button>
+                    </div>
+                  )}
+                  {connection?.id === row.id && (
+                    <div className="enrollment-result deployment-connection">
+                      <div className="deployment-row-heading">
+                        <strong>{t("连接信息")}</strong>
+                        <button
+                          className="secondary compact"
+                          onClick={() => setConnection(null)}
+                        >
+                          {t("隐藏")}
+                        </button>
+                      </div>
+                      <p>
+                        {t(
+                          "包含访问凭据，请仅分享给可信使用者。请在客户端订阅页面选择对应格式，并确认协议与证书要求。",
+                        )}
+                      </p>
+                      <label>{t("服务器 / 端口 / TLS SNI")}</label>
+                      <p>
+                        {connection.data.server}:{connection.data.port}
+                        <br />
+                        {connection.data.server_name || t("无需域名")}
+                      </p>
+                      {connection.data.username && <p>{t("用户名")}：xingdu</p>}
+                      {connection.data.cipher && (
+                        <p>
+                          {t("加密方式")}：{connection.data.cipher}
+                        </p>
+                      )}
+                      <label htmlFor={`credential-${row.id}`}>
+                        {t("认证凭据")}
                       </label>
                       <input
-                        id={`password-${row.id}`}
+                        id={`credential-${row.id}`}
                         readOnly
-                        value={connection.data.password}
+                        value={connection.data.credential}
                         onFocus={(e) => e.target.select()}
                         autoComplete="off"
                       />
-                    </>
+                      {connection.data.password && (
+                        <>
+                          <label htmlFor={`password-${row.id}`}>
+                            {row.protocol === "shadowtls"
+                              ? t("ShadowTLS 密码")
+                              : t("TUIC 密码")}
+                          </label>
+                          <input
+                            id={`password-${row.id}`}
+                            readOnly
+                            value={connection.data.password}
+                            onFocus={(e) => e.target.select()}
+                            autoComplete="off"
+                          />
+                        </>
+                      )}
+                      {connection.data.certificate && (
+                        <>
+                          <label htmlFor={`certificate-${row.id}`}>
+                            {t("公开证书（用于核对信任，不含私钥）")}
+                          </label>
+                          <textarea
+                            id={`certificate-${row.id}`}
+                            readOnly
+                            rows={3}
+                            value={connection.data.certificate}
+                            onFocus={(e) => e.target.select()}
+                          />
+                        </>
+                      )}
+                      <button
+                        className="secondary compact"
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(
+                              JSON.stringify(connection.data, null, 2),
+                            );
+                            if (!lifecycle.current?.signal.aborted)
+                              setNotice(
+                                t("连接信息已复制，使用后请清理剪贴板。"),
+                              );
+                          } catch {
+                            setError(t("无法访问剪贴板，请选择字段手动复制。"));
+                          }
+                        }}
+                      >
+                        {t("复制连接信息")}
+                      </button>
+                    </div>
                   )}
-                  {connection.data.certificate && (
-                    <>
-                      <label htmlFor={`certificate-${row.id}`}>
-                        {t("公开证书（用于核对信任，不含私钥）")}
-                      </label>
-                      <textarea
-                        id={`certificate-${row.id}`}
-                        readOnly
-                        rows={3}
-                        value={connection.data.certificate}
-                        onFocus={(e) => e.target.select()}
-                      />
-                    </>
-                  )}
-                  <button
-                    className="secondary compact"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(
-                          JSON.stringify(connection.data, null, 2),
-                        );
-                        if (!lifecycle.current?.signal.aborted)
-                          setNotice(t("连接信息已复制，使用后请清理剪贴板。"));
-                      } catch {
-                        setError(t("无法访问剪贴板，请选择字段手动复制。"));
-                      }
-                    }}
-                  >
-                    {t("复制连接信息")}
-                  </button>
-                </div>
-              )}
-            </article>
-          ))}
+                </article>
+              ))}
+          </>
+        )}
         {creating && (
-          <form className="deployment-form" onSubmit={submit}>
-            <h3>{t("新建节点")}</h3>
+          <form
+            id="protocol-install-form"
+            className="deployment-form"
+            onSubmit={submit}
+          >
+            <h3>{t("基础配置")}</h3>
             <fieldset disabled={busy}>
               <div className="deployment-fields">
                 <label htmlFor="deployment-name">
@@ -959,66 +992,76 @@ export default function ProtocolDialog({
                 )}
               </label>
             </fieldset>
-            <div className="deployment-actions">
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy || !eligible || pending}
-                onClick={() =>
-                  void act(async (signal) => {
-                    const result = await preflightNode(
-                      host.id,
-                      {
-                        name,
-                        protocol,
-                        port: Number(port),
-                        server_name:
-                          protocol === "shadowtls"
-                            ? handshakeHost
-                            : needsTLS
-                              ? serverName
-                              : "",
-                        certificate: needsTLS ? certificate : "",
-                        private_key: needsTLS ? privateKey : "",
-                      },
-                      signal,
-                    );
-                    if (!signal.aborted)
-                      setNotice(
-                        (needsTLS
-                          ? t("证书与配置检查通过。证书有效期：") +
-                            certificateLabel(result.certificate_expires_at)
-                          : t("配置检查通过，无需证书")) +
-                          t(
-                            "。实际端口占用在 Agent 安装时检查，公网 DNS 与防火墙仍需验证。",
-                          ),
-                      );
-                  })
-                }
-              >
-                {t("检查配置")}
-              </button>
-              <button
-                className="primary"
-                disabled={busy || !eligible || !manage || pending || !confirmed}
-              >
-                {busy ? t("正在提交…") : t("安装并启动")}
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => {
-                  setCreating(false);
-                  setPrivateKey("");
-                  setCertificate("");
-                  setConfirmed(false);
-                }}
-              >
-                {t("取消")}
-              </button>
-            </div>
           </form>
+        )}
+      </div>
+      <div className="dialog-footer">
+        {creating ? (
+          <div className="deployment-actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy || !eligible || pending}
+              onClick={() =>
+                void act(async (signal) => {
+                  const result = await preflightNode(
+                    host.id,
+                    {
+                      name,
+                      protocol,
+                      port: Number(port),
+                      server_name:
+                        protocol === "shadowtls"
+                          ? handshakeHost
+                          : needsTLS
+                            ? serverName
+                            : "",
+                      certificate: needsTLS ? certificate : "",
+                      private_key: needsTLS ? privateKey : "",
+                    },
+                    signal,
+                  );
+                  if (!signal.aborted)
+                    setNotice(
+                      (needsTLS
+                        ? t("证书与配置检查通过。证书有效期：") +
+                          certificateLabel(result.certificate_expires_at)
+                        : t("配置检查通过，无需证书")) +
+                        t(
+                          "。实际端口占用在 Agent 安装时检查，公网 DNS 与防火墙仍需验证。",
+                        ),
+                    );
+                })
+              }
+            >
+              {t("检查配置")}
+            </button>
+            <button
+              type="submit"
+              form="protocol-install-form"
+              className="primary"
+              disabled={busy || !eligible || !manage || pending || !confirmed}
+            >
+              {busy ? t("正在提交…") : t("安装并启动")}
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => {
+                setCreating(false);
+                setPrivateKey("");
+                setCertificate("");
+                setConfirmed(false);
+              }}
+            >
+              {t("取消")}
+            </button>
+          </div>
+        ) : (
+          <button className="secondary" disabled={busy} onClick={onClose}>
+            {t("关闭")}
+          </button>
         )}
       </div>
     </dialog>

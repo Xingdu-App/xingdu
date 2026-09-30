@@ -1068,5 +1068,21 @@
   "Agent 无法连接控制端，请检查 VPS 的 DNS、HTTPS 出站网络与证书信任。": "The Agent cannot reach the control plane. Check VPS DNS, outbound HTTPS and certificate trust.",
   "控制端拒绝 Agent 注册，请检查部署配置和服务状态。": "The control plane rejected Agent enrollment. Check deployment configuration and service status.",
   "Agent 注册令牌已失效或被撤销，请核对残留状态后重新签发。": "The Agent enrollment token expired or was revoked. Inspect retained state before issuing a new token.",
-  "自动安装 tar 失败，请检查 VPS 软件源、出站网络、磁盘空间或包管理器锁，处理后重新提交。": "Automatic tar installation failed. Check package repositories, outbound connectivity, disk space or package manager locks, then submit again."
+  "自动安装 tar 失败，请检查 VPS 软件源、出站网络、磁盘空间或包管理器锁，处理后重新提交。": "Automatic tar installation failed. Check package repositories, outbound connectivity, disk space or package manager locks, then submit again.",
+  "正在升级 Agent": "Upgrading Agent",
+  "正在接入服务器": "Connecting the server",
+  "任务已排队，等待执行。": "The task is queued and waiting to run.",
+  "任务正在执行，状态每 5 秒更新。": "The task is running. Status updates every 5 seconds.",
+  "可以关闭此窗口，任务会继续执行。": "You can close this window; the task will continue.",
+  "重新接入与恢复": "Reconnect and recover",
+  "重新接入前请核实已有安装；新身份接入后会替换旧身份。": "Inspect the existing installation before reconnecting. A newly enrolled identity replaces the old identity.",
+  "打开接入设置": "Open connection setup",
+  "终端安装": "Terminal installation",
+  "在服务器执行命令，无需提供 SSH 凭据": "Run a command on the server without providing SSH credentials",
+  "核对指纹后，由星渡完成安装": "Verify the host fingerprint, then let Xingdu install the Agent",
+  "凭据与接入管理": "Credentials and access management",
+  "返回状态": "Back to status",
+  "节点任务进行中": "Node task in progress",
+  "错误详情": "Error details",
+  "基础配置": "Basic configuration"
 }

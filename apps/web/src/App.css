@@ -2766,3 +2766,127 @@ html[lang="en"] .subscription-rule {
     overflow-wrap: anywhere;
   }
 }
+
+/* Task dialogs keep their controls visible while the content scrolls. */
+.machine-dialog {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.machine-dialog:not([open]) {
+  display: none;
+}
+.machine-dialog > .dialog-heading {
+  flex: none;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid #e2e9e8;
+  gap: 16px;
+}
+.machine-dialog > .machine-content {
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px 28px 24px;
+  overscroll-behavior: contain;
+}
+.dialog-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 16px 28px;
+  border-top: 1px solid #e2e9e8;
+  background: #fff;
+}
+.dialog-footer .deployment-actions {
+  margin: 0;
+  justify-content: flex-end;
+}
+.access-methods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.access-methods button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  border-radius: 10px;
+}
+.access-methods strong,
+.access-methods small {
+  display: block;
+}
+.access-methods small {
+  margin-top: 8px;
+  font-weight: 400;
+  line-height: 1.6;
+}
+.dialog-details {
+  margin-top: 20px;
+  border-top: 1px solid #e2e9e8;
+  padding-top: 16px;
+}
+.dialog-details > summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 0;
+}
+.dialog-loading {
+  padding: 24px;
+  border-radius: 10px;
+  background: #f1f7f6;
+  color: #607d81;
+}
+.task-progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin: 16px 0;
+  padding: 18px;
+  background: #e7f1f7;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.task-progress p {
+  margin: 5px 0;
+}
+.task-indicator {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border: 2px solid #a6c7d8;
+  border-top-color: #3d6986;
+  border-radius: 50%;
+  animation: task-spin 1s linear infinite;
+}
+@keyframes task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-indicator {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .machine-dialog > .dialog-heading,
+  .machine-dialog > .machine-content,
+  .dialog-footer {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .access-methods {
+    grid-template-columns: 1fr;
+  }
+  .dialog-footer .deployment-actions {
+    width: 100%;
+  }
+}
