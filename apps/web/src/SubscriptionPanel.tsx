@@ -117,6 +117,9 @@ export default function SubscriptionPanel({
       (n.action === "restart" &&
         ["queued", "running", "failed", "interrupted"].includes(n.state)),
   );
+  const selectableNodeIDs = available
+    .filter((node) => supportsFormat(input.format, node.protocol))
+    .map((node) => node.id);
   useEffect(() => {
     const controller = new AbortController();
     lifecycle.current = controller;
@@ -579,6 +582,24 @@ export default function SubscriptionPanel({
                 {t("已选")}
                 {input.node_ids.length}
               </span>
+              <button
+                type="button"
+                className="secondary compact"
+                disabled={
+                  busy ||
+                  !selectableNodeIDs.length ||
+                  selectableNodeIDs.every((id) => input.node_ids.includes(id))
+                }
+                onClick={() =>
+                  setInput((current) =>
+                    selectSubscriptionNodes(current, [
+                      ...new Set([...current.node_ids, ...selectableNodeIDs]),
+                    ]),
+                  )
+                }
+              >
+                {t("全选")}
+              </button>
             </div>
             <div className="subscription-node-options">
               {available.map((node) => (
