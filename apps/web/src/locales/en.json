@@ -874,7 +874,7 @@
   "更新 · ": "Update · ",
   "编辑 / 版本恢复": "Edit / Restore version",
   "订阅地址": "Subscription URL",
-  "复制受限，请选中上方地址手动复制。": "Copy is restricted. Select the URL above and copy it manually.",
+  "复制失败，请允许浏览器访问剪贴板后重试。": "Copy failed. Allow clipboard access in your browser and try again.",
   "收起二维码": "Hide QR code",
   "二维码": "QR code",
   "导入 {0}": "Import to {0}",

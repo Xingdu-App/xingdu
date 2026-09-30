@@ -33,18 +33,6 @@ export default function SubscriptionAccess({
   const importURL = subscriptionImportURL(format, value);
   return (
     <div className="subscription-access">
-      <label>
-        <span>{t("订阅地址")}</span>
-        <input
-          type="text"
-          readOnly
-          value={value}
-          autoComplete="off"
-          spellCheck={false}
-          aria-label={t("订阅地址")}
-          onFocus={(e) => e.currentTarget.select()}
-        />
-      </label>
       <div className="subscription-actions">
         <button
           className="primary compact"
@@ -54,7 +42,7 @@ export default function SubscriptionAccess({
             setNotice(
               copied
                 ? t("订阅链接已复制。")
-                : t("复制受限，请选中上方地址手动复制。"),
+                : t("复制失败，请允许浏览器访问剪贴板后重试。"),
             );
           }}
         >

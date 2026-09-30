@@ -2104,10 +2104,19 @@ th {
   flex-direction: column;
 }
 .subscription-card .host-tags {
+  height: 24px;
+  align-content: flex-start;
+  overflow: hidden;
   margin-bottom: 12px;
 }
 .subscription-card .badge {
-  overflow-wrap: anywhere;
+  line-height: 14px;
+  flex-shrink: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .subscription-updated {
   margin: 0 0 16px;
@@ -2544,8 +2553,6 @@ html[lang="en"] .subscription-rule {
 }
 
 .subscription-access { margin: 0 0 16px; min-width: 0; }
-.subscription-access label > span { font-size: 12px; color: var(--muted, #6a7c89); }
-.subscription-access input { width: 100%; min-width: 0; box-sizing: border-box; margin-top: 6px; padding: 10px; border: 1px solid #d2e0df; border-radius: 8px; background: #f7faf9; font-size: 12px; }
 .subscription-card .subscription-access .subscription-actions { border: 0; margin-top: 8px; padding-top: 0; }
 .subscription-access a { display: inline-flex; align-items: center; text-decoration: none; }
 .subscription-qr { margin-top: 12px; text-align: center; }
