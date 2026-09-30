@@ -64,8 +64,8 @@ test("all preset groups apply shipped default icons and retain custom icons", as
  for (const preset of catalog.presets) {
   const next = applyRoutingPreset(input, preset, false);
   for (const group of next.routing.groups) {
-   assert.match(group.icon, /^https:\/\/xingdu\.app\/subscription-icons\/v1\/[a-z-]+\.png$/);
-   await access(new URL(`../public/subscription-icons/v1/${group.id}.png`, import.meta.url));
+   assert.match(group.icon, /^https:\/\/xingdu\.app\/subscription-icons\/v2\/[a-z-]+\.png$/);
+   await access(new URL(`../public/subscription-icons/v2/${group.id}.png`, import.meta.url));
   }
  }
  let next = applyRoutingPreset(input, streaming, false);
@@ -74,5 +74,15 @@ test("all preset groups apply shipped default icons and retain custom icons", as
  next = applyRoutingPreset(next, streaming, true);
  assert.equal(next.routing.groups[0].icon, "https://assets.example.com/custom.png");
  assert.equal(next.routing.groups[1].icon, streaming.groups[1].icon);
- assert.equal(streaming.groups[0].icon, "https://xingdu.app/subscription-icons/v1/proxy.png");
+ assert.equal(streaming.groups[0].icon, "https://xingdu.app/subscription-icons/v2/proxy.png");
+});
+
+
+test("reapplying presets upgrades shipped v1 icons without changing custom URLs", () => {
+ let next = applyRoutingPreset(input, streaming, false);
+ next.routing.groups[0].icon = "https://xingdu.app/subscription-icons/v1/proxy.png";
+ next.routing.groups[1].icon = "https://assets.example.com/youtube.png";
+ next = applyRoutingPreset(next, streaming, false);
+ assert.equal(next.routing.groups[0].icon, "https://xingdu.app/subscription-icons/v2/proxy.png");
+ assert.equal(next.routing.groups[1].icon, "https://assets.example.com/youtube.png");
 });

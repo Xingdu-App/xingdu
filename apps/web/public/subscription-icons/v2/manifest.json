@@ -1,0 +1,165 @@
+{
+  "sources": [
+    {
+      "repository": "https://github.com/lobehub/lobe-icons",
+      "revision": "329f378cbd1a88f45b60cd096b9111ce16f3ea39",
+      "license": "MIT"
+    },
+    {
+      "repository": "https://github.com/simple-icons/simple-icons",
+      "revision": "1089fb7d2bf0e323f834c205ab76265005a6d5e8",
+      "license": "CC0-1.0"
+    },
+    {
+      "repository": "https://github.com/lucide-icons/lucide",
+      "revision": "5a92b9ba262de5bf10e864219883267672c05db8",
+      "license": "ISC / Feather MIT"
+    }
+  ],
+  "groups": {
+    "proxy": {
+      "source": "lucide-globe.svg",
+      "style": "category",
+      "color": "#2563eb",
+      "background": "#f8fafc"
+    },
+    "ai": {
+      "source": "lobe-openai.svg",
+      "style": "brand",
+      "color": "#111827",
+      "background": "#ffffff"
+    },
+    "claude": {
+      "source": "lobe-claude-color.svg",
+      "style": "brand",
+      "color": "#d97757",
+      "background": "#ffffff"
+    },
+    "gemini": {
+      "source": "lobe-gemini-color.svg",
+      "style": "brand",
+      "color": "#4285f4",
+      "background": "#ffffff"
+    },
+    "developer": {
+      "source": "lucide-code-xml.svg",
+      "style": "category",
+      "color": "#475569",
+      "background": "#f8fafc"
+    },
+    "github": {
+      "source": "lobe-github.svg",
+      "style": "brand",
+      "color": "#181717",
+      "background": "#ffffff"
+    },
+    "docker": {
+      "source": "simple-docker.svg",
+      "style": "brand",
+      "color": "#2496ed",
+      "background": "#ffffff"
+    },
+    "media": {
+      "source": "lucide-clapperboard.svg",
+      "style": "category",
+      "color": "#9333ea",
+      "background": "#f8fafc"
+    },
+    "youtube": {
+      "source": "simple-youtube.svg",
+      "style": "brand",
+      "color": "#ff0000",
+      "background": "#ffffff"
+    },
+    "netflix": {
+      "source": "simple-netflix.svg",
+      "style": "brand",
+      "color": "#e50914",
+      "background": "#ffffff"
+    },
+    "disney": {
+      "source": "lucide-castle.svg",
+      "style": "category",
+      "color": "#2563eb",
+      "background": "#f8fafc"
+    },
+    "hbo": {
+      "source": "simple-hbo.svg",
+      "style": "brand",
+      "color": "#151515",
+      "background": "#ffffff"
+    },
+    "spotify": {
+      "source": "simple-spotify.svg",
+      "style": "brand",
+      "color": "#1db954",
+      "background": "#ffffff"
+    },
+    "social": {
+      "source": "lucide-messages-square.svg",
+      "style": "category",
+      "color": "#0891b2",
+      "background": "#f8fafc"
+    },
+    "telegram": {
+      "source": "simple-telegram.svg",
+      "style": "brand",
+      "color": "#229ed9",
+      "background": "#ffffff"
+    },
+    "discord": {
+      "source": "simple-discord.svg",
+      "style": "brand",
+      "color": "#5865f2",
+      "background": "#ffffff"
+    },
+    "games": {
+      "source": "lucide-gamepad-2.svg",
+      "style": "category",
+      "color": "#16a34a",
+      "background": "#f8fafc"
+    },
+    "steam": {
+      "source": "simple-steam.svg",
+      "style": "brand",
+      "color": "#171d25",
+      "background": "#ffffff"
+    },
+    "epic": {
+      "source": "simple-epicgames.svg",
+      "style": "brand",
+      "color": "#202020",
+      "background": "#ffffff"
+    },
+    "console": {
+      "source": "lucide-joystick.svg",
+      "style": "category",
+      "color": "#4f46e5",
+      "background": "#f8fafc"
+    },
+    "downloads": {
+      "source": "lucide-download.svg",
+      "style": "category",
+      "color": "#0284c7",
+      "background": "#f8fafc"
+    },
+    "work": {
+      "source": "lucide-briefcase-business.svg",
+      "style": "category",
+      "color": "#0369a1",
+      "background": "#f8fafc"
+    },
+    "microsoft": {
+      "source": "lobe-microsoft-color.svg",
+      "style": "brand",
+      "color": "#0078d4",
+      "background": "#ffffff"
+    },
+    "google": {
+      "source": "lobe-google-color.svg",
+      "style": "brand",
+      "color": "#4285f4",
+      "background": "#ffffff"
+    }
+  }
+}

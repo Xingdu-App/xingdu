@@ -18,7 +18,11 @@ export function applyRoutingPreset(
           preset: preset.id,
           groups: preset.groups.map((g) => ({
             id: g.id,
-            icon: input.routing?.groups.find((old) => old.id === g.id)?.icon ?? g.icon,
+            icon: (() => {
+              const existing = input.routing?.groups.find((old) => old.id === g.id)?.icon;
+              const legacy = `https://xingdu.app/subscription-icons/v1/${g.id}.png`;
+              return !existing || existing === legacy ? g.icon : existing;
+            })(),
             name: english ? g.name_en : g.name,
             type: g.type,
             node_ids:

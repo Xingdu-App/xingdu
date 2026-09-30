@@ -131,18 +131,29 @@ establish real Stash/Surge/Loon app acceptance or deployed connectivity.
 
 ## Default policy-group icons
 
-All nine presets include colored purpose icons for their 24 distinct groups.
-The glyphs come from [Lucide](https://github.com/lucide-icons/lucide), with its
-ISC license and inherited Feather MIT notices retained alongside the assets.
-Xingdu adds colored rounded backgrounds and serves 128px PNGs from
-`/subscription-icons/v1/`. These represent categories, not official service logos.
-SVG sources, the pinned upstream revision and the rendering manifest are checked
-in; maintainers can regenerate PNGs with `scripts/build-subscription-icons.py`
-using CairoSVG 2.8.2. Normal web builds need no image renderer or upstream download.
+All nine presets include icons for their 24 distinct groups: 15 recognizable
+service marks and nine general category symbols, on light rounded backgrounds.
+AI groups use the OpenAI mark; dedicated Claude and Gemini groups use their
+respective marks. GitHub, Docker, YouTube, Netflix, HBO, Spotify, Telegram,
+Discord, Steam, Epic Games, Microsoft and Google also use service-specific icons.
+The broader AI group still routes all AI sources assigned to it, not only OpenAI.
 
-Applying a preset fills missing group icons and preserves existing custom URLs.
-Saved subscriptions are snapshots: this change does not rewrite them. Reapply
-and save a preset to fill its missing icons. Users can still edit or remove URLs.
+AI and selected service graphics come from
+[Lobe Icons](https://github.com/lobehub/lobe-icons) (MIT); other service graphics
+come from [Simple Icons](https://github.com/simple-icons/simple-icons) (CC0),
+and general categories retain [Lucide](https://github.com/lucide-icons/lucide)
+(ISC / Feather MIT). Full notices, pinned revisions, sources and the composition
+manifest accompany the assets in `/subscription-icons/v2/`. Service marks
+identify routing targets and do not imply endorsement or a commercial partnership.
+
+Maintain the 128px PNGs with `scripts/build-subscription-icons.py` using
+CairoSVG 2.8.2; `--version v1` reproduces the earlier category-only set.
+Normal builds need no image renderer or upstream download. The old v1 assets
+remain available for saved configurations and caches.
+
+Applying a preset fills missing icons and replaces matching shipped v1 URLs
+with v2 URLs, while preserving custom URLs. Saved subscriptions are snapshots:
+reapply and save a preset to adopt v2. Users can still edit or remove URLs.
 Stash and Mihomo export `icon`; Mihomo display depends on the dashboard.
 Surge/Loon do not export this field and retain the existing capability warning.
 
