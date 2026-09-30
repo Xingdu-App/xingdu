@@ -6,7 +6,7 @@ import type {
   SubscriptionInput,
   RoutingGroup,
 } from "./api";
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { applyRoutingPreset, removeRoutingGroup } from "./subscription-routing";
 import "./subscription-routing.css";
 
@@ -199,23 +199,21 @@ export function RoutingEditor({
             </div>
             <label className="route-field">
               {t("策略组图标（可选）")}
-              <input
-                type="url"
-                placeholder="https://assets.example.com/icon.png"
-                aria-label={t("策略组图标（可选）")}
-                value={group.icon ?? ""}
-                disabled={busy}
-                maxLength={2048}
-                onChange={(e) =>
-                  patchGroup(group.id, { icon: e.target.value || undefined })
-                }
-              />
+              <div className="routing-icon-field">
+                <GroupIconPreview key={group.icon ?? ""} url={group.icon} />
+                <input
+                  type="url"
+                  placeholder="https://assets.example.com/icon.png"
+                  aria-label={t("策略组图标（可选）")}
+                  value={group.icon ?? ""}
+                  disabled={busy}
+                  maxLength={2048}
+                  onChange={(e) =>
+                    patchGroup(group.id, { icon: e.target.value || undefined })
+                  }
+                />
+              </div>
             </label>
-            <p className="form-hint">
-              {t(
-                "使用 HTTPS 图片地址；Stash 导出图标，Mihomo 是否显示取决于面板，其他格式暂不导出。",
-              )}
-            </p>
             {group.id === "proxy" ? (
               <p className="form-hint">
                 {t("包含全部 {0} 个已选节点", { 0: input.node_ids.length })}
@@ -349,5 +347,35 @@ export function RoutingEditor({
         />
       </div>
     </section>
+  );
+}
+
+function GroupIconPreview({ url }: { url?: string }) {
+  const [failed, setFailed] = useState(false);
+  let source: string | undefined;
+  try {
+    const parsed = new URL(url ?? "");
+    if (parsed.protocol === "https:" && !parsed.username && !parsed.password) {
+      source = parsed.href;
+    }
+  } catch {
+    // An empty or incomplete URL keeps the preview placeholder.
+  }
+  return (
+    <span className="routing-icon-preview" aria-label="Preview">
+      {source && !failed ? (
+        <img
+          src={source}
+          alt=""
+          width={32}
+          height={32}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span>Preview</span>
+      )}
+    </span>
   );
 }

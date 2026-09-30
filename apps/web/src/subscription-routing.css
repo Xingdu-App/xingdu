@@ -242,3 +242,33 @@ html[lang="en"] .subscription-rule {
   justify-content: flex-end;
   margin-top: 12px;
 }
+
+.routing-icon-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.routing-icon-field input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.routing-icon-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dfe7e9;
+  border-radius: 10px;
+  background: #f5f8f7;
+  overflow: hidden;
+  color: #667c76;
+  font-size: 9px;
+}
+.routing-icon-preview img {
+  display: block;
+  object-fit: contain;
+}
