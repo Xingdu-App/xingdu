@@ -128,3 +128,30 @@ compatibility, tenant isolation and persistence. Optional Mihomo binary tests
 parse each preset using local rule caches without contacting live nodes.
 Loon's renderer test uses an isolated fixture trust store. These checks do not
 establish real Stash/Surge/Loon app acceptance or deployed connectivity.
+
+## Default policy-group icons
+
+All nine presets include colored purpose icons for their 24 distinct groups.
+The glyphs come from [Lucide](https://github.com/lucide-icons/lucide), with its
+ISC license and inherited Feather MIT notices retained alongside the assets.
+Xingdu adds colored rounded backgrounds and serves 128px PNGs from
+`/subscription-icons/v1/`. These represent categories, not official service logos.
+SVG sources, the pinned upstream revision and the rendering manifest are checked
+in; maintainers can regenerate PNGs with `scripts/build-subscription-icons.py`
+using CairoSVG 2.8.2. Normal web builds need no image renderer or upstream download.
+
+Applying a preset fills missing group icons and preserves existing custom URLs.
+Saved subscriptions are snapshots: this change does not rewrite them. Reapply
+and save a preset to fill its missing icons. Users can still edit or remove URLs.
+Stash and Mihomo export `icon`; Mihomo display depends on the dashboard.
+Surge/Loon do not export this field and retain the existing capability warning.
+
+Default URLs point to `https://xingdu.app`; the corresponding web assets must
+be deployed before client downloads can succeed. Self-hosted operators can use
+HTTPS URLs on their own domain. Client rendering still needs App acceptance.
+
+The earlier personal Stash configuration used
+[Koolson/Qure Color](https://github.com/Koolson/Qure) and some
+[Semporia hand-painted region icons](https://github.com/Semporia/Hand-Painted-icon).
+Qure prohibits commercial use and the latter is described for personal use;
+those images are not bundled as Xingdu SaaS defaults.

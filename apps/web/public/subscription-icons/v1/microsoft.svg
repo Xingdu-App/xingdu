@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+<rect x="4" y="4" width="120" height="120" rx="32" fill="#0078d4"/>
+<g transform="translate(28 28) scale(3)" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ns0:rect xmlns:ns0="http://www.w3.org/2000/svg" width="18" height="18" x="3" y="3" rx="2" />
+  <ns0:path xmlns:ns0="http://www.w3.org/2000/svg" d="M3 9h18" />
+  <ns0:path xmlns:ns0="http://www.w3.org/2000/svg" d="M9 21V9" />
+</g>
+</svg>

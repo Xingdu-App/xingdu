@@ -1,0 +1,102 @@
+{
+  "source": "https://github.com/lucide-icons/lucide",
+  "revision": "5a92b9ba262de5bf10e864219883267672c05db8",
+  "groups": {
+    "proxy": {
+      "glyph": "globe",
+      "color": "#2563eb"
+    },
+    "ai": {
+      "glyph": "bot",
+      "color": "#7c3aed"
+    },
+    "claude": {
+      "glyph": "sparkles",
+      "color": "#d97757"
+    },
+    "gemini": {
+      "glyph": "sparkles",
+      "color": "#4285f4"
+    },
+    "developer": {
+      "glyph": "code-xml",
+      "color": "#475569"
+    },
+    "github": {
+      "glyph": "git-branch",
+      "color": "#24292f"
+    },
+    "docker": {
+      "glyph": "container",
+      "color": "#2496ed"
+    },
+    "media": {
+      "glyph": "clapperboard",
+      "color": "#9333ea"
+    },
+    "youtube": {
+      "glyph": "play",
+      "color": "#ef4444"
+    },
+    "netflix": {
+      "glyph": "tv",
+      "color": "#e50914"
+    },
+    "disney": {
+      "glyph": "castle",
+      "color": "#2563eb"
+    },
+    "hbo": {
+      "glyph": "tv",
+      "color": "#6366f1"
+    },
+    "spotify": {
+      "glyph": "music",
+      "color": "#16a34a"
+    },
+    "social": {
+      "glyph": "messages-square",
+      "color": "#0891b2"
+    },
+    "telegram": {
+      "glyph": "send",
+      "color": "#229ed9"
+    },
+    "discord": {
+      "glyph": "messages-square",
+      "color": "#5865f2"
+    },
+    "games": {
+      "glyph": "gamepad-2",
+      "color": "#16a34a"
+    },
+    "steam": {
+      "glyph": "gamepad-2",
+      "color": "#1b2838"
+    },
+    "epic": {
+      "glyph": "gamepad-2",
+      "color": "#334155"
+    },
+    "console": {
+      "glyph": "joystick",
+      "color": "#4f46e5"
+    },
+    "downloads": {
+      "glyph": "download",
+      "color": "#0284c7"
+    },
+    "work": {
+      "glyph": "briefcase-business",
+      "color": "#0369a1"
+    },
+    "microsoft": {
+      "glyph": "panels-top-left",
+      "color": "#0078d4"
+    },
+    "google": {
+      "glyph": "search",
+      "color": "#4285f4"
+    }
+  }
+}

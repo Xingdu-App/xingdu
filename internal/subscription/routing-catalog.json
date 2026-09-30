@@ -217,43 +217,50 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "AI 服务",
           "name_en": "AI services",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "games",
           "name": "游戏平台",
           "name_en": "Gaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/games.png"
         },
         {
           "id": "work",
           "name": "办公云服务",
           "name_en": "Work & cloud",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/work.png"
         }
       ],
       "bindings": [
@@ -409,115 +416,134 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "OpenAI 与其他 AI",
           "name_en": "OpenAI & other AI",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "claude",
           "name": "Claude",
           "name_en": "Claude",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/claude.png"
         },
         {
           "id": "gemini",
           "name": "Gemini",
           "name_en": "Gemini",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/gemini.png"
         },
         {
           "id": "github",
           "name": "GitHub",
           "name_en": "GitHub",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/github.png"
         },
         {
           "id": "docker",
           "name": "Docker",
           "name_en": "Docker",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/docker.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "youtube",
           "name": "YouTube",
           "name_en": "YouTube",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/youtube.png"
         },
         {
           "id": "netflix",
           "name": "Netflix",
           "name_en": "Netflix",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/netflix.png"
         },
         {
           "id": "disney",
           "name": "Disney+",
           "name_en": "Disney+",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/disney.png"
         },
         {
           "id": "hbo",
           "name": "HBO",
           "name_en": "HBO",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/hbo.png"
         },
         {
           "id": "spotify",
           "name": "Spotify",
           "name_en": "Spotify",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/spotify.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "telegram",
           "name": "Telegram",
           "name_en": "Telegram",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/telegram.png"
         },
         {
           "id": "discord",
           "name": "Discord",
           "name_en": "Discord",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/discord.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "games",
           "name": "游戏平台",
           "name_en": "Gaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/games.png"
         },
         {
           "id": "microsoft",
           "name": "Microsoft",
           "name_en": "Microsoft",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/microsoft.png"
         },
         {
           "id": "google",
           "name": "Google",
           "name_en": "Google",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/google.png"
         }
       ],
       "bindings": [
@@ -672,73 +698,85 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "AI 服务",
           "name_en": "AI services",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "youtube",
           "name": "YouTube",
           "name_en": "YouTube",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/youtube.png"
         },
         {
           "id": "netflix",
           "name": "Netflix",
           "name_en": "Netflix",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/netflix.png"
         },
         {
           "id": "disney",
           "name": "Disney+",
           "name_en": "Disney+",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/disney.png"
         },
         {
           "id": "hbo",
           "name": "HBO",
           "name_en": "HBO",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/hbo.png"
         },
         {
           "id": "spotify",
           "name": "Spotify",
           "name_en": "Spotify",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/spotify.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "games",
           "name": "游戏平台",
           "name_en": "Gaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/games.png"
         },
         {
           "id": "work",
           "name": "办公云服务",
           "name_en": "Work & cloud",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/work.png"
         }
       ],
       "bindings": [
@@ -893,61 +931,71 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "AI 服务",
           "name_en": "AI services",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "steam",
           "name": "Steam",
           "name_en": "Steam",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/steam.png"
         },
         {
           "id": "epic",
           "name": "Epic",
           "name_en": "Epic",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/epic.png"
         },
         {
           "id": "console",
           "name": "主机游戏平台",
           "name_en": "Console platforms",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/console.png"
         },
         {
           "id": "downloads",
           "name": "游戏下载",
           "name_en": "Game downloads",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/downloads.png"
         },
         {
           "id": "work",
           "name": "办公云服务",
           "name_en": "Work & cloud",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/work.png"
         }
       ],
       "bindings": [
@@ -1102,67 +1150,78 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "AI 服务",
           "name_en": "AI services",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "github",
           "name": "GitHub",
           "name_en": "GitHub",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/github.png"
         },
         {
           "id": "docker",
           "name": "Docker",
           "name_en": "Docker",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/docker.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "microsoft",
           "name": "Microsoft",
           "name_en": "Microsoft",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/microsoft.png"
         },
         {
           "id": "google",
           "name": "Google",
           "name_en": "Google",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/google.png"
         },
         {
           "id": "telegram",
           "name": "Telegram",
           "name_en": "Telegram",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/telegram.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "games",
           "name": "游戏平台",
           "name_en": "Gaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/games.png"
         }
       ],
       "bindings": [
@@ -1317,43 +1376,50 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "AI 服务",
           "name_en": "AI services",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "developer",
           "name": "开发工具",
           "name_en": "Development",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/developer.png"
         },
         {
           "id": "media",
           "name": "影音娱乐",
           "name_en": "Streaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/media.png"
         },
         {
           "id": "social",
           "name": "社交沟通",
           "name_en": "Social",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/social.png"
         },
         {
           "id": "games",
           "name": "游戏平台",
           "name_en": "Gaming",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/games.png"
         },
         {
           "id": "work",
           "name": "办公云服务",
           "name_en": "Work & cloud",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/work.png"
         }
       ],
       "bindings": [
@@ -1508,7 +1574,8 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         }
       ],
       "bindings": [
@@ -1555,25 +1622,29 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "youtube",
           "name": "YouTube",
           "name_en": "YouTube",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/youtube.png"
         },
         {
           "id": "netflix",
           "name": "Netflix",
           "name_en": "Netflix",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/netflix.png"
         },
         {
           "id": "telegram",
           "name": "Telegram",
           "name_en": "Telegram",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/telegram.png"
         }
       ],
       "bindings": [
@@ -1632,31 +1703,36 @@
           "id": "proxy",
           "name": "默认代理",
           "name_en": "Default proxy",
-          "type": "url-test"
+          "type": "url-test",
+          "icon": "https://xingdu.app/subscription-icons/v1/proxy.png"
         },
         {
           "id": "ai",
           "name": "OpenAI",
           "name_en": "OpenAI",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/ai.png"
         },
         {
           "id": "github",
           "name": "GitHub",
           "name_en": "GitHub",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/github.png"
         },
         {
           "id": "microsoft",
           "name": "Microsoft",
           "name_en": "Microsoft",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/microsoft.png"
         },
         {
           "id": "telegram",
           "name": "Telegram",
           "name_en": "Telegram",
-          "type": "select"
+          "type": "select",
+          "icon": "https://xingdu.app/subscription-icons/v1/telegram.png"
         }
       ],
       "bindings": [
