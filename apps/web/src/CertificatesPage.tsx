@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   request,
   errorMessage,
@@ -68,6 +68,12 @@ export default function CertificatesPage({
   const [hostID, setHostID] = useState("");
   const [domain, setDomain] = useState("");
   const [creating, setCreating] = useState(false);
+  const createDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (creating && !createDialog.current?.open)
+      createDialog.current?.showModal();
+    else if (!creating) createDialog.current?.close();
+  }, [creating]);
   const [selected, setSelected] = useState<Certificate | null>(null);
   const [nodeID, setNodeID] = useState("");
   const [confirmed, setConfirmed] = useState(false);
@@ -164,7 +170,11 @@ export default function CertificatesPage({
               (data?.certificates.length ?? 0) >= (data?.limit ?? 0)
             }
             onClick={() => {
-              setCreating((v) => !v);
+              setError("");
+              setPlatform(false);
+              setDomain("");
+              setHostID("");
+              setCreating(true);
               setSelected(null);
             }}
           >
@@ -172,7 +182,7 @@ export default function CertificatesPage({
           </button>
         )}
       </div>
-      {error && (
+      {error && !creating && (
         <div role="alert" className="alert">
           {error}
           <button
@@ -223,9 +233,31 @@ export default function CertificatesPage({
           {t("当前连接测试 CA，签发的证书不受客户端信任，不能应用到节点。")}
         </p>
       )}
-      {creating && (
+      <dialog
+        ref={createDialog}
+        className="host-dialog machine-dialog certificate-create-dialog"
+        aria-labelledby="certificate-create-title"
+        onCancel={(e) => {
+          e.preventDefault();
+          if (!busy) setCreating(false);
+        }}
+        onClose={() => setCreating(false)}
+      >
+        <div className="dialog-heading">
+          <h2 id="certificate-create-title">{t("添加域名")}</h2>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label={t("关闭")}
+            disabled={busy}
+            onClick={() => setCreating(false)}
+          >
+            ×
+          </button>
+        </div>
         <form
-          className="certificate-create"
+          id="certificate-create-form"
+          className="machine-content certificate-create"
           onSubmit={(e) => {
             e.preventDefault();
             if (platform && !hostID) return;
@@ -243,6 +275,11 @@ export default function CertificatesPage({
             });
           }}
         >
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
           <label>
             {t("域名来源")}
             <Select
@@ -293,24 +330,26 @@ export default function CertificatesPage({
                 : "使用单个完整域名，暂不接受泛域名。",
             )}
           </p>
-          <div className="certificate-actions">
-            <button
-              className="primary"
-              disabled={busy || (platform && !hostID)}
-            >
-              {t("添加")}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              disabled={busy}
-              onClick={() => setCreating(false)}
-            >
-              {t("取消")}
-            </button>
-          </div>
         </form>
-      )}
+        <div className="dialog-footer">
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => setCreating(false)}
+          >
+            {t("取消")}
+          </button>
+          <button
+            type="submit"
+            form="certificate-create-form"
+            className="primary"
+            disabled={busy || (platform && !hostID)}
+          >
+            {busy ? t("正在保存…") : t("添加")}
+          </button>
+        </div>
+      </dialog>
       {!data ? (
         <TableSkeleton
           headers={[t("域名"), t("状态"), t("到期时间"), t("操作")]}

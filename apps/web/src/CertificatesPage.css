@@ -115,3 +115,36 @@
   width: 100%;
   min-width: 0;
 }
+
+.machine-dialog.certificate-create-dialog {
+  max-width: 600px;
+}
+.certificate-create-dialog .certificate-create {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 20px 28px;
+  border: 0;
+  border-radius: 0;
+}
+.certificate-create-dialog .certificate-create label {
+  margin: 0;
+  max-width: none;
+}
+.certificate-create-dialog .subtitle {
+  margin: 0;
+  line-height: 1.7;
+}
+.certificate-create-dialog .dialog-footer > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+}
+@media (max-width: 600px) {
+  .certificate-create-dialog .certificate-create {
+    padding: 16px;
+  }
+}
