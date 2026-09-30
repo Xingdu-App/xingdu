@@ -43,9 +43,7 @@
   gap: 8px;
   max-width: 520px;
 }
-.certificate-create input,
-.certificate-create select,
-.certificate-apply select {
+.certificate-create input {
   width: 100%;
   min-width: 0;
   padding: 10px 12px;
@@ -110,4 +108,10 @@
   .certificates-page .section-heading {
     flex-wrap: wrap;
   }
+}
+
+.certificate-create .select-control,
+.certificate-apply .select-control {
+  width: 100%;
+  min-width: 0;
 }

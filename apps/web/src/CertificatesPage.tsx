@@ -8,6 +8,7 @@ import {
 } from "./api";
 import { t, useLocale } from "./i18n";
 import { TableSkeleton } from "./LoadingSkeleton";
+import Select from "./Select";
 import "./CertificatesPage.css";
 
 type Certificate = {
@@ -227,6 +228,7 @@ export default function CertificatesPage({
           className="certificate-create"
           onSubmit={(e) => {
             e.preventDefault();
+            if (platform && !hostID) return;
             void act(async () => {
               const c = await request<Certificate>(
                 "/api/v1/certificates",
@@ -243,37 +245,32 @@ export default function CertificatesPage({
         >
           <label>
             {t("域名来源")}
-            <select
+            <Select
+              label={t("域名来源")}
               value={platform ? "platform" : "custom"}
               disabled={busy}
-              onChange={(e) => setPlatform(e.target.value === "platform")}
-            >
-              <option value="custom">{t("自有域名")}</option>
-              <option
-                value="platform"
-                disabled={!data?.platform_domains_configured}
-              >
-                {t("平台随机域名")}
-                {!data?.platform_domains_configured ? ` · ${t("未配置")}` : ""}
-              </option>
-            </select>
+              onChange={(value) => setPlatform(value === "platform")}
+              options={[
+                { value: "custom", label: t("自有域名") },
+                ...(data?.platform_domains_configured
+                  ? [{ value: "platform", label: t("平台随机域名") }]
+                  : []),
+              ]}
+            />
           </label>
           {platform ? (
             <label>
               {t("绑定服务器")}
-              <select
-                required
+              <Select
+                label={t("绑定服务器")}
                 value={hostID}
                 disabled={busy}
-                onChange={(e) => setHostID(e.target.value)}
-              >
-                <option value="">{t("选择服务器")}</option>
-                {hosts.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setHostID}
+                options={[
+                  { value: "", label: t("选择服务器") },
+                  ...hosts.map((h) => ({ value: h.id, label: h.name })),
+                ]}
+              />
             </label>
           ) : (
             <label>
@@ -297,7 +294,10 @@ export default function CertificatesPage({
             )}
           </p>
           <div className="certificate-actions">
-            <button className="primary" disabled={busy}>
+            <button
+              className="primary"
+              disabled={busy || (platform && !hostID)}
+            >
               {t("添加")}
             </button>
             <button
@@ -477,21 +477,22 @@ export default function CertificatesPage({
                   <div className="certificate-apply">
                     <label>
                       {t("应用到节点")}
-                      <select
+                      <Select
+                        label={t("应用到节点")}
                         value={nodeID}
                         disabled={busy || !paid}
-                        onChange={(e) => {
-                          setNodeID(e.target.value);
+                        onChange={(value) => {
+                          setNodeID(value);
                           setConfirmed(false);
                         }}
-                      >
-                        <option value="">{t("选择 TLS 节点")}</option>
-                        {candidates.map((n) => (
-                          <option key={n.id} value={n.id}>
-                            {n.name}
-                          </option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: "", label: t("选择 TLS 节点") },
+                          ...candidates.map((n) => ({
+                            value: n.id,
+                            label: n.name,
+                          })),
+                        ]}
+                      />
                     </label>
                     <p className="subtitle">
                       {t(
