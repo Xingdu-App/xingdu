@@ -1,0 +1,129 @@
+name: Agent Release
+on:
+  push:
+    tags: ["agent-v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: agent-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate immutable release tag and version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          test "$REF_TYPE" = tag
+          version=$(cat VERSION)
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)\.(0|[1-9][0-9]*))?$ ]]
+          test "$REF_NAME" = "agent-v$version"
+          git merge-base --is-ancestor HEAD origin/main
+          printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+  checks:
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+  build:
+    needs: [validate, checks]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Test and build on the target architecture
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          test "$(go env GOARCH)" = "$ARCH"
+          go test -race ./internal/agent ./internal/bootstrap ./internal/machine
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH="$ARCH" go build -trimpath -buildvcs=false \
+            -ldflags "-s -w -X xingdu.app/xingdu/internal/machine.Version=$VERSION" \
+            -o "dist/xingdu-agent-linux-$ARCH" ./cmd/agent
+          test "$("dist/xingdu-agent-linux-$ARCH" --version)" = "xingdu-agent $VERSION"
+      - name: Attest the build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/xingdu-agent-linux-${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-linux-${{ matrix.arch }}
+          path: dist/xingdu-agent-linux-${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: agent-linux-*
+          path: dist
+          merge-multiple: true
+      - name: Package checksums and release notes
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          cp VERSION LICENSE dist/
+          printf 'Version: %s\nCommit: %s\n' "$VERSION" "$COMMIT" > dist/BUILD.txt
+          (cd dist && sha256sum xingdu-agent-linux-amd64 xingdu-agent-linux-arm64 VERSION LICENSE BUILD.txt > SHA256SUMS)
+          cat > dist/NOTES.md <<'NOTES'
+          Linux Agent binaries for amd64 and arm64. Verify SHA256SUMS before installation.
+          Build provenance is available with `gh attestation verify BINARY --repo Xingdu-App/xingdu`.
+
+          The Agent supports enrollment, telemetry, managed protocol tasks and administrator-triggered upgrades.
+          This release also includes actionable SSH installation failure diagnostics in the matching control-plane source.
+          Deploy the API and Worker from the same tag to keep upgrade versions and artifacts aligned.
+
+          Prerelease tags are release candidates, not a claim of production readiness.
+          CI covers PostgreSQL integration, frontend checks, native architecture tests and binary version smoke tests.
+          Full systemd lifecycle, real VPS networking and individual client App acceptance require separate validation.
+          See docs/MACHINE-ACCESS.md and docs/AGENT-RELEASE.md for installation and release boundaries.
+          NOTES
+      - name: Publish release only after all assets are uploaded
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          if gh release view "$TAG" --json isDraft > dist/existing.json 2>/dev/null; then
+            test "$(jq -r .isDraft dist/existing.json)" = true
+          else
+            gh release create "$TAG" --verify-tag --draft --generate-notes --title "Xingdu Agent $VERSION" --notes-file dist/NOTES.md
+          fi
+          gh release upload "$TAG" dist/xingdu-agent-linux-* dist/SHA256SUMS dist/VERSION dist/LICENSE dist/BUILD.txt --clobber
+          if [[ "$VERSION" == *-* ]]; then
+            gh release edit "$TAG" --draft=false --prerelease --latest=false
+          else
+            gh release edit "$TAG" --draft=false --prerelease=false --latest
+          fi

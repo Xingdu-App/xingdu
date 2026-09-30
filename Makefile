@@ -1,5 +1,8 @@
 SHELL := /bin/sh
 
+XINGDU_VERSION ?= $(shell cat VERSION)
+VERSION_LDFLAGS := -X xingdu.app/xingdu/internal/machine.Version=$(XINGDU_VERSION)
+
 .PHONY: setup dev-api dev-web worker agent migrate build check up down
 setup:
 	go mod download
@@ -21,7 +24,7 @@ migrate:
 	go run ./cmd/migrate
 
 build:
-	go build -trimpath -o ./bin/ ./cmd/...
+	go build -trimpath -ldflags "$(VERSION_LDFLAGS)" -o ./bin/ ./cmd/...
 	npm --prefix apps/web run build
 
 check:
@@ -39,8 +42,8 @@ down:
 
 .PHONY: agents
 agents:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-amd64 ./cmd/agent
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -o bin/agents/xingdu-agent-linux-arm64 ./cmd/agent
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags "$(VERSION_LDFLAGS)" -o bin/agents/xingdu-agent-linux-amd64 ./cmd/agent
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -buildvcs=false -ldflags "$(VERSION_LDFLAGS)" -o bin/agents/xingdu-agent-linux-arm64 ./cmd/agent
 
 .PHONY: agent-lab-up agent-lab-test agent-lab-cleanup
 agent-lab-up:
