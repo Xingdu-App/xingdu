@@ -17,6 +17,42 @@ export default function APIDocsPage({
   const endpoints = [
     [
       "GET",
+      "/certificates",
+      "certificates:read",
+      copy(
+        "查看证书状态与配额，不返回私钥",
+        "View certificate status and quotas without private keys",
+      ),
+    ],
+    [
+      "POST",
+      "/certificates",
+      "certificates:write",
+      copy(
+        "登记域名；需要有效付费套餐",
+        "Register a domain; requires an active paid subscription",
+      ),
+    ],
+    [
+      "POST",
+      "/certificates/{cert_id}/issue",
+      "certificates:write",
+      copy(
+        "委托验证与签发／续期排队",
+        "Queue delegation validation and issuance or renewal",
+      ),
+    ],
+    [
+      "DELETE",
+      "/certificates/{cert_id}",
+      "certificates:write",
+      copy(
+        "停止托管续期；不撤销节点证书",
+        "Stop managed renewal; does not revoke certificates on nodes",
+      ),
+    ],
+    [
+      "GET",
       "/subscriptions",
       "subscriptions:read",
       copy(

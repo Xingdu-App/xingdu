@@ -66,6 +66,17 @@ type Record struct {
 
 func (r Record) Entitled(now time.Time) bool { return r.Status == "active" && r.PeriodEnd > now.Unix() }
 
+// CertificateLimit excludes trials and expired subscriptions, like host quotas.
+func (r Record) CertificateLimit(now time.Time) int {
+	if !r.Entitled(now) {
+		return 0
+	}
+	if r.Plan == "premium" {
+		return 50
+	}
+	return 10
+}
+
 func (r Record) ServerLimit(now time.Time) int {
 	if r.Entitled(now) {
 		if r.Plan == "premium" {

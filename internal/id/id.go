@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-var Pattern = regexp.MustCompile(`^(usr|org|srv|node|op|lease|ses|inv|job|sub|bat|obj|key)_[0-9a-f]{32}$`)
+var Pattern = regexp.MustCompile(`^(usr|org|srv|node|op|lease|ses|inv|job|sub|bat|obj|key|cert)_[0-9a-f]{32}$`)
 var legacy = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 func ValidID(value string) bool       { return Pattern.MatchString(value) }

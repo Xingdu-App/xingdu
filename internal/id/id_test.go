@@ -4,7 +4,7 @@ import "testing"
 
 func TestTypedRandomIDs(t *testing.T) {
 	seen := map[string]bool{}
-	for _, prefix := range []string{"usr", "org", "srv", "node", "op", "lease", "ses", "inv", "job", "sub", "bat", "obj"} {
+	for _, prefix := range []string{"usr", "org", "srv", "node", "op", "lease", "ses", "inv", "job", "sub", "bat", "obj", "cert"} {
 		for range 1000 {
 			v := New(prefix)
 			if !Valid(prefix, v) || seen[v] {

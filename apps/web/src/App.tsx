@@ -10,6 +10,7 @@ import TeamPanel from "./TeamPanel";
 import AccountMenu from "./AccountMenu";
 import AccountPage from "./AccountPage";
 import BillingPage from "./BillingPage";
+import CertificatesPage from "./CertificatesPage";
 import type { Organization } from "./api";
 import { useEffect, useState, useRef } from "react";
 import { loadHosts, loadSystem, loadNodes } from "./api";
@@ -296,6 +297,15 @@ function App({
           {page === "members" && <TeamPanel organization={organization} />}
           {page === "billing" && (
             <BillingPage key={organization.id} organization={organization} />
+          )}
+          {page === "certificates" && (
+            <CertificatesPage
+              key={organization.id + organization.role}
+              organization={organization}
+              nodes={nodes}
+              hosts={hosts}
+              onBilling={() => setPage("billing")}
+            />
           )}
           {(page === "profile" ||
             page === "security" ||

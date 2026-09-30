@@ -10,6 +10,8 @@ import (
 )
 
 type Deployment struct {
+	CertificateID        string     `json:"-"`
+	CertificateCipher    []byte     `json:"-"`
 	RuntimeVersion       string     `json:"runtime_version"`
 	ProbeOK              *bool      `json:"probe_ok"`
 	ProbeAt              *time.Time `json:"probe_at"`

@@ -13,6 +13,7 @@ import (
 	"time"
 	"xingdu.app/xingdu/internal/billing"
 	"xingdu.app/xingdu/internal/bootstrap"
+	"xingdu.app/xingdu/internal/certificates"
 	"xingdu.app/xingdu/internal/emailverification"
 	"xingdu.app/xingdu/internal/hosts"
 	"xingdu.app/xingdu/internal/id"
@@ -45,6 +46,7 @@ type Store interface {
 	DeleteHost(context.Context, string) error
 }
 type Options struct {
+	Certificates        certificates.ManagedConfig
 	Billing             billing.Gateway
 	Mode                string
 	BillingCloud        bool
@@ -105,6 +107,7 @@ func New(store Store, opts Options) http.Handler {
 	a.machineRoutes(mux)
 	a.deploymentRoutes(mux)
 	a.subscriptionRoutes(mux)
+	a.certificateRoutes(mux, opts.Certificates)
 	a.avatarRoutes(mux)
 	a.tenantRoutes(mux)
 	a.apiKeyRoutes(mux)

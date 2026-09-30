@@ -65,6 +65,18 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if d.CertificateID != "" {
+		if e := certificateEntitlement(ctx, tx, d.CertificateID); e != nil {
+			return e
+		}
+		var valid bool
+		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM managed_certificates WHERE id=$1 AND state<>'deleted' AND domain=$2 AND encrypted=$3 AND expires_at>now())`, d.CertificateID, d.ServerName, d.CertificateCipher).Scan(&valid); e != nil {
+			return e
+		}
+		if !valid {
+			return ErrConflict
+		}
+	}
 	if err = checkRelayDependents(ctx, tx, d.ID); err != nil {
 		return err
 	}
@@ -132,6 +144,11 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 	}
 	if err = audit(ctx, tx, d.HostID, "protocol_update_queued"); err != nil {
 		return err
+	}
+	if d.CertificateID != "" {
+		if err = certificateAudit(ctx, tx, d.CertificateID, "certificate_apply_queued"); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }

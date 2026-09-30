@@ -29,6 +29,13 @@ export const pages = [
     icon: "✧",
   },
   {
+    id: "certificates",
+    get label() {
+      return t("证书管理");
+    },
+    icon: "♢",
+  },
+  {
     id: "routes",
     get label() {
       return t("线路");

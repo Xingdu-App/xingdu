@@ -246,3 +246,23 @@ host; clients fetch images themselves, so host privacy and availability matter.
 See [Stash icon documentation](https://stash.wiki/en/configuration/proxy-group-icon)
 and [Mihomo proxy groups](https://wiki.metacubex.one/en/config/proxy-groups/).
 These are format mappings, not a record of real-app display acceptance.
+
+## 托管证书
+
+需要已登录浏览器组织会话，或 `certificates:read` / `certificates:write` API Key。
+所有写入需要组织所有者/管理员；创建、签发和节点应用还需要有效付费订阅。
+缺失运营配置返回 `503 certificate_provider_unavailable`；免费/过期套餐返回
+`403 paid_subscription_required`；超额返回 `409 certificate_quota_exceeded`。
+
+| 方法与路径 | 用途 | Key scope |
+| --- | --- | --- |
+| `GET /api/v1/certificates` | 证书元数据、配额、配置/测试状态 | `certificates:read` |
+| `POST /api/v1/certificates` | 自有域名 `{ "domain": "node.example.com" }`；或随机平台域名 `{ "platform": true, "host_id": "srv_…" }` | `certificates:write` |
+| `POST /api/v1/certificates/{id}/issue` | DNS 验证及签发/续期排队；正常续期要求到期不足 30 天，切换 CA 可重签 | `certificates:write` |
+| `DELETE /api/v1/certificates/{id}` | 停止管理、删除托管密文，保留域名墓碑 | `certificates:write` |
+| `POST /api/v1/certificates/{id}/apply` | `{ "host_id": "srv_…", "node_id": "node_…", "confirm": true }`，更新 TLS 域名及证书并排队 Agent 任务 | 仅浏览器组织会话 |
+
+列表包含 `id/domain/validation_target/platform/host_id/state/expires_at/error_code/directory`，
+绝不包含 PEM 私钥、证书密文或 CA 账户。`directory` 用于识别正式/测试 CA。
+平台域名仅应用到绑定机器，测试 CA 证书不能应用。`202` 仅表示排队，最终结果
+见节点部署记录。续期不会自动重启节点，移除管理也不撤销已安装证书。
