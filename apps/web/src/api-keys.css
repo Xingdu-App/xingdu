@@ -2,12 +2,6 @@
   display: grid;
   gap: 20px;
 }
-.api-key-layout {
-  display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
 .api-key-form,
 .api-key-list,
 .api-key-secret,
@@ -105,8 +99,40 @@
 .api-key-secret p {
   line-height: 1.7;
 }
-@media (max-width: 900px) {
-  .api-key-layout {
-    grid-template-columns: 1fr;
+/* Creation stays separate from the full-width key list. */
+.machine-dialog.api-key-create-dialog {
+  max-width: 640px;
+}
+.api-key-create-dialog .api-key-form {
+  margin: 0;
+  padding: 20px 28px;
+}
+.api-key-create-dialog .api-key-scope {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+.api-key-create-dialog .api-key-scope input {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+}
+.api-key-create-dialog .dialog-footer > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+}
+.api-key-dialog-error {
+  margin: 16px 28px 0;
+}
+@media (max-width: 600px) {
+  .api-key-create-dialog .api-key-form {
+    padding: 16px;
   }
 }

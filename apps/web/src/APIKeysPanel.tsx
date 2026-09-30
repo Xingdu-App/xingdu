@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { request, errorMessage, type Organization } from "./api";
 import { t, useLocale, localeTag } from "./i18n";
 import Select from "./Select";
@@ -46,6 +46,19 @@ export default function APIKeysPanel({
   const [loaded, setLoaded] = useState(false);
   const [revoke, setRevoke] = useState<Key | null>(null);
   const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const createDialog = useRef<HTMLDialogElement>(null);
+  const closeCreate = () => {
+    if (busy) return;
+    setCreating(false);
+    setSecret("");
+    setCopied(false);
+  };
+  useEffect(() => {
+    if (creating && !createDialog.current?.open)
+      createDialog.current?.showModal();
+    else if (!creating) createDialog.current?.close();
+  }, [creating]);
   const [now, setNow] = useState(() => Date.now());
   const refresh = async () => {
     setKeys(await request<Key[]>("/api/v1/api-keys"));
@@ -89,7 +102,7 @@ export default function APIKeysPanel({
         </div>
       ) : (
         <>
-          {error && (
+          {error && !creating && (
             <div className="form-error" role="alert">
               {t(error)}{" "}
               <button
@@ -101,118 +114,170 @@ export default function APIKeysPanel({
               </button>
             </div>
           )}
-          {secret && (
-            <section className="panel api-key-secret" role="status">
-              <h2>{t("请立即保存密钥")}</h2>
-              <p>
-                {t(
-                  "完整密钥仅显示这一次，离开页面后无法再次查看。不要将它放入前端代码或 Git 仓库。",
-                )}
+          <dialog
+            ref={createDialog}
+            className="host-dialog machine-dialog api-key-create-dialog"
+            aria-labelledby="api-key-create-title"
+            onCancel={(e) => {
+              e.preventDefault();
+              closeCreate();
+            }}
+            onClose={() => {
+              setCreating(false);
+              setSecret("");
+              setCopied(false);
+            }}
+          >
+            <div className="dialog-heading">
+              <h2 id="api-key-create-title">
+                {t(secret ? "请立即保存密钥" : "创建 API 密钥")}
+              </h2>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={t("关闭")}
+                disabled={busy}
+                onClick={closeCreate}
+              >
+                ×
+              </button>
+            </div>
+            {error && (
+              <p className="form-error api-key-dialog-error" role="alert">
+                {t(error)}
               </p>
-              <code>{secret}</code>
-              <div className="api-key-actions">
+            )}
+            {secret && (
+              <section className="machine-content api-key-secret" role="status">
+                <p>
+                  {t(
+                    "完整密钥仅显示这一次，关闭弹窗后无法再次查看。不要将它放入前端代码或 Git 仓库。",
+                  )}
+                </p>
+                <code>{secret}</code>
+                <div className="api-key-actions">
+                  <button
+                    className="secondary"
+                    onClick={() =>
+                      void act(async () => {
+                        await navigator.clipboard.writeText(secret);
+                        setCopied(true);
+                      })
+                    }
+                  >
+                    {copied ? t("已复制") : t("复制密钥")}
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={closeCreate}
+                  >
+                    {t("已保存，隐藏密钥")}
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {!secret && (
+              <form
+                id="api-key-create-form"
+                className="machine-content api-key-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void act(async () => {
+                    const result = await request<{ key: Key; secret: string }>(
+                      "/api/v1/api-keys",
+                      "POST",
+                      { name, scopes, expires_in_days: Number(days) },
+                    );
+                    setSecret(result.secret);
+                    setCopied(false);
+                    setName("");
+                    await refresh();
+                  });
+                }}
+              >
+                <label>
+                  {t("密钥名称")}
+                  <input
+                    required
+                    maxLength={64}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={t("例如：自动部署脚本")}
+                    disabled={busy}
+                  />
+                </label>
+                <label>
+                  {t("有效期")}
+                  <Select
+                    label={t("有效期")}
+                    value={days}
+                    onChange={setDays}
+                    disabled={busy}
+                    options={["30", "90", "365"].map((value) => ({
+                      value,
+                      label: t("{0} 天", { 0: value }),
+                    }))}
+                  />
+                </label>
+                <fieldset disabled={busy}>
+                  <legend>{t("授权范围")}</legend>
+                  {Object.entries(scopeNames).map(([scope, label]) => (
+                    <label className="api-key-scope" key={scope}>
+                      <input
+                        type="checkbox"
+                        checked={scopes.includes(scope)}
+                        onChange={(e) =>
+                          setScopes(
+                            e.target.checked
+                              ? [...scopes, scope]
+                              : scopes.filter((s) => s !== scope),
+                          )
+                        }
+                      />
+                      <span>
+                        {t(label)}
+                        <small>{scope}</small>
+                      </span>
+                    </label>
+                  ))}
+                </fieldset>
+                <p className="subtitle">
+                  {t(
+                    "节点凭据读取会返回连接密码等敏感信息，请仅向需要的脚本开放。",
+                  )}
+                </p>
+              </form>
+            )}
+            {!secret && (
+              <div className="dialog-footer">
                 <button
+                  type="button"
                   className="secondary"
-                  onClick={() =>
-                    void act(async () => {
-                      await navigator.clipboard.writeText(secret);
-                      setCopied(true);
-                    })
-                  }
+                  disabled={busy}
+                  onClick={closeCreate}
                 >
-                  {copied ? t("已复制") : t("复制密钥")}
+                  {t("取消")}
                 </button>
                 <button
-                  className="secondary"
-                  onClick={() => {
-                    setSecret("");
-                    setCopied(false);
-                  }}
+                  type="submit"
+                  form="api-key-create-form"
+                  className="primary"
+                  disabled={busy || !name.trim() || scopes.length === 0}
                 >
-                  {t("已保存，隐藏密钥")}
+                  {busy ? t("处理中…") : t("创建密钥")}
                 </button>
               </div>
-            </section>
-          )}
-          <div className="api-key-layout">
-            <form
-              className="panel api-key-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void act(async () => {
-                  const result = await request<{ key: Key; secret: string }>(
-                    "/api/v1/api-keys",
-                    "POST",
-                    { name, scopes, expires_in_days: Number(days) },
-                  );
-                  setSecret(result.secret);
-                  setCopied(false);
-                  setName("");
-                  await refresh();
-                });
-              }}
-            >
-              <h2>{t("创建 API 密钥")}</h2>
-              <label>
-                {t("密钥名称")}
-                <input
-                  required
-                  maxLength={64}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t("例如：自动部署脚本")}
-                  disabled={busy}
-                />
-              </label>
-              <Select
-                label={t("有效期")}
-                value={days}
-                onChange={setDays}
-                disabled={busy}
-                options={["30", "90", "365"].map((value) => ({
-                  value,
-                  label: t("{0} 天", { 0: value }),
-                }))}
-              />
-              <fieldset disabled={busy}>
-                <legend>{t("授权范围")}</legend>
-                {Object.entries(scopeNames).map(([scope, label]) => (
-                  <label className="api-key-scope" key={scope}>
-                    <input
-                      type="checkbox"
-                      checked={scopes.includes(scope)}
-                      onChange={(e) =>
-                        setScopes(
-                          e.target.checked
-                            ? [...scopes, scope]
-                            : scopes.filter((s) => s !== scope),
-                        )
-                      }
-                    />
-                    <span>
-                      {t(label)}
-                      <small>{scope}</small>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-              <p className="subtitle">
-                {t(
-                  "节点凭据读取会返回连接密码等敏感信息，请仅向需要的脚本开放。",
-                )}
-              </p>
-              <button
-                className="primary"
-                disabled={
-                  busy || !name.trim() || scopes.length === 0 || !!secret
-                }
-              >
-                {busy ? t("处理中…") : t("创建密钥")}
-              </button>
-            </form>
-            <section className="panel api-key-list">
-              <div className="section-heading">
-                <h2>{t("组织密钥")}</h2>
+            )}
+          </dialog>
+          <section className="panel api-key-list">
+            <div className="section-heading">
+              <h2>{t("组织密钥")}</h2>
+              <div className="api-key-actions">
+                <button className="secondary" onClick={onDocs}>
+                  {t("API 文档")}
+                </button>
                 <button
                   className="secondary"
                   disabled={busy}
@@ -220,102 +285,106 @@ export default function APIKeysPanel({
                 >
                   {t("刷新")}
                 </button>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => {
+                    setError("");
+                    setName("");
+                    setDays("90");
+                    setScopes(["hosts:read", "nodes:read"]);
+                    setCreating(true);
+                  }}
+                >
+                  {t("创建密钥")}
+                </button>
               </div>
-              <p className="subtitle">
-                {t(
-                  "密钥绑定创建者身份；创建者退出组织或失去管理员权限后，密钥将无法使用。",
-                )}
-              </p>
-              {!loaded ? (
-                <p>{t("加载中")}</p>
-              ) : keys.length === 0 ? (
-                <p>{t("暂无 API 密钥")}</p>
-              ) : (
-                keys.map((key) => {
-                  const expired = Date.parse(key.expires_at) <= now;
-                  return (
-                    <article className="api-key-item" key={key.id}>
-                      <div className="api-key-row">
-                        <strong>{key.name}</strong>
-                        <span className="badge">
-                          {key.revoked_at
-                            ? t("已撤销")
-                            : expired
-                              ? t("已过期")
-                              : t("有效")}
+            </div>
+            <p className="subtitle">
+              {t(
+                "密钥绑定创建者身份；创建者退出组织或失去管理员权限后，密钥将无法使用。",
+              )}
+            </p>
+            {!loaded ? (
+              <p>{t("加载中")}</p>
+            ) : keys.length === 0 ? (
+              <p>{t("暂无 API 密钥")}</p>
+            ) : (
+              keys.map((key) => {
+                const expired = Date.parse(key.expires_at) <= now;
+                return (
+                  <article className="api-key-item" key={key.id}>
+                    <div className="api-key-row">
+                      <strong>{key.name}</strong>
+                      <span className="badge">
+                        {key.revoked_at
+                          ? t("已撤销")
+                          : expired
+                            ? t("已过期")
+                            : t("有效")}
+                      </span>
+                    </div>
+                    <code>{key.prefix}…</code>
+                    <small>{key.id}</small>
+                    <div className="api-key-scopes">
+                      {key.scopes.map((scope) => (
+                        <span className="badge" key={scope}>
+                          {t(scopeNames[scope] ?? scope)}
                         </span>
-                      </div>
-                      <code>{key.prefix}…</code>
-                      <small>{key.id}</small>
-                      <div className="api-key-scopes">
-                        {key.scopes.map((scope) => (
-                          <span className="badge" key={scope}>
-                            {t(scopeNames[scope] ?? scope)}
-                          </span>
-                        ))}
-                      </div>
-                      <p>
-                        {t("到期时间")} ·{" "}
-                        {new Date(key.expires_at).toLocaleString(localeTag())}
-                      </p>
-                      <p>
-                        {t("最近使用")} ·{" "}
-                        {key.last_used_at
-                          ? new Date(key.last_used_at).toLocaleString(
-                              localeTag(),
-                            )
-                          : t("尚未使用")}
-                      </p>
-                      {!key.revoked_at &&
-                        (revoke?.id === key.id ? (
-                          <div className="api-key-actions">
-                            <span>{t("撤销后不可恢复。")}</span>
-                            <button
-                              className="danger"
-                              disabled={busy}
-                              onClick={() =>
-                                void act(async () => {
-                                  await request(
-                                    "/api/v1/api-keys/" + key.id,
-                                    "DELETE",
-                                  );
-                                  setRevoke(null);
-                                  setSecret("");
-                                  await refresh();
-                                })
-                              }
-                            >
-                              {t("确认撤销")}
-                            </button>
-                            <button
-                              className="secondary"
-                              disabled={busy}
-                              onClick={() => setRevoke(null)}
-                            >
-                              {t("取消")}
-                            </button>
-                          </div>
-                        ) : (
+                      ))}
+                    </div>
+                    <p>
+                      {t("到期时间")} ·{" "}
+                      {new Date(key.expires_at).toLocaleString(localeTag())}
+                    </p>
+                    <p>
+                      {t("最近使用")} ·{" "}
+                      {key.last_used_at
+                        ? new Date(key.last_used_at).toLocaleString(localeTag())
+                        : t("尚未使用")}
+                    </p>
+                    {!key.revoked_at &&
+                      (revoke?.id === key.id ? (
+                        <div className="api-key-actions">
+                          <span>{t("撤销后不可恢复。")}</span>
+                          <button
+                            className="danger"
+                            disabled={busy}
+                            onClick={() =>
+                              void act(async () => {
+                                await request(
+                                  "/api/v1/api-keys/" + key.id,
+                                  "DELETE",
+                                );
+                                setRevoke(null);
+                                setSecret("");
+                                await refresh();
+                              })
+                            }
+                          >
+                            {t("确认撤销")}
+                          </button>
                           <button
                             className="secondary"
                             disabled={busy}
-                            onClick={() => setRevoke(key)}
+                            onClick={() => setRevoke(null)}
                           >
-                            {t("撤销")}
+                            {t("取消")}
                           </button>
-                        ))}
-                    </article>
-                  );
-                })
-              )}
-            </section>
-          </div>
-          <section className="panel api-key-help">
-            <h2>{t("API 文档")}</h2>
-            <p>{t("查看认证方式、接口权限和可运行的请求示例。")}</p>
-            <button className="secondary" onClick={onDocs}>
-              {t("查看 API 文档 →")}
-            </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="secondary"
+                          disabled={busy}
+                          onClick={() => setRevoke(key)}
+                        >
+                          {t("撤销")}
+                        </button>
+                      ))}
+                  </article>
+                );
+              })
+            )}
           </section>
         </>
       )}
