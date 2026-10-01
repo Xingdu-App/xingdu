@@ -1,3 +1,4 @@
+import { ConsoleAnalytics } from "./MarketingAnalytics";
 import HostCountry from "./HostCountry";
 import { TableSkeleton } from "./LoadingSkeleton";
 import RoutePanel from "./RoutePanel";
@@ -170,6 +171,7 @@ function App({
 
   return (
     <div className="shell">
+      <ConsoleAnalytics page={page} />
       <aside className="sidebar">
         <a
           className="brand"
