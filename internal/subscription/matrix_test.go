@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"go.yaml.in/yaml/v3"
+
 	"xingdu.app/xingdu/internal/protocol"
 )
 
@@ -50,6 +52,32 @@ func TestCompatibility72StashProjection(t *testing.T) {
 				}
 			}
 			if spec.WireGuardKeys != nil {
+				var document struct {
+					Proxies []map[string]any `yaml:"proxies"`
+				}
+				if err := yaml.Unmarshal(b, &document); err != nil {
+					t.Fatal(err)
+				}
+				if len(document.Proxies) != 1 || document.Proxies[0]["preshared-key"] != spec.WireGuardClient()["pre_shared_key"] {
+					t.Fatal("Stash WireGuard PSK field lost")
+				}
+				if _, exists := document.Proxies[0]["pre-shared-key"]; exists {
+					t.Fatal("Mihomo PSK spelling leaked into Stash")
+				}
+				mihomo, err := Render("mihomo", "Lab", []Node{{ID: fmt.Sprintf("node_%032x", i+1), Name: in.Name, Server: "proxy.example.com", Spec: spec}}, nil, "proxy")
+				if err != nil {
+					t.Fatal(err)
+				}
+				document.Proxies = nil
+				if err := yaml.Unmarshal(mihomo, &document); err != nil {
+					t.Fatal(err)
+				}
+				if len(document.Proxies) != 1 || document.Proxies[0]["pre-shared-key"] != spec.WireGuardClient()["pre_shared_key"] {
+					t.Fatal("Mihomo WireGuard PSK field lost")
+				}
+				if _, exists := document.Proxies[0]["preshared-key"]; exists {
+					t.Fatal("Stash PSK spelling leaked into Mihomo")
+				}
 				if strings.Contains(string(b), spec.WireGuardKeys.ServerPrivate) {
 					t.Fatal("server WireGuard key leaked")
 				}

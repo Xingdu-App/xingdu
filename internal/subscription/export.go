@@ -181,7 +181,11 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			w := s.WireGuardClient()
 			p["private-key"] = w["private_key"]
 			p["public-key"] = w["public_key"]
-			p["pre-shared-key"] = w["pre_shared_key"]
+			if format == "stash" {
+				p["preshared-key"] = w["pre_shared_key"]
+			} else {
+				p["pre-shared-key"] = w["pre_shared_key"]
+			}
 			p["ip"] = w["ip"]
 			p["mtu"] = w["mtu"]
 			p["keepalive"] = w["keepalive"]
