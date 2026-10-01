@@ -1,6 +1,6 @@
 # 协议部署
 
-星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，TrustTunnel 使用官方 **TrustTunnel endpoint 1.1.0**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
+星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2-xingdu.1** 与 **Xray 26.3.27-xingdu.1**，TrustTunnel 使用官方 **TrustTunnel endpoint 1.1.0**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
 
 ## 协议与最低 Agent 版本
 
@@ -14,8 +14,8 @@
 | Shadowsocks (`shadowsocks`) | TCP；chacha20-ietf-poly1305 密码 | 无需 | 0.8.0-dev |
 | SS2022 (`shadowsocks2022`) | TCP；2022-blake3-aes-256-gcm 密钥 | 无需 | 0.8.0-dev |
 | Trojan (`trojan`) | TCP + TLS；密码 | 自备匹配 PEM | 0.7.0-dev |
-| VLESS (`vless`) | TCP + TLS；UUID | 自备匹配 PEM | 0.7.0-dev |
-| VMess (`vmess`) | TCP + TLS；UUID | 自备匹配 PEM | 0.7.0-dev |
+| VLESS (`vless`) | TCP / WS / gRPC / HTTP；可选 TLS；UUID | TLS 时自备匹配 PEM | 0.16.0-dev |
+| VMess (`vmess`) | TCP / WS / gRPC / HTTP；可选 TLS；UUID | TLS 时自备匹配 PEM | 0.16.0-dev |
 | Hysteria 2 (`hysteria2`) | QUIC / UDP + TLS；密码 | 自备匹配 PEM | 0.7.0-dev |
 | TUIC v5 (`tuic`) | QUIC / UDP + TLS；UUID 与密码 | 自备匹配 PEM | 0.7.0-dev |
 | AnyTLS (`anytls`) | TCP + TLS；密码 | 自备匹配 PEM | 0.10.0-dev |
@@ -249,3 +249,9 @@ python3 scripts/trusttunnel-lab.py --client /path/to/stash-core-rs --geodb-dir /
 真实 endpoint；测试显式/默认 h2、TCP/UDP、错误密码/指纹/ALPN、私网阻断、
 重启、密码轮换、历史修订恢复，最后删除临时节点与订阅。测试不修改已安装 Stash App。
 这不代表 iOS/Android App、公开 VPS 或 amd64 已完成联网验收。
+
+### VLESS / VMess 自定义传输（开发版）
+
+0.16.0-dev 源码新增传输参数、新建表单、配置修订和 Stash/Mihomo 导出。
+字段、客户端限制、17 个本地容器转发用例与尚未完成的组合见
+[传输兼容性](TRANSPORT-COMPATIBILITY.md)。这不是 72 个组合全部通过或线上部署完成的声明。

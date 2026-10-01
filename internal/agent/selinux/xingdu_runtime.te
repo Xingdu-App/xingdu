@@ -48,3 +48,14 @@ kernel_read_kernel_sysctls(xingdu_runtime_t)
 dev_read_urand(xingdu_runtime_t)
 dev_rw_null(xingdu_runtime_t)
 logging_send_syslog_msg(xingdu_runtime_t)
+
+# The Xray launcher executes only the hash-verified engine in the same domain.
+allow xingdu_runtime_t xingdu_runtime_exec_t:file { getattr open read execute execute_no_trans map };
+# XHTTP's backend socket is private to systemd PrivateTmp; no host TUN is used.
+type xingdu_runtime_tmp_t;
+files_tmp_file(xingdu_runtime_tmp_t)
+files_tmp_filetrans(xingdu_runtime_t, xingdu_runtime_tmp_t, { dir file sock_file })
+manage_dirs_pattern(xingdu_runtime_t, xingdu_runtime_tmp_t, xingdu_runtime_tmp_t)
+manage_files_pattern(xingdu_runtime_t, xingdu_runtime_tmp_t, xingdu_runtime_tmp_t)
+manage_sock_files_pattern(xingdu_runtime_t, xingdu_runtime_tmp_t, xingdu_runtime_tmp_t)
+allow xingdu_runtime_t self:unix_stream_socket connectto;

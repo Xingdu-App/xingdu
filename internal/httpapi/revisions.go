@@ -34,15 +34,19 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 			return
 		}
 		var in struct {
-			Port             *int    `json:"port"`
-			ExitNodeID       *string `json:"exit_node_id"`
-			Name             string  `json:"name"`
-			ServerName       string  `json:"server_name"`
-			Certificate      string  `json:"certificate"`
-			PrivateKey       string  `json:"private_key"`
-			RotateCredential bool    `json:"rotate_credential"`
-			Revision         int     `json:"restore_revision"`
-			Confirm          bool    `json:"confirm"`
+			QUIC             *protocol.QUICOptions      `json:"quic"`
+			WireGuard        *protocol.WireGuardOptions `json:"wireguard"`
+			UDPEnabled       *bool                      `json:"udp_enabled"`
+			V2Ray            *protocol.V2RayOptions     `json:"v2ray"`
+			Port             *int                       `json:"port"`
+			ExitNodeID       *string                    `json:"exit_node_id"`
+			Name             string                     `json:"name"`
+			ServerName       string                     `json:"server_name"`
+			Certificate      string                     `json:"certificate"`
+			PrivateKey       string                     `json:"private_key"`
+			RotateCredential bool                       `json:"rotate_credential"`
+			Revision         int                        `json:"restore_revision"`
+			Confirm          bool                       `json:"confirm"`
 		}
 		if !decodeLimit(w, r, &in, 64*1024) {
 			return
@@ -61,6 +65,7 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 		if !a.openDeployment(w, d, storage.TenantOrg(r.Context()), &spec) {
 			return
 		}
+		wasXray := spec.UsesXray()
 		if in.Revision > 0 {
 			historical, err := a.store.RevisionSecret(r.Context(), d.HostID, d.ID, in.Revision)
 			if err != nil {
@@ -71,6 +76,23 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 				return
 			}
 		} else {
+			if in.QUIC != nil {
+				spec.QUIC = in.QUIC
+			}
+			if in.WireGuard != nil {
+				spec.WireGuard = in.WireGuard
+			}
+			if in.UDPEnabled != nil {
+				spec.UDPEnabled = *in.UDPEnabled
+			}
+			if in.V2Ray != nil {
+				spec.V2Ray = in.V2Ray
+				if !spec.NeedsCertificate() {
+					spec.ServerName = ""
+					spec.Certificate = ""
+					spec.PrivateKey = ""
+				}
+			}
 			if in.Port != nil {
 				spec.Port = *in.Port
 			}
@@ -92,6 +114,10 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 				}
 				spec.Credential = fresh.Credential
 				spec.Password = fresh.Password
+				spec.ObfsPassword = fresh.ObfsPassword
+				spec.WireGuardKeys = fresh.WireGuardKeys
+				spec.EncryptionKey = fresh.EncryptionKey
+				spec.EncryptionPublicKey = fresh.EncryptionPublicKey
 			}
 		}
 
@@ -112,6 +138,40 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 			spec.Relay = peer
 			d.RelayExitID = peer.NodeID
 			d.ExitCipher = cipher
+		}
+		if spec.V2Ray != nil && spec.V2Ray.Encryption && spec.EncryptionKey == "" {
+			fresh, e := protocol.NewSpec(spec.Input)
+			if e == nil {
+				spec.EncryptionKey = fresh.EncryptionKey
+				spec.EncryptionPublicKey = fresh.EncryptionPublicKey
+			}
+		}
+		if spec.V2Ray == nil || !spec.V2Ray.Encryption {
+			spec.EncryptionKey = ""
+			spec.EncryptionPublicKey = ""
+		}
+		if wasXray != spec.UsesXray() {
+			failure(w, 422, "runtime_change_requires_new_node", "切换运行时需要创建新节点")
+			return
+		}
+		if spec.QUIC != nil && spec.QUIC.Salamander && spec.ObfsPassword == "" {
+			fresh, e := protocol.NewSpec(spec.Input)
+			if e == nil {
+				spec.ObfsPassword = fresh.ObfsPassword
+			}
+		}
+		if spec.QUIC == nil || !spec.QUIC.Salamander {
+			spec.ObfsPassword = ""
+		}
+		if spec.WireGuard != nil && spec.WireGuardKeys != nil {
+			if !spec.WireGuard.Preshared {
+				spec.WireGuardKeys.Preshared = ""
+			} else if spec.WireGuardKeys.Preshared == "" {
+				fresh, e := protocol.NewSpec(spec.Input)
+				if e == nil {
+					spec.WireGuardKeys.Preshared = fresh.WireGuardKeys.Preshared
+				}
+			}
 		}
 		if protocol.ValidateSpec(spec) != nil {
 			failure(w, 422, "invalid_deployment", "配置或证书无效，历史证书可能已过期")
@@ -155,7 +215,7 @@ func (a *api) relayPeer(ctx context.Context, node, entryHost string) (*protocol.
 		}
 		defer clear(plain)
 		var spec protocol.Spec
-		if json.Unmarshal(plain, &spec) != nil || spec.Relay != nil || spec.Protocol == "trusttunnel" {
+		if json.Unmarshal(plain, &spec) != nil || spec.Relay != nil || spec.Protocol == "trusttunnel" || spec.V2Ray != nil || spec.QUIC != nil || spec.WireGuard != nil || spec.UDPEnabled {
 			return nil, nil, storage.ErrConflict
 		}
 		resolve, cancel := context.WithTimeout(ctx, 5*time.Second)

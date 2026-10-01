@@ -160,3 +160,11 @@ Snell v6 需要支持 v6 的 Surge 版本，不能当作旧版客户端兼容选
 `alpn: [h2]`、`quic: false`、`udp: true`、`sni` 和 `server-cert-fingerprint`，
 保持证书校验开启。其他客户端格式返回不兼容错误，不会忽略该节点。
 HTTP/3 和中转未开放。真实验证范围见 [协议部署](PROTOCOL-DEPLOYMENT.md#trusttunnel)。
+
+### 自定义传输（0.16.0-dev）
+
+VLESS/VMess 的 Stash、Mihomo 导出保留 TLS、WS 路径/Host、gRPC service、
+HTTP/h2、ALPN、VLESS Encryption 与 Vision；WireGuard 导出客户端密钥与参数。
+Stash XHTTP 的 HTTP/1.1/3、无 TLS gRPC、gRPC/HTTP Vision、TUIC cubic
+以及 Surge/Loon 自定义传输会明确拒绝，不会静默降级。
+详见[传输兼容性及验收范围](TRANSPORT-COMPATIBILITY.md)。

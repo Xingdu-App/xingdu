@@ -1,2 +1,3 @@
 /usr/local/lib/xingdu/sing-box-[0-9][A-Za-z0-9.+-]* -- gen_context(system_u:object_r:xingdu_runtime_exec_t,s0)
 /var/lib/xingdu-agent/protocols/[^/]+/config(\.(next|previous))?\.json -- gen_context(system_u:object_r:xingdu_runtime_conf_t,s0)
+/usr/local/lib/xingdu/xray-(core-)?[0-9][A-Za-z0-9.+-]* -- gen_context(system_u:object_r:xingdu_runtime_exec_t,s0)

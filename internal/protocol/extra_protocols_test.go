@@ -24,7 +24,7 @@ func TestExtraProtocolBoundaries(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if MinimumAgentVersion(kind) != "0.14.0-dev" {
+			if MinimumAgentVersion(kind) != "0.14.0-dev" && MinimumAgentVersion(kind) != "0.16.0-dev" {
 				t.Fatal("old agents must not receive new kinds")
 			}
 			raw, err := Render(s)

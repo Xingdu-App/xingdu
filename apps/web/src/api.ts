@@ -311,6 +311,7 @@ export const upgradeSSH = (id: string, input: Record<string, unknown>) =>
   );
 
 export type Protocol =
+  | "wireguard"
   | "trusttunnel"
   | "trojan"
   | "vless"
@@ -331,6 +332,7 @@ export const isShadowsocks = (p: string) =>
   p === "shadowsocks" || p === "shadowsocks2022";
 export const requiresTLS = (p: string) =>
   ![
+    "wireguard",
     "shadowsocks",
     "shadowsocks2022",
     "socks",
@@ -340,7 +342,7 @@ export const requiresTLS = (p: string) =>
     "snell6",
   ].includes(p);
 export const isQUIC = (p: string) =>
-  ["hysteria", "hysteria2", "tuic"].includes(p);
+  ["hysteria", "hysteria2", "tuic", "wireguard"].includes(p);
 export const handshakeHosts = [
   "www.microsoft.com",
   "www.apple.com",
@@ -377,7 +379,42 @@ export type Deployment = {
   created_at: string;
   finished_at: string | null;
 };
+export type V2RayOptions = {
+  engine?: "sing-box" | "xray";
+  network: "tcp" | "ws" | "grpc" | "http" | "httpupgrade" | "xhttp";
+  encryption?: boolean;
+  mode?: "auto" | "packet-up" | "stream-up" | "stream-one";
+  download?: { tls: boolean; alpn?: string[] };
+  headers?: Record<string, string>;
+  fingerprint?: string;
+  packet_encoding?: "xudp" | "";
+  tls?: boolean;
+  path?: string;
+  host?: string;
+  service_name?: string;
+  alpn?: string[];
+  flow?: string;
+};
+export type QUICOptions = {
+  alpn?: string[];
+  congestion?: string;
+  salamander?: boolean;
+  up_mbps?: number;
+  down_mbps?: number;
+};
+export type WireGuardOptions = {
+  mtu: number;
+  keepalive?: number;
+  reserved?: number[];
+  preshared?: boolean;
+};
 export type DeploymentConnection = {
+  quic?: QUICOptions;
+  wireguard?: Record<string, unknown>;
+  obfs_password?: string;
+  encryption?: string;
+  udp_enabled?: boolean;
+  v2ray?: V2RayOptions;
   username?: string;
   cipher?: string;
   protocol: Protocol;
@@ -402,6 +439,10 @@ export const createDeployment = (
     certificate: string;
     private_key: string;
     confirm_install: boolean;
+    v2ray?: V2RayOptions;
+    quic?: QUICOptions;
+    wireguard?: WireGuardOptions;
+    udp_enabled?: boolean;
   },
   signal?: AbortSignal,
 ) =>
@@ -546,6 +587,7 @@ export const protocolNames: Record<Protocol, string> = {
   vmess: "VMess",
   hysteria2: "Hysteria 2",
   tuic: "TUIC v5",
+  wireguard: "WireGuard",
 };
 
 export const getAvatar = (signal: AbortSignal) =>

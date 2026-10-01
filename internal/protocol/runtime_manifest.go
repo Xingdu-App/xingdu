@@ -2,12 +2,12 @@ package protocol
 
 // RuntimeVersion is pinned intentionally; upgrades require configuration and
 // client-handshake acceptance checks, not an unreviewed "latest" download.
-const RuntimeVersion = "1.14.2"
+const RuntimeVersion = "1.14.2-xingdu.1"
 
 // RuntimeSHA256 verifies the extracted executable again on each managed machine.
 var RuntimeSHA256 = map[string]string{
-	"amd64": "fc9c6e6ab345f045b16a0ed10d1ff28d68e8e56e7749fca30738d1406e98d7b8",
-	"arm64": "b8610f45abb7e967e195264383f5cbd20fba7821a3c37e3a8c4c5ab6cad28eac",
+	"amd64": "350177a4aee448381690ca3bcefc38009d42370fc915f577ad5d7ed5b9c25250",
+	"arm64": "d755d2ce931a888d14e94f3840ff0fee8b34c78d02c657cf1ec0026a56c4fbda",
 }
 
 // RuntimeArchiveSHA256 comes from the official release asset digests.
@@ -26,4 +26,25 @@ var TrustTunnelSHA256 = map[string]string{
 var TrustTunnelArchiveSHA256 = map[string]string{
 	"amd64": "91c2ea3db7416a01b5258a4c047ec22890490bc55e1b194206031aa75144f0e7",
 	"arm64": "c2aee17a1ced349283cba4775202e2baba053b8ea835d4cc23dc67d16c6b9686",
+}
+
+// Xray is independently built from pinned upstream source with reviewed patches.
+const XrayVersion = "26.3.27-xingdu.1"
+
+var XraySHA256 = map[string]string{
+	"amd64": "b9c16509df923e99ca43a2258d18156943e960ae21b983b85ca8c2af382e2f7f",
+	"arm64": "e04e3d874502e5cafcbbe13216a3024d057bcd7d767ea82949f8931c6ca2d5a3",
+}
+var XrayArchiveSHA256 = map[string]string{
+	"amd64": "23cd9af937744d97776ee35ecad4972cf4b2109d1e0fe6be9930467608f7c8ae",
+	"arm64": "4d30283ae614e3057f730f67cd088a42be6fdf91f8639d82cb69e48cde80413c",
+}
+
+// Keep the original endpoint available for Agents whose compiled-in digest
+// predates the hardened runtime. New Agents use an explicit family URL.
+const LegacyRuntimeVersion = "1.14.2"
+
+var LegacyRuntimeSHA256 = map[string]string{
+	"amd64": "fc9c6e6ab345f045b16a0ed10d1ff28d68e8e56e7749fca30738d1406e98d7b8",
+	"arm64": "b8610f45abb7e967e195264383f5cbd20fba7821a3c37e3a8c4c5ab6cad28eac",
 }

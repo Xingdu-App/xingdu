@@ -63,3 +63,27 @@ arm64 官方 endpoint ↔ macOS Stash Core CLI 的真实协议测试。显式/�
 UDP、错误密码/指纹/ALPN 拒绝、私网 IP/域名/UDP 与平台地址阻断、重启、密码轮换、
 历史修订恢复和删除均通过。Linux 容器另执行了真实 BPF 查询回归；临时节点、订阅、
 平台地址别名和测试额度已清理。未测试手机 App、公网 VPS、HTTP/3 或 amd64 转发。
+
+### Protocol parameter matrix (2026-10-02)
+
+The 0.16.0-dev source adds independent Xray and sing-box adapters for the
+72-case matrix, including split XHTTP HTTP/1.1, HTTP/2 and HTTP/3, VLESS
+Encryption/Vision, WireGuard, SOCKS5 UDP and QUIC parameter preservation.
+The runtime builds now contain per-datagram egress guards after testing found
+that reused UDP associations could bypass initial private-address route checks.
+
+The local Linux arm64 72-case forwarding run passed all cases, including repeated
+TCP requests, UDP destination changes and private/mapped-IP rejection. Four
+additional HTTPUpgrade combinations also passed. API encrypted projections for
+all 72 inputs and the 40 exportable Stash candidates pass unit tests; 32 rows
+are explicitly rejected by the Stash adapter. Dedicated PostgreSQL API lifecycle
+checks pass creation, old-Agent rejection, update, reveal and restoration.
+`make check`, the full dedicated PostgreSQL API/storage integration suites,
+and rebuilt Docker Compose health checks pass. Both architectures reproduce
+the pinned runtime hashes; public artifact/source downloads were verified
+through the non-root container API. The earlier 17 basic sing-box forwarding and 14 Stash parsing checks remain
+historical evidence for those basic combinations only.
+
+AWS HK remains on its previous Agent; no advanced public deployment has yet
+been verified. See [the matrix](PROTOCOL-MATRIX-72.md) and
+[API contract](TRANSPORT-COMPATIBILITY.md). Stash Rust Core is unchanged.

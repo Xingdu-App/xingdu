@@ -72,7 +72,7 @@ func atomicProtocolFile(path string, b []byte, mode os.FileMode) error {
 	return os.Rename(f.Name(), path)
 }
 func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error) {
-	return x.runtimeBinary(ctx, c, "sing-box", protocol.RuntimeVersion, protocol.RuntimeLicense, protocol.RuntimeSHA256, "/api/v1/agent/runtime/")
+	return x.runtimeBinary(ctx, c, "sing-box", protocol.RuntimeVersion, protocol.RuntimeLicense, protocol.RuntimeSHA256, "/api/v1/agent/runtime/sing-box/")
 }
 func (x *protocolExecutor) runtimeBinary(ctx context.Context, c Config, name, version, license string, hashes map[string]string, route string) (string, error) {
 	expected, ok := hashes[x.arch]
@@ -207,12 +207,19 @@ WantedBy=multi-user.target
 }
 func portAvailable(s protocol.Spec) bool {
 	addr := fmt.Sprintf(":%d", s.Port)
-	if protocol.IsQUIC(s.Protocol) {
+	if protocol.IsQUIC(s.Protocol) || s.Protocol == "wireguard" || s.UsesXray() && (s.V2Ray == nil || s.V2Ray.Network == "xhttp") {
 		c, e := net.ListenPacket("udp", addr)
 		if e != nil {
 			return false
 		}
 		c.Close()
+		if s.UsesXray() {
+			l, e := net.Listen("tcp", addr)
+			if e != nil {
+				return false
+			}
+			l.Close()
+		}
 		return true
 	}
 	l, e := net.Listen("tcp", addr)

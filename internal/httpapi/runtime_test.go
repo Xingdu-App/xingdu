@@ -10,7 +10,7 @@ import (
 
 func TestRuntimeArtifactRoute(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "sing-box-linux-arm64"), []byte("artifact fixture"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "sing-box-legacy-linux-arm64"), []byte("artifact fixture"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	a := &api{artifacts: dir}
@@ -26,7 +26,7 @@ func TestRuntimeArtifactRoute(t *testing.T) {
 			t.Fatalf("%s: status %d", tc.arch, w.Code)
 		}
 	}
-	if err := os.Symlink(filepath.Join(dir, "sing-box-linux-arm64"), filepath.Join(dir, "sing-box-linux-amd64")); err != nil {
+	if err := os.Symlink(filepath.Join(dir, "sing-box-legacy-linux-arm64"), filepath.Join(dir, "sing-box-legacy-linux-amd64")); err != nil {
 		t.Fatal(err)
 	}
 	w := httptest.NewRecorder()
@@ -38,7 +38,7 @@ func TestRuntimeArtifactRoute(t *testing.T) {
 
 func TestPublicRuntimeAcceptsMachineBearer(t *testing.T) {
 	dir := t.TempDir()
-	if e := os.WriteFile(filepath.Join(dir, "sing-box-linux-arm64"), []byte("runtime"), 0600); e != nil {
+	if e := os.WriteFile(filepath.Join(dir, "sing-box-legacy-linux-arm64"), []byte("runtime"), 0600); e != nil {
 		t.Fatal(e)
 	}
 	h := New(nil, Options{ArtifactDir: dir})
@@ -66,6 +66,27 @@ func TestTrustTunnelRuntimeArtifact(t *testing.T) {
 		mux.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != status {
 			t.Fatalf("%s: %d", path, w.Code)
+		}
+	}
+}
+
+func TestHardenedArtifactsAndSourceWithMachineBearer(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"sing-box-linux-arm64", "xray-linux-arm64", "xray-source.tar.gz", "sing-box-source.tar.gz"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("fixture"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h := New(nil, Options{ArtifactDir: dir})
+	for _, path := range []string{"/api/v1/agent/runtime/sing-box/arm64", "/api/v1/agent/runtime/xray/arm64", "/api/v1/agent/runtime-source/xray", "/api/v1/agent/runtime-source/sing-box"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			req := httptest.NewRequest(method, path, nil)
+			req.Header.Set("Authorization", "Bearer machine-credential")
+			w := httptest.NewRecorder()
+			h.ServeHTTP(w, req)
+			if w.Code != 200 {
+				t.Fatalf("%s %s: %d", method, path, w.Code)
+			}
 		}
 	}
 }

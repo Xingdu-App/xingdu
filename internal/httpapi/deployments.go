@@ -162,7 +162,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		if !a.openDeployment(w, d, storage.TenantOrg(r.Context()), &spec) {
 			return
 		}
-		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "username": protocol.Username(spec.Protocol), "cipher": protocol.Cipher(spec.Protocol), "certificate": spec.Certificate}})
+		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "username": protocol.Username(spec.Protocol), "cipher": protocol.Cipher(spec.Protocol), "certificate": spec.Certificate, "v2ray": spec.V2Ray, "encryption": spec.ClientEncryption(), "quic": spec.QUIC, "obfs_password": spec.ObfsPassword, "wireguard": spec.WireGuardClient(), "udp_enabled": spec.UDPEnabled}})
 	}))
 	mux.HandleFunc("DELETE /api/v1/hosts/{id}/deployments/{deployment}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validDeploymentID(w, r) {
@@ -278,10 +278,14 @@ func (a *api) openDeployment(w http.ResponseWriter, d storage.Deployment, org st
 		return false
 	}
 	defer clear(plain)
-	if json.Unmarshal(plain, spec) != nil {
+	// Decode into a fresh value: historical revisions may omit fields that
+	// exist on the active spec, and json.Unmarshal otherwise merges pointers.
+	var decoded protocol.Spec
+	if json.Unmarshal(plain, &decoded) != nil {
 		failure(w, 503, "credential_unavailable", "部署配置不可用")
 		return false
 	}
+	*spec = decoded
 	return true
 }
 func validDeploymentID(w http.ResponseWriter, r *http.Request) bool {

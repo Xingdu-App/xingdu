@@ -8,8 +8,8 @@ import (
 	"xingdu.app/xingdu/internal/protocol"
 )
 
-// A separate, unmodified upstream executable is served from the build artifact
-// folder. Managed agents verify their compiled-in hash before running it.
+// Runtime artifacts are verified against compiled-in hashes by managed agents.
+// Modified upstream source is available alongside the hardened executables.
 func (a *api) runtimeRoutes(mux *http.ServeMux) {
 	slots := make(chan struct{}, 4)
 	serve := func(w http.ResponseWriter, r *http.Request) {
@@ -18,8 +18,12 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 			http.NotFound(w, r)
 			return
 		}
-		family := "sing-box"
-		if r.PathValue("family") == "trusttunnel" {
+		family := "sing-box-legacy"
+		if r.PathValue("family") == "sing-box" {
+			family = "sing-box"
+		} else if r.PathValue("family") == "xray" {
+			family = "xray"
+		} else if r.PathValue("family") == "trusttunnel" {
 			family = "trusttunnel"
 		} else if r.PathValue("family") != "" {
 			http.NotFound(w, r)
@@ -44,6 +48,30 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, path)
 	}
+	mux.HandleFunc("GET /api/v1/agent/runtime-source/{family}", func(w http.ResponseWriter, r *http.Request) {
+		family := r.PathValue("family")
+		if a.artifacts == "" || (family != "sing-box" && family != "xray") {
+			http.NotFound(w, r)
+			return
+		}
+		path := filepath.Join(a.artifacts, family+"-source.tar.gz")
+		st, err := os.Lstat(path)
+		if err != nil || !st.Mode().IsRegular() {
+			http.NotFound(w, r)
+			return
+		}
+		select {
+		case slots <- struct{}{}:
+			defer func() { <-slots }()
+		default:
+			http.Error(w, "artifact downloads busy", http.StatusTooManyRequests)
+			return
+		}
+		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(protocol.RuntimeResponseTimeout))
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Header().Set("Content-Disposition", `attachment; filename="`+family+`-source.tar.gz"`)
+		http.ServeFile(w, r, path)
+	})
 	mux.HandleFunc("GET /api/v1/agent/runtime/{arch}", serve)
 	mux.HandleFunc("GET /api/v1/agent/runtime/{family}/{arch}", serve)
 }

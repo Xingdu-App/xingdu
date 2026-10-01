@@ -1,0 +1,13 @@
+diff --git a/transport/internet/splithttp/dialer.go b/transport/internet/splithttp/dialer.go
+index 0c351a5..1d0e878 100644
+--- a/transport/internet/splithttp/dialer.go
++++ b/transport/internet/splithttp/dialer.go
+@@ -140 +140,7 @@ func createHTTPClient(dest net.Destination, streamSettings *internet.MemoryStrea
+-				if err := conn.(*tls.UConn).HandshakeContext(ctxInner); err != nil {
++				var handshakeErr error
++				if httpVersion == "1.1" {
++					handshakeErr = conn.(*tls.UConn).WebsocketHandshakeContext(ctxInner)
++				} else {
++					handshakeErr = conn.(*tls.UConn).HandshakeContext(ctxInner)
++				}
++				if err := handshakeErr; err != nil {

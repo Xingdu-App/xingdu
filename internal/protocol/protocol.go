@@ -20,15 +20,23 @@ import (
 )
 
 type Input struct {
-	Name        string `json:"name"`
-	Protocol    string `json:"protocol"`
-	Port        int    `json:"port"`
-	ServerName  string `json:"server_name"`
-	Certificate string `json:"certificate"`
-	PrivateKey  string `json:"private_key"`
+	UDPEnabled  bool              `json:"udp_enabled,omitempty"`
+	QUIC        *QUICOptions      `json:"quic,omitempty"`
+	WireGuard   *WireGuardOptions `json:"wireguard,omitempty"`
+	V2Ray       *V2RayOptions     `json:"v2ray,omitempty"`
+	Name        string            `json:"name"`
+	Protocol    string            `json:"protocol"`
+	Port        int               `json:"port"`
+	ServerName  string            `json:"server_name"`
+	Certificate string            `json:"certificate"`
+	PrivateKey  string            `json:"private_key"`
 }
 type Spec struct {
-	Relay *Peer `json:"relay,omitempty"`
+	WireGuardKeys       *WireGuardKeys `json:"wireguard_keys,omitempty"`
+	ObfsPassword        string         `json:"obfs_password,omitempty"`
+	EncryptionKey       string         `json:"encryption_key,omitempty"`
+	EncryptionPublicKey string         `json:"encryption_public_key,omitempty"`
+	Relay               *Peer          `json:"relay,omitempty"`
 	Input
 	Credential string `json:"credential"`
 	Password   string `json:"password,omitempty"`
@@ -54,7 +62,7 @@ func ValidID(s string) bool       { return id.ValidID(s) }
 func IsQUIC(p string) bool        { return p == "hysteria" || p == "hysteria2" || p == "tuic" }
 func IsShadowsocks(p string) bool { return p == "shadowsocks" || p == "shadowsocks2022" }
 func RequiresTLS(p string) bool {
-	return !IsShadowsocks(p) && p != "socks" && p != "mixed" && p != "snell" && p != "snell6" && p != "shadowtls"
+	return !IsShadowsocks(p) && p != "socks" && p != "mixed" && p != "snell" && p != "snell6" && p != "shadowtls" && p != "wireguard"
 }
 func ValidHandshakeHost(host string) bool {
 	return host == "www.microsoft.com" || host == "www.apple.com" || host == "cloud.tencent.com"
@@ -82,9 +90,11 @@ func Cipher(p string) string {
 }
 func MinimumAgentVersion(p string) string {
 	switch p {
+	case "vless", "vmess", "wireguard", "socks", "hysteria", "hysteria2", "tuic":
+		return "0.16.0-dev"
 	case "trusttunnel":
 		return "0.15.0-dev"
-	case "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
+	case "mixed", "shadowtls", "snell", "snell6":
 		return "0.14.0-dev"
 	}
 	if p == "anytls" || p == "http" {
@@ -96,16 +106,24 @@ func MinimumAgentVersion(p string) string {
 	return machine.MinimumDeploymentVersion
 }
 func ValidateInput(in Input) error {
+	if err := in.validateExtra(); err != nil {
+		return err
+	}
 	if strings.TrimSpace(in.Name) != in.Name || len([]rune(in.Name)) == 0 || len([]rune(in.Name)) > 80 || strings.ContainsFunc(in.Name, unicode.IsControl) {
 		return errors.New("name must contain 1-80 printable characters")
 	}
 	switch in.Protocol {
-	case "trusttunnel", "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
+	case "wireguard", "trusttunnel", "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
 	default:
 		return errors.New("unsupported protocol")
 	}
 	if in.Port < 1 || in.Port > 65535 {
 		return errors.New("port must be between 1 and 65535")
+	}
+	if in.V2Ray != nil {
+		if err := in.V2Ray.Validate(in.Protocol); err != nil {
+			return err
+		}
 	}
 	if in.Protocol == "shadowtls" {
 		if !ValidHandshakeHost(in.ServerName) || in.Certificate != "" || in.PrivateKey != "" {
@@ -113,7 +131,7 @@ func ValidateInput(in Input) error {
 		}
 		return nil
 	}
-	if !RequiresTLS(in.Protocol) {
+	if !in.NeedsCertificate() {
 		if in.ServerName != "" || in.Certificate != "" || in.PrivateKey != "" {
 			return errors.New("this protocol does not accept TLS configuration")
 		}
@@ -191,9 +209,58 @@ func NewSpec(in Input) (Spec, error) {
 	if in.Protocol == "tuic" || in.Protocol == "shadowtls" {
 		s.Password = randomPassword()
 	}
+	if in.V2Ray != nil && in.V2Ray.Encryption {
+		if err := newEncryptionKeys(&s); err != nil {
+			return Spec{}, err
+		}
+	}
+	if in.QUIC != nil && in.QUIC.Salamander {
+		s.ObfsPassword = randomPassword()
+	}
+	if in.WireGuard != nil {
+		var err error
+		s.WireGuardKeys, err = newWGKeys()
+		if err != nil {
+			return Spec{}, err
+		}
+		if in.WireGuard.Preshared {
+			b, _ := base64.RawURLEncoding.DecodeString(randomPassword())
+			s.WireGuardKeys.Preshared = base64.StdEncoding.EncodeToString(b)
+		}
+	}
 	return s, nil
 }
 func ValidateSpec(s Spec) error {
+	if s.QUIC != nil && s.QUIC.Salamander {
+		if !validPassword(s.ObfsPassword) {
+			return errors.New("invalid obfuscation password")
+		}
+	} else if s.ObfsPassword != "" {
+		return errors.New("unexpected obfuscation password")
+	}
+	if s.Protocol == "wireguard" {
+		if s.WireGuardKeys == nil || wgPublic(s.WireGuardKeys.ServerPrivate) == "" || wgPublic(s.WireGuardKeys.ClientPrivate) == "" {
+			return errors.New("invalid WireGuard keys")
+		}
+		if s.WireGuard != nil && !s.WireGuard.Preshared && s.WireGuardKeys.Preshared != "" {
+			return errors.New("unexpected pre-shared key")
+		}
+		if s.WireGuard != nil && s.WireGuard.Preshared {
+			b, e := base64.StdEncoding.DecodeString(s.WireGuardKeys.Preshared)
+			if e != nil || len(b) != 32 {
+				return errors.New("invalid pre-shared key")
+			}
+		}
+	} else if s.WireGuardKeys != nil {
+		return errors.New("unexpected WireGuard keys")
+	}
+
+	if err := validateEncryptionKeys(s); err != nil {
+		return err
+	}
+	if s.UsesXray() && s.Relay != nil {
+		return errors.New("Xray relay is not supported")
+	}
 	if s.Relay != nil {
 		if s.Protocol == "trusttunnel" {
 			return errors.New("TrustTunnel relays are not supported")
@@ -231,6 +298,9 @@ func validPassword(s string) bool {
 	return e == nil && len(b) == 32
 }
 func Render(s Spec) ([]byte, error) {
+	if s.UsesXray() {
+		return RenderXray(s)
+	}
 	if s.Protocol == "trusttunnel" {
 		return RenderTrustTunnel(s)
 	}
@@ -242,6 +312,9 @@ func Render(s Spec) ([]byte, error) {
 		user["uuid"] = s.Credential
 	} else {
 		user["password"] = s.Credential
+	}
+	if s.V2Ray != nil && s.V2Ray.Flow != "" {
+		user["flow"] = s.V2Ray.Flow
 	}
 	if s.Protocol == "vmess" {
 		user["alterId"] = 0
@@ -259,6 +332,16 @@ func Render(s Spec) ([]byte, error) {
 		tlsConfig["alpn"] = []string{"h3"}
 	}
 	inbound := map[string]any{"type": s.Protocol, "tag": "xingdu-in", "listen": "::", "listen_port": s.Port, "users": []any{user}, "tls": tlsConfig}
+	if s.V2Ray != nil {
+		if !s.TLSEnabled() {
+			delete(inbound, "tls")
+		} else if alpn := s.V2Ray.alpn(); len(alpn) > 0 {
+			tlsConfig["alpn"] = alpn
+		}
+		if transport := s.V2Ray.transport(); transport != nil {
+			inbound["transport"] = transport
+		}
+	}
 	if IsShadowsocks(s.Protocol) {
 		inbound["type"] = "shadowsocks"
 		// The pinned runtime routes a reused UDP session only once. Keep SS
@@ -316,6 +399,7 @@ func Render(s Spec) ([]byte, error) {
 		route := cfg["route"].(map[string]any)
 		route["rules"] = append([]any{map[string]any{"network": "udp", "action": "reject"}}, route["rules"].([]any)...)
 	}
+	s.applyExtra(inbound, tlsConfig, cfg)
 	return json.MarshalIndent(cfg, "", "  ")
 }
 

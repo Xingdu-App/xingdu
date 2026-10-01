@@ -52,7 +52,7 @@ func executorFixture(t *testing.T) (*protocolExecutor, Config, *[]string) {
 	protocol.RuntimeSHA256["test"] = hex.EncodeToString(h[:])
 	t.Cleanup(func() { delete(protocol.RuntimeSHA256, "test") })
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/agent/runtime/test" {
+		if r.URL.Path != "/api/v1/agent/runtime/sing-box/test" {
 			t.Error("wrong runtime path")
 		}
 		if r.Header.Get("Authorization") != "Bearer machine" {

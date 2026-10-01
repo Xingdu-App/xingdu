@@ -1,0 +1,1569 @@
+[
+  {
+    "name": "Case 01",
+    "protocol": "vless",
+    "port": 18001,
+    "v2ray": {
+      "engine": "xray",
+      "network": "ws",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-01",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 02",
+    "protocol": "vmess",
+    "port": 18002,
+    "v2ray": {
+      "engine": "xray",
+      "network": "ws",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-02",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 03",
+    "protocol": "vless",
+    "port": 18003,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-03",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 04",
+    "protocol": "vmess",
+    "port": 18004,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-04",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 05",
+    "protocol": "vmess",
+    "port": 18005,
+    "v2ray": {
+      "engine": "xray",
+      "network": "ws",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-05",
+      "host": "proxy.example.com",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 06",
+    "protocol": "socks",
+    "port": 18006,
+    "udp_enabled": true
+  },
+  {
+    "name": "Case 07",
+    "protocol": "wireguard",
+    "port": 18007,
+    "wireguard": {
+      "mtu": 1380,
+      "keepalive": 25,
+      "reserved": [],
+      "preshared": true
+    }
+  },
+  {
+    "name": "Case 08",
+    "protocol": "tuic",
+    "port": 18008,
+    "quic": {
+      "alpn": [
+        "h3"
+      ],
+      "congestion": "",
+      "salamander": false,
+      "up_mbps": 0,
+      "down_mbps": 0
+    }
+  },
+  {
+    "name": "Case 09",
+    "protocol": "hysteria2",
+    "port": 18009,
+    "quic": {
+      "alpn": [
+        "h3"
+      ],
+      "congestion": "",
+      "salamander": true,
+      "up_mbps": 0,
+      "down_mbps": 0
+    }
+  },
+  {
+    "name": "Case 10",
+    "protocol": "anytls",
+    "port": 18010
+  },
+  {
+    "name": "Case 11",
+    "protocol": "vless",
+    "port": 18011,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "path": "/case-11",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 12",
+    "protocol": "vless",
+    "port": 18012,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-12",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 13",
+    "protocol": "vless",
+    "port": 18013,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-13",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 14",
+    "protocol": "vless",
+    "port": 18014,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-14",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 15",
+    "protocol": "vless",
+    "port": 18015,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-15",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 16",
+    "protocol": "vless",
+    "port": 18016,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-16",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 17",
+    "protocol": "vless",
+    "port": 18017,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-17",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 18",
+    "protocol": "vless",
+    "port": 18018,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-18",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 19",
+    "protocol": "vless",
+    "port": 18019,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "path": "/case-19",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 20",
+    "protocol": "vless",
+    "port": 18020,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-20",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 21",
+    "protocol": "vless",
+    "port": 18021,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "path": "/case-21",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 22",
+    "protocol": "vless",
+    "port": 18022,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-22",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 23",
+    "protocol": "vless",
+    "port": 18023,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "path": "/case-23",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 24",
+    "protocol": "vless",
+    "port": 18024,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-24",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 25",
+    "protocol": "vless",
+    "port": 18025,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-25",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 26",
+    "protocol": "vless",
+    "port": 18026,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-26",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 27",
+    "protocol": "vless",
+    "port": 18027,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-27",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 28",
+    "protocol": "vless",
+    "port": 18028,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-28",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 29",
+    "protocol": "vless",
+    "port": 18029,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-29",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 30",
+    "protocol": "vless",
+    "port": 18030,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-30",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 31",
+    "protocol": "vless",
+    "port": 18031,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-31",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 32",
+    "protocol": "vless",
+    "port": 18032,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-32",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 33",
+    "protocol": "vless",
+    "port": 18033,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-33",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 34",
+    "protocol": "vless",
+    "port": 18034,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-34",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 35",
+    "protocol": "vless",
+    "port": 18035,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-35",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 36",
+    "protocol": "vless",
+    "port": 18036,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h2"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-36",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h3"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 37",
+    "protocol": "vless",
+    "port": 18037,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-37",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 38",
+    "protocol": "vless",
+    "port": 18038,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-38",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": false,
+        "alpn": []
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 39",
+    "protocol": "vless",
+    "port": 18039,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-39",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 40",
+    "protocol": "vless",
+    "port": 18040,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-40",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "http/1.1"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 41",
+    "protocol": "vless",
+    "port": 18041,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-41",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 42",
+    "protocol": "vless",
+    "port": 18042,
+    "v2ray": {
+      "engine": "xray",
+      "network": "xhttp",
+      "tls": true,
+      "alpn": [
+        "h3"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-42",
+      "host": "proxy.example.com",
+      "mode": "auto",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:147.0) Gecko/20100101 Firefox/147.0"
+      },
+      "download": {
+        "tls": true,
+        "alpn": [
+          "h2"
+        ]
+      },
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 43",
+    "protocol": "vmess",
+    "port": 18043,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 44",
+    "protocol": "vmess",
+    "port": 18044,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 45",
+    "protocol": "vmess",
+    "port": 18045,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 46",
+    "protocol": "vmess",
+    "port": 18046,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 47",
+    "protocol": "vmess",
+    "port": 18047,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 48",
+    "protocol": "vmess",
+    "port": 18048,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 49",
+    "protocol": "vmess",
+    "port": 18049,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 50",
+    "protocol": "vmess",
+    "port": 18050,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 51",
+    "protocol": "vless",
+    "port": 18051,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "service_name": "case-51",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 52",
+    "protocol": "vless",
+    "port": 18052,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-52",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 53",
+    "protocol": "vless",
+    "port": 18053,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "service_name": "case-53",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 54",
+    "protocol": "vless",
+    "port": 18054,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "service_name": "case-54",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 55",
+    "protocol": "vmess",
+    "port": 18055,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-55",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 56",
+    "protocol": "vmess",
+    "port": 18056,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-56",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 57",
+    "protocol": "vmess",
+    "port": 18057,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-57",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 58",
+    "protocol": "vmess",
+    "port": 18058,
+    "v2ray": {
+      "engine": "xray",
+      "network": "grpc",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "service_name": "case-58",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 59",
+    "protocol": "vless",
+    "port": 18059,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 60",
+    "protocol": "vmess",
+    "port": 18060,
+    "v2ray": {
+      "engine": "xray",
+      "network": "tcp",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 61",
+    "protocol": "vless",
+    "port": 18061,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "chrome",
+      "path": "/case-61",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 62",
+    "protocol": "vless",
+    "port": 18062,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": true,
+      "alpn": [
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-62",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 63",
+    "protocol": "vless",
+    "port": 18063,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": false,
+      "alpn": [],
+      "encryption": true,
+      "flow": "xtls-rprx-vision",
+      "fingerprint": "",
+      "path": "/case-63",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 64",
+    "protocol": "vless",
+    "port": 18064,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": false,
+      "alpn": [],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "",
+      "path": "/case-64",
+      "host": "proxy.example.com",
+      "packet_encoding": "xudp"
+    }
+  },
+  {
+    "name": "Case 65",
+    "protocol": "vmess",
+    "port": 18065,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-65",
+      "host": "proxy.example.com",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 66",
+    "protocol": "vmess",
+    "port": 18066,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": true,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-66",
+      "host": "proxy.example.com",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 67",
+    "protocol": "vmess",
+    "port": 18067,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-67",
+      "host": "proxy.example.com",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 68",
+    "protocol": "vmess",
+    "port": 18068,
+    "v2ray": {
+      "engine": "xray",
+      "network": "http",
+      "tls": false,
+      "alpn": [
+        "h2",
+        "http/1.1"
+      ],
+      "encryption": false,
+      "flow": "",
+      "fingerprint": "chrome",
+      "path": "/case-68",
+      "host": "proxy.example.com",
+      "packet_encoding": ""
+    }
+  },
+  {
+    "name": "Case 69",
+    "protocol": "tuic",
+    "port": 18069,
+    "quic": {
+      "alpn": [
+        "h3"
+      ],
+      "congestion": "cubic",
+      "salamander": false,
+      "up_mbps": 0,
+      "down_mbps": 0
+    }
+  },
+  {
+    "name": "Case 70",
+    "protocol": "hysteria2",
+    "port": 18070,
+    "quic": {
+      "alpn": [],
+      "congestion": "",
+      "salamander": true,
+      "up_mbps": 0,
+      "down_mbps": 0
+    }
+  },
+  {
+    "name": "Case 71",
+    "protocol": "hysteria",
+    "port": 18071,
+    "quic": {
+      "alpn": [
+        "h3"
+      ],
+      "congestion": "",
+      "salamander": false,
+      "up_mbps": 150,
+      "down_mbps": 300
+    }
+  },
+  {
+    "name": "Case 72",
+    "protocol": "wireguard",
+    "port": 18072,
+    "wireguard": {
+      "mtu": 1380,
+      "keepalive": 0,
+      "reserved": [
+        0,
+        0,
+        0
+      ],
+      "preshared": true
+    }
+  }
+]

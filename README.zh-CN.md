@@ -26,6 +26,7 @@
 - **机器接入：** 主动安装 Agent，或通过 SSH 密码 / 私钥安装；校验主机指纹，可选长期加密保存凭据。配置与验收边界见 [机器接入](docs/MACHINE-ACCESS.md)。
 - **节点列表：** 按组织汇总已成功部署的节点，支持搜索、协议筛选与节点详情；卸载成功后移出列表，操作结果保留在部署记录中。
 - **协议部署与维护：** 托管 Agent 提供 SS/SS2022、Trojan、VLESS、VMess、HY1/HY2、TUIC、AnyTLS、HTTPS、SOCKS5/Mixed、ShadowTLS 和 Snell 选项，支持预检、重启、配置编辑、凭据轮换及版本恢复。传输、证书、最低 Agent 版本与验收范围见 [协议部署](docs/PROTOCOL-DEPLOYMENT.md) 和 [可靠部署](docs/RELIABLE-DEPLOYMENTS.md)。
+- **协议参数矩阵（开发中）：** 独立 Xray/sing-box 适配器、XHTTP 的 HTTP/1.1/2/3 分离上下行、VLESS Encryption/Vision、WireGuard 与 QUIC 参数。要求 Agent 0.16.0-dev；本地参考客户端 72 项已通过，公网部署与客户端 App 验收在[矩阵](docs/PROTOCOL-MATRIX-72.md)中分别记录。
 - **真实服务状态：** 查看 API 和数据库是否可用，连接失败时显示错误并支持重试。
 - **客户端订阅：** 生成可撤销的 Stash（默认）、Mihomo、Surge、Loon 配置链接或 HY2 URI。支持自定义规则、可复用模板与多策略组路由方案；各格式明确拒绝不兼容组合。详见 [订阅](docs/SUBSCRIPTIONS.md) 与 [路由模板](docs/SUBSCRIPTION-TEMPLATES.md)。
 - **本地 Docker 环境：** 一次启动控制台、API、PostgreSQL、数据库迁移和 Worker 进程。
@@ -112,4 +113,4 @@ make check
 
 星渡采用 [MIT 许可证](LICENSE)，允许个人和商业用途的使用、修改与再分发。分发软件副本或重要部分时，请保留版权及许可声明。
 
-第三方依赖与协议引擎遵循各自的许可证。当前运行时为独立进程运行的 sing-box 1.14.2，遵循其上游 GPL-3.0-or-later 许可证；星渡的 MIT 许可证不改变该运行时的许可。见 [第三方声明](THIRD_PARTY_NOTICES.md)。
+第三方依赖与协议引擎遵循各自的许可证。托管引擎包括独立进程运行的 sing-box、Xray（含星渡的限定修复）及 TrustTunnel endpoint。上游 GPL-3.0-or-later、MPL-2.0 等许可证保持有效；星渡的 MIT 许可证不改变这些运行时的许可。见 [第三方声明](THIRD_PARTY_NOTICES.md)。

@@ -27,6 +27,11 @@ func main() {
 	}
 }
 func run() error {
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "xray-") {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return agent.RunXray(ctx, os.Args[1:])
+	}
 	if strings.HasPrefix(filepath.Base(os.Args[0]), "trusttunnel-") {
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 		defer stop()

@@ -44,7 +44,7 @@ func (a *api) deploymentCertificate(w http.ResponseWriter, r *http.Request, id s
 			return nil, false
 		}
 	}
-	if !resourceid.Valid("cert", id) || !protocol.RequiresTLS(in.Protocol) || in.Certificate != "" || in.PrivateKey != "" {
+	if !resourceid.Valid("cert", id) || !in.NeedsCertificate() || in.Certificate != "" || in.PrivateKey != "" {
 		failure(w, 422, "invalid_certificate", "请选择 TLS 协议及托管证书，不要同时提交 PEM")
 		return nil, false
 	}
@@ -248,7 +248,7 @@ func (a *api) certificateRoutes(mux *http.ServeMux, cfg certificates.ManagedConf
 			failure(w, 422, "host_mismatch", "平台域名只能应用到绑定服务器")
 			return
 		}
-		if !protocol.RequiresTLS(spec.Protocol) {
+		if !spec.NeedsCertificate() {
 			failure(w, 422, "tls_required", "此协议不使用托管 TLS 证书")
 			return
 		}

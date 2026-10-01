@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 	"xingdu.app/xingdu/internal/protocol"
@@ -36,9 +37,9 @@ func run(output, cache string) error {
 	if err := os.MkdirAll(output, 0755); err != nil {
 		return err
 	}
-	for _, family := range []string{"sing-box", "trusttunnel"} {
+	for _, family := range []string{"trusttunnel", "sing-box-legacy"} {
 		for _, arch := range []string{"amd64", "arm64"} {
-			version, hashes, archives := protocol.RuntimeVersion, protocol.RuntimeSHA256, protocol.RuntimeArchiveSHA256
+			version, hashes, archives := protocol.LegacyRuntimeVersion, protocol.LegacyRuntimeSHA256, protocol.RuntimeArchiveSHA256
 			name := "sing-box-" + version + "-linux-" + arch
 			binaryName, repo := "sing-box", "SagerNet/sing-box"
 			if family == "trusttunnel" {
@@ -141,6 +142,38 @@ func run(output, cache string) error {
 				return err
 			}
 			fmt.Println("Verified " + family + " " + version + " linux/" + arch)
+		}
+	}
+	for _, family := range []string{"sing-box", "xray"} {
+		for _, arch := range []string{"amd64", "arm64"} {
+			hashes := protocol.RuntimeSHA256
+			if family == "xray" {
+				hashes = protocol.XraySHA256
+			}
+			path := filepath.Join(output, family+"-linux-"+arch)
+			if b, err := os.ReadFile(path); err == nil && matches(b, hashes[arch]) {
+				_, licenseErr := os.Stat(filepath.Join(output, family+"-LICENSE"))
+				_, sourceErr := os.Stat(filepath.Join(output, family+"-source.tar.gz"))
+				if licenseErr == nil && sourceErr == nil {
+					if err := os.Chmod(filepath.Join(output, family+"-source.tar.gz"), 0644); err != nil {
+						return err
+					}
+					continue
+				}
+			}
+			script := "tools/build-runtime/build.sh"
+			if _, err := os.Stat(script); err != nil {
+				script = "../build-runtime/build.sh"
+			}
+			cmd := exec.Command("sh", script, family, arch, output)
+			cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+			if err := cmd.Run(); err != nil {
+				return err
+			}
+			b, err := os.ReadFile(path)
+			if err != nil || !matches(b, hashes[arch]) {
+				return errors.New("built runtime checksum mismatch: " + family + "/" + arch)
+			}
 		}
 	}
 	return nil

@@ -53,7 +53,7 @@ func (x *protocolExecutor) ensureRuntimePolicy(ctx context.Context, binary, conf
 		return ""
 	}
 	// Embedded file contexts are deliberately fixed, not tenant-selected paths.
-	if x.binaryDir != "/usr/local/lib/xingdu" || x.stateDir != "/var/lib/xingdu-agent/protocols" || filepath.Dir(binary) != x.binaryDir || !strings.HasPrefix(filepath.Base(binary), "sing-box-") || filepath.Base(config) != "config.json" || filepath.Dir(filepath.Dir(config)) != x.stateDir {
+	if x.binaryDir != "/usr/local/lib/xingdu" || x.stateDir != "/var/lib/xingdu-agent/protocols" || filepath.Dir(binary) != x.binaryDir || (!strings.HasPrefix(filepath.Base(binary), "sing-box-") && !strings.HasPrefix(filepath.Base(binary), "xray-")) || filepath.Base(config) != "config.json" || filepath.Dir(filepath.Dir(config)) != x.stateDir {
 		return "selinux_policy_failed"
 	}
 	dir := filepath.Join(filepath.Dir(x.stateDir), "selinux")
@@ -100,6 +100,17 @@ func (x *protocolExecutor) ensureRuntimePolicy(ctx context.Context, binary, conf
 		}
 		if atomicProtocolFile(stamp, []byte(digest), 0600) != nil {
 			return "selinux_policy_failed"
+		}
+	}
+	if strings.HasPrefix(filepath.Base(binary), "xray-") {
+		child := filepath.Join(x.binaryDir, "xray-core-"+strings.TrimPrefix(filepath.Base(binary), "xray-"))
+		if x.run(ctx, "restorecon", child) != nil {
+			return "selinux_label_failed"
+		}
+		label, e := x.commandOutput(ctx, "stat", "-c", "%C", "--", child)
+		parts := strings.Split(strings.TrimSpace(string(label)), ":")
+		if e != nil || len(parts) < 3 || parts[2] != "xingdu_runtime_exec_t" {
+			return "selinux_label_conflict"
 		}
 	}
 	// Respect administrator overrides: never replace local fcontext mappings.
@@ -159,5 +170,9 @@ func (x *protocolExecutor) repairOwnedRuntimePolicy(ctx context.Context, id stri
 	if version == "" {
 		return "runtime_unavailable"
 	}
-	return x.ensureRuntimePolicy(ctx, filepath.Join(x.binaryDir, "sing-box-"+version), filepath.Join(x.stateDir, x.localDeploymentID(id), "config.json"))
+	prefix := "sing-box-"
+	if unit, e := os.ReadFile(filepath.Join(x.unitDir, serviceName(x.localDeploymentID(id)))); e == nil && strings.Contains(string(unit), "ExecStart="+filepath.Join(x.binaryDir, "xray-")) {
+		prefix = "xray-"
+	}
+	return x.ensureRuntimePolicy(ctx, filepath.Join(x.binaryDir, prefix+version), filepath.Join(x.stateDir, x.localDeploymentID(id), "config.json"))
 }

@@ -10,6 +10,9 @@ import (
 )
 
 func (x *protocolExecutor) specBinary(ctx context.Context, c Config, s protocol.Spec) (string, error) {
+	if s.UsesXray() {
+		return x.xrayBinary(ctx, c)
+	}
 	if s.Protocol != "trusttunnel" {
 		return x.binary(ctx, c)
 	}

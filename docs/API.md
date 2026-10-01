@@ -282,3 +282,10 @@ These are format mappings, not a record of real-app display acceptance.
 绝不包含 PEM 私钥、证书密文或 CA 账户。`directory` 用于识别正式/测试 CA。
 平台域名仅应用到绑定机器，测试 CA 证书不能应用。`202` 仅表示排队，最终结果
 见节点部署记录。续期不会自动重启节点，移除管理也不撤销已安装证书。
+
+### Protocol matrix parameters
+
+Deployment create/preflight/update accept bounded `v2ray`, `quic`, `wireguard`
+and SOCKS `udp_enabled` settings. Connection reveal returns client parameters
+and generated client credentials; encrypted revisions retain server secrets. See [the full contract, minimum
+Agent version, examples and restrictions](TRANSPORT-COMPATIBILITY.md).

@@ -30,6 +30,8 @@ func ValidFormat(format string) bool {
 }
 func Supports(format, kind string) bool {
 	switch kind {
+	case "wireguard":
+		return format == "stash" || format == "mihomo"
 	case "trusttunnel":
 		return format == "stash"
 	case "socks", "mixed":
@@ -115,6 +117,9 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		return nil, err
 	}
 	for _, n := range nodes {
+		if n.Spec.V2Ray != nil || n.Spec.QUIC != nil || n.Spec.WireGuard != nil || n.Spec.UDPEnabled {
+			return nil, &CompatibilityError{format, n.Spec.Protocol, "此客户端导出尚未支持自定义传输配置"}
+		}
 		if !Supports(format, n.Spec.Protocol) {
 			return nil, &CompatibilityError{format, n.Spec.Protocol, "所选客户端格式不支持订阅中的协议，请调整节点选择或客户端格式"}
 		}

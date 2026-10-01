@@ -1,3 +1,4 @@
+import type { V2RayOptions, QUICOptions, WireGuardOptions } from "./api";
 import { request } from "./api";
 export function restartNode(host: string, id: string, signal?: AbortSignal) {
   return request(
@@ -47,6 +48,10 @@ export function preflightNode(
     server_name: string;
     certificate: string;
     private_key: string;
+    v2ray?: V2RayOptions;
+    quic?: QUICOptions;
+    wireguard?: WireGuardOptions;
+    udp_enabled?: boolean;
   },
   signal?: AbortSignal,
 ) {

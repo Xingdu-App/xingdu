@@ -151,7 +151,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 		s := node.Spec
 		label := exportNames[i]
 		p := map[string]any{"name": label, "type": s.Protocol, "server": node.Server, "port": s.Port, "udp": true}
-		if protocol.RequiresTLS(s.Protocol) {
+		if s.TLSEnabled() {
 			cert, _ := pem.Decode([]byte(s.Certificate))
 			if cert == nil || cert.Type != "CERTIFICATE" {
 				return nil, errors.New("invalid node certificate")
@@ -176,7 +176,18 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 				}
 			}
 		case "socks", "mixed":
-			p["type"], p["username"], p["password"], p["udp"] = "socks5", "xingdu", s.Credential, false
+			p["type"], p["username"], p["password"], p["udp"] = "socks5", "xingdu", s.Credential, s.UDPEnabled
+		case "wireguard":
+			w := s.WireGuardClient()
+			p["private-key"] = w["private_key"]
+			p["public-key"] = w["public_key"]
+			p["pre-shared-key"] = w["pre_shared_key"]
+			p["ip"] = w["ip"]
+			p["mtu"] = w["mtu"]
+			p["keepalive"] = w["keepalive"]
+			if len(s.WireGuard.Reserved) > 0 {
+				p["reserved"] = s.WireGuard.Reserved
+			}
 		case "snell":
 			p["type"], p["psk"], p["version"], p["udp"] = "snell", s.Credential, 4, false
 		case "hysteria":
@@ -222,7 +233,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			p["udp-relay-mode"] = "native"
 		}
 		if format == "stash" {
-			if protocol.RequiresTLS(s.Protocol) {
+			if s.TLSEnabled() {
 				p["server-cert-fingerprint"] = p["fingerprint"]
 				delete(p, "fingerprint")
 				p["sni"] = s.ServerName
@@ -240,6 +251,38 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 				delete(p, "congestion-controller")
 				delete(p, "udp-relay-mode")
 			}
+		}
+		if q := s.QUIC; q != nil {
+			if format == "stash" && s.Protocol == "tuic" && q.Congestion != "" && q.Congestion != "bbr" {
+				return nil, &CompatibilityError{format, s.Protocol, "当前 Stash TUIC 使用 BBR，无法保留指定拥塞控制器"}
+			}
+			if len(q.ALPN) > 0 {
+				p["alpn"] = q.ALPN
+			}
+			if q.Salamander {
+				p["obfs"] = "salamander"
+				p["obfs-password"] = s.ObfsPassword
+			}
+			if q.Congestion != "" {
+				p["congestion-controller"] = q.Congestion
+			}
+			if q.UpMbps > 0 {
+				if format == "stash" {
+					p["up-speed"] = q.UpMbps
+				} else {
+					p["up"] = q.UpMbps
+				}
+			}
+			if q.DownMbps > 0 {
+				if format == "stash" {
+					p["down-speed"] = q.DownMbps
+				} else {
+					p["down"] = q.DownMbps
+				}
+			}
+		}
+		if err := applyV2Ray(format, s, p); err != nil {
+			return nil, err
 		}
 		proxies = append(proxies, p)
 		names = append(names, label)

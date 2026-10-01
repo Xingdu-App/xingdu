@@ -35,18 +35,27 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	}
 	defer clear(old)
 	var current struct {
-		Runtime  string `json:"runtime"`
+		Runtime   string `json:"runtime"`
+		Endpoints []struct {
+			Port int `json:"listen_port"`
+		} `json:"endpoints"`
 		Inbounds []struct {
 			Port int `json:"listen_port"`
 		} `json:"inbounds"`
 	}
-	if json.Unmarshal(old, &current) != nil || len(current.Inbounds) != 1 {
+	if json.Unmarshal(old, &current) != nil || (len(current.Inbounds) == 0 && len(current.Endpoints) != 1) || (len(current.Inbounds) > 0 && len(current.Endpoints) > 0) {
 		return "unsafe_state"
 	}
-	if (current.Runtime == "trusttunnel") != (t.Spec.Protocol == "trusttunnel") {
+	if (current.Runtime == "trusttunnel") != (t.Spec.Protocol == "trusttunnel") || (current.Runtime == "xray") != t.Spec.UsesXray() {
 		return "invalid_spec"
 	}
-	if current.Inbounds[0].Port != t.Spec.Port && !portAvailable(t.Spec) {
+	oldPort := 0
+	if len(current.Inbounds) > 0 {
+		oldPort = current.Inbounds[0].Port
+	} else {
+		oldPort = current.Endpoints[0].Port
+	}
+	if oldPort != t.Spec.Port && !portAvailable(t.Spec) {
 		return "port_in_use"
 	}
 

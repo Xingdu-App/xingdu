@@ -1,3 +1,5 @@
+import V2RayFields, { defaultV2Ray } from "./V2RayFields";
+import type { V2RayOptions, QUICOptions, WireGuardOptions } from "./api";
 import RevisionEditor from "./RevisionEditor";
 import { requiresTLS, isQUIC, handshakeHosts } from "./api";
 import { agentVersionAtLeast } from "./agent-version";
@@ -28,6 +30,11 @@ import type {
 } from "./api";
 
 const protocols = [
+  {
+    value: "wireguard",
+    label: "WireGuard",
+    description: "UDP · MTU · Keepalive",
+  },
   {
     value: "trusttunnel",
     label: "TrustTunnel",
@@ -205,18 +212,36 @@ const resultLabels: Record<string, string> = {
     return t("配置写入失败，请检查磁盘和权限。");
   },
   get runtime_policy_failed() {
-    return t("TrustTunnel requires an active cgroup BPF egress filter. Check systemd and kernel support.");
+    return t(
+      "TrustTunnel requires an active cgroup BPF egress filter. Check systemd and kernel support.",
+    );
   },
   get runtime_unavailable() {
     return t("运行时不可用，请检查下载连通性和机器架构。");
   },
-  get selinux_detection_failed() { return t("无法检测 SELinux 状态，操作已停止。"); },
-  get selinux_tools_missing() { return t("缺少 SELinux 策略工具，请安装发行版的 selinux-policy-devel 和 policycoreutils。"); },
-  get selinux_tools_install_failed() { return t("SELinux 策略工具安装失败，请检查系统软件源后重试。"); },
-  get selinux_policy_failed() { return t("SELinux 专用策略安装失败，未关闭系统安全保护。"); },
-  get selinux_label_failed() { return t("SELinux 文件标签修复失败，请检查文件系统和权限。"); },
-  get selinux_label_conflict() { return t("SELinux 文件标签与管理员策略冲突，未覆盖现有策略。"); },
-  get selinux_domain_failed() { return t("协议服务未进入专用 SELinux 域，请检查安全策略后重试。"); },
+  get selinux_detection_failed() {
+    return t("无法检测 SELinux 状态，操作已停止。");
+  },
+  get selinux_tools_missing() {
+    return t(
+      "缺少 SELinux 策略工具，请安装发行版的 selinux-policy-devel 和 policycoreutils。",
+    );
+  },
+  get selinux_tools_install_failed() {
+    return t("SELinux 策略工具安装失败，请检查系统软件源后重试。");
+  },
+  get selinux_policy_failed() {
+    return t("SELinux 专用策略安装失败，未关闭系统安全保护。");
+  },
+  get selinux_label_failed() {
+    return t("SELinux 文件标签修复失败，请检查文件系统和权限。");
+  },
+  get selinux_label_conflict() {
+    return t("SELinux 文件标签与管理员策略冲突，未覆盖现有策略。");
+  },
+  get selinux_domain_failed() {
+    return t("协议服务未进入专用 SELinux 域，请检查安全策略后重试。");
+  },
   get config_rejected() {
     return t("运行时拒绝了此配置。");
   },
@@ -334,7 +359,27 @@ export default function ProtocolDialog({
   }, [host.id]);
 
   const agent = machine?.agent;
-  const needsTLS = requiresTLS(protocol);
+  const [quic, setQuic] = useState<QUICOptions>({});
+  const [wireguard, setWireguard] = useState<WireGuardOptions>({
+    mtu: 1380,
+    keepalive: 25,
+    preshared: true,
+  });
+  const [socksUDP, setSocksUDP] = useState(false);
+  const [v2ray, setV2ray] = useState<V2RayOptions>(defaultV2Ray);
+  const isV2Ray = protocol === "vless" || protocol === "vmess";
+  const transportOptions =
+    isV2Ray &&
+    (v2ray.engine === "xray" ||
+      v2ray.network !== "tcp" ||
+      v2ray.tls === false ||
+      v2ray.flow ||
+      v2ray.alpn?.length)
+      ? v2ray
+      : undefined;
+  const needsTLS =
+    requiresTLS(protocol) &&
+    (!isV2Ray || v2ray.tls !== false || v2ray.download?.tls === true);
   const [handshakeHost, setHandshakeHost] = useState(handshakeHosts[0]);
   const selectedProtocol = creating
     ? protocol
@@ -409,6 +454,14 @@ export default function ProtocolDialog({
             name,
             protocol,
             port: Number(port),
+            v2ray: transportOptions,
+            quic:
+              ["hysteria", "hysteria2", "tuic"].includes(protocol) &&
+              Object.keys(quic).length
+                ? quic
+                : undefined,
+            wireguard: protocol === "wireguard" ? wireguard : undefined,
+            udp_enabled: protocol === "socks" ? socksUDP : undefined,
             server_name:
               protocol === "shadowtls"
                 ? handshakeHost
@@ -642,7 +695,11 @@ export default function ProtocolDialog({
                           }
                           onClick={() => setRestarting(row.id)}
                         >
-                          {t(row.service_status === "policy_required" ? "修复安全策略并重启" : "重启服务")}
+                          {t(
+                            row.service_status === "policy_required"
+                              ? "修复安全策略并重启"
+                              : "重启服务",
+                          )}
                         </button>
                       )}
                       {((row.state === "succeeded" &&
@@ -800,6 +857,18 @@ export default function ProtocolDialog({
                         <br />
                         {connection.data.server_name || t("无需域名")}
                       </p>
+                      {connection.data.v2ray && (
+                        <p>
+                          {connection.data.v2ray.network} · TLS{" "}
+                          {connection.data.v2ray.tls === false ? "off" : "on"}
+                          {connection.data.v2ray.path
+                            ? ` · ${connection.data.v2ray.path}`
+                            : ""}
+                          {connection.data.v2ray.service_name
+                            ? ` · ${connection.data.v2ray.service_name}`
+                            : ""}
+                        </p>
+                      )}
                       {connection.data.username && <p>{t("用户名")}：xingdu</p>}
                       {connection.data.cipher && (
                         <p>
@@ -899,7 +968,12 @@ export default function ProtocolDialog({
                     options={protocols}
                     value={protocol}
                     disabled={busy}
-                    onChange={(v) => setProtocol(v as Protocol)}
+                    onChange={(v) => {
+                      setProtocol(v as Protocol);
+                      setV2ray(defaultV2Ray);
+                      setQuic({});
+                      setSocksUDP(false);
+                    }}
                   />
                 </div>
                 <label htmlFor="deployment-port">
@@ -929,6 +1003,138 @@ export default function ProtocolDialog({
                   </label>
                 )}
               </div>
+              {isV2Ray && (
+                <V2RayFields
+                  value={v2ray}
+                  onChange={setV2ray}
+                  protocol={protocol}
+                />
+              )}
+              {protocol === "wireguard" && (
+                <div className="deployment-fields">
+                  <label>
+                    MTU
+                    <input
+                      type="number"
+                      min={576}
+                      max={9000}
+                      required
+                      value={wireguard.mtu}
+                      onChange={(e) =>
+                        setWireguard({
+                          ...wireguard,
+                          mtu: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Keepalive
+                    <input
+                      type="number"
+                      min={0}
+                      max={65535}
+                      value={wireguard.keepalive ?? 0}
+                      onChange={(e) =>
+                        setWireguard({
+                          ...wireguard,
+                          keepalive: Number(e.target.value),
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={wireguard.preshared ?? false}
+                      onChange={(e) =>
+                        setWireguard({
+                          ...wireguard,
+                          preshared: e.target.checked,
+                        })
+                      }
+                    />
+                    {t("预共享密钥")}
+                  </label>
+                </div>
+              )}
+              {protocol === "socks" && (
+                <label className="check-row">
+                  <input
+                    type="checkbox"
+                    checked={socksUDP}
+                    onChange={(e) => setSocksUDP(e.target.checked)}
+                  />
+                  {t("启用 UDP 转发")}
+                </label>
+              )}
+              {["hysteria", "hysteria2", "tuic"].includes(protocol) && (
+                <div className="deployment-fields">
+                  <label>
+                    ALPN
+                    <select
+                      value={quic.alpn?.[0] ?? ""}
+                      onChange={(e) =>
+                        setQuic({
+                          ...quic,
+                          alpn: e.target.value ? [e.target.value] : [],
+                        })
+                      }
+                    >
+                      <option value="">{t("默认")}</option>
+                      <option value="h3">h3</option>
+                      {protocol === "hysteria" && (
+                        <option value="hysteria">hysteria</option>
+                      )}
+                    </select>
+                  </label>
+                  {protocol === "tuic" && (
+                    <label>
+                      {t("拥塞控制")}
+                      <select
+                        value={quic.congestion ?? "bbr"}
+                        onChange={(e) =>
+                          setQuic({ ...quic, congestion: e.target.value })
+                        }
+                      >
+                        <option value="bbr">BBR</option>
+                        <option value="cubic">CUBIC</option>
+                        <option value="new_reno">NewReno</option>
+                      </select>
+                    </label>
+                  )}
+                  {protocol === "hysteria2" && (
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={!!quic.salamander}
+                        onChange={(e) =>
+                          setQuic({ ...quic, salamander: e.target.checked })
+                        }
+                      />
+                      Salamander
+                    </label>
+                  )}
+                  {protocol === "hysteria" && (
+                    <>
+                      {(["up_mbps", "down_mbps"] as const).map((k) => (
+                        <label key={k}>
+                          {k === "up_mbps" ? "Upload Mbps" : "Download Mbps"}
+                          <input
+                            type="number"
+                            min={1}
+                            max={100000}
+                            value={quic[k] ?? 100}
+                            onChange={(e) =>
+                              setQuic({ ...quic, [k]: Number(e.target.value) })
+                            }
+                          />
+                        </label>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
               {protocol === "shadowtls" && (
                 <Select
                   id="handshake-host"
@@ -973,25 +1179,31 @@ export default function ProtocolDialog({
                 </>
               )}
               <p className="form-hint">
-                {["socks", "mixed"].includes(protocol)
+                {isV2Ray && !needsTLS
                   ? t(
-                      "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入；UDP 转发已关闭。",
+                      "TLS 已关闭。请确认客户端支持所选传输与加密参数。",
                     )
-                  : protocol === "shadowtls"
+                  : ["socks", "mixed"].includes(protocol)
                     ? t(
-                        "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。",
+                        "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入。",
                       )
-                    : protocol === "snell6"
+                    : protocol === "shadowtls"
                       ? t(
-                          "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
+                          "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。",
                         )
-                      : needsTLS
+                      : protocol === "snell6"
                         ? t(
-                            "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                            "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
                           )
-                        : t(
-                            "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
-                          )}
+                        : protocol === "wireguard"
+                          ? t("WireGuard 使用 UDP；密钥自动生成，无需 TLS 证书。请放行所选 UDP 端口。")
+                          : needsTLS
+                          ? t(
+                              "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                            )
+                          : t(
+                              "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
+                            )}
               </p>
               <p className="form-hint">
                 {t("请自行在云安全组和机器防火墙放行")}
@@ -1027,6 +1239,15 @@ export default function ProtocolDialog({
                       name,
                       protocol,
                       port: Number(port),
+                      v2ray: transportOptions,
+                      quic:
+                        ["hysteria", "hysteria2", "tuic"].includes(protocol) &&
+                        Object.keys(quic).length
+                          ? quic
+                          : undefined,
+                      wireguard:
+                        protocol === "wireguard" ? wireguard : undefined,
+                      udp_enabled: protocol === "socks" ? socksUDP : undefined,
                       server_name:
                         protocol === "shadowtls"
                           ? handshakeHost
