@@ -119,6 +119,27 @@
 .machine-dialog.certificate-create-dialog {
   max-width: 600px;
 }
+.machine-dialog.certificate-manage-dialog {
+  max-width: 720px;
+}
+.certificate-manage-dialog .certificate-detail {
+  margin: 0;
+  padding: 20px 28px;
+  border: 0;
+  border-radius: 0;
+}
+.certificate-manage-dialog .certificate-domain {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+.certificate-manage-dialog .certificate-apply > label:first-child {
+  max-width: none;
+}
+.certificate-manage-dialog .certificate-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .certificate-create-dialog .certificate-create {
   display: grid;
   gap: 16px;
@@ -135,7 +156,8 @@
   margin: 0;
   line-height: 1.7;
 }
-.certificate-create-dialog .dialog-footer > button {
+.certificate-create-dialog .dialog-footer > button,
+.certificate-manage-dialog .dialog-footer > button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +166,8 @@
   padding: 0 16px;
 }
 @media (max-width: 600px) {
-  .certificate-create-dialog .certificate-create {
+  .certificate-create-dialog .certificate-create,
+  .certificate-manage-dialog .certificate-detail {
     padding: 16px;
   }
 }

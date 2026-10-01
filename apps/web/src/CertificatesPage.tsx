@@ -75,6 +75,12 @@ export default function CertificatesPage({
     else if (!creating) createDialog.current?.close();
   }, [creating]);
   const [selected, setSelected] = useState<Certificate | null>(null);
+  const manageDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (selected && !manageDialog.current?.open)
+      manageDialog.current?.showModal();
+    else if (!selected) manageDialog.current?.close();
+  }, [selected]);
   const [nodeID, setNodeID] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -126,6 +132,7 @@ export default function CertificatesPage({
   const current =
     data?.certificates.find((c) => c.id === selected?.id) ?? selected;
   const choose = (c: Certificate) => {
+    setError("");
     setSelected(c);
     setNodeID("");
     setConfirmed(false);
@@ -182,7 +189,7 @@ export default function CertificatesPage({
           </button>
         )}
       </div>
-      {error && !creating && (
+      {error && !creating && !current && (
         <div role="alert" className="alert">
           {error}
           <button
@@ -194,7 +201,7 @@ export default function CertificatesPage({
           </button>
         </div>
       )}
-      {notice && (
+      {notice && !current && (
         <p className="notice" role="status">
           {t(notice)}
         </p>
@@ -401,10 +408,243 @@ export default function CertificatesPage({
         </div>
       )}
       {current && (
-        <section className="certificate-detail">
-          <div className="section-heading">
-            <h3>{current.domain}</h3>
+        <dialog
+          ref={manageDialog}
+          className="host-dialog machine-dialog certificate-manage-dialog"
+          aria-labelledby="certificate-manage-title"
+          onCancel={(e) => {
+            e.preventDefault();
+            if (!busy) setSelected(null);
+          }}
+          onClose={() => setSelected(null)}
+        >
+          <div className="dialog-heading">
+            <h2 id="certificate-manage-title">{t("管理证书")}</h2>
             <button
+              type="button"
+              className="icon-button"
+              aria-label={t("关闭")}
+              disabled={busy}
+              onClick={() => setSelected(null)}
+            >
+              ×
+            </button>
+          </div>
+          <div className="machine-content certificate-detail">
+            <h3 className="certificate-domain">{current.domain}</h3>
+            {error && (
+              <div role="alert" className="alert">
+                {error}
+              </div>
+            )}
+            {notice && (
+              <p role="status" className="notice">
+                {t(notice)}
+              </p>
+            )}
+            {current.platform ? (
+              <p className="subtitle">
+                {t(
+                  "平台负责此域名的 DNS，无需添加 CNAME。域名绑定原服务器，不会分配给其他用户。",
+                )}
+              </p>
+            ) : (
+              <>
+                {" "}
+                <p className="subtitle">
+                  {t(
+                    "在域名的 DNS 中添加以下 CNAME 记录，关闭代理，保留此记录供自动续期使用。无需提交 DNS API 密钥。",
+                  )}
+                </p>
+                <dl>
+                  <dt>{t("记录名称")}</dt>
+                  <dd>
+                    <code>_acme-challenge.{current.domain}</code>
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        void act(() =>
+                          navigator.clipboard.writeText(
+                            `_acme-challenge.${current.domain}`,
+                          ),
+                        )
+                      }
+                    >
+                      {t("复制")}
+                    </button>
+                  </dd>
+                  <dt>{t("目标")}</dt>
+                  <dd>
+                    <code>{current.validation_target}</code>
+                    <button
+                      className="secondary"
+                      onClick={() =>
+                        void act(() =>
+                          navigator.clipboard.writeText(
+                            current.validation_target,
+                          ),
+                        )
+                      }
+                    >
+                      {t("复制")}
+                    </button>
+                  </dd>
+                </dl>
+              </>
+            )}
+            {current.error_code && (
+              <p role="status" className="certificate-callout">
+                {t(
+                  errors[current.error_code] ??
+                    "证书服务暂时不可用，请联系运营者。",
+                )}
+              </p>
+            )}
+            {canManage && (
+              <>
+                <div className="certificate-actions">
+                  <button
+                    className="primary"
+                    disabled={
+                      busy ||
+                      !paid ||
+                      !data?.configured ||
+                      ["issuing", "queued"].includes(current.state) ||
+                      (current.state === "issued" &&
+                        !!current.expires_at &&
+                        Date.parse(current.expires_at) >
+                          now + 30 * 24 * 3600 * 1000 &&
+                        current.directory.includes("staging") ===
+                          data?.test_mode)
+                    }
+                    onClick={() =>
+                      void act(async () => {
+                        await request(
+                          `/api/v1/certificates/${current.id}/issue`,
+                          "POST",
+                          {},
+                        );
+                        setNotice(
+                          "签发任务已排队，请等待 DNS 验证与 CA 签发。",
+                        );
+                      })
+                    }
+                  >
+                    {t(current.expires_at ? "申请续期" : "验证并签发")}
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => {
+                      setDeleting((v) => !v);
+                      setConfirmed(false);
+                    }}
+                  >
+                    {t("移除管理")}
+                  </button>
+                </div>
+                {current.expires_at &&
+                  !current.directory.includes("staging") &&
+                  Date.parse(current.expires_at) > now && (
+                    <div className="certificate-apply">
+                      <label>
+                        {t("应用到节点")}
+                        <Select
+                          label={t("应用到节点")}
+                          value={nodeID}
+                          disabled={busy || !paid}
+                          onChange={(value) => {
+                            setNodeID(value);
+                            setConfirmed(false);
+                          }}
+                          options={[
+                            { value: "", label: t("选择 TLS 节点") },
+                            ...candidates.map((n) => ({
+                              value: n.id,
+                              label: n.name,
+                            })),
+                          ]}
+                        />
+                      </label>
+                      <p className="subtitle">
+                        {t(
+                          "应用时会将节点 TLS 域名更新为此证书域名。中转依赖需协调维护。续期不会自动重启节点，请在签发后应用并刷新客户端订阅。",
+                        )}
+                      </p>
+                      <label className="certificate-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={confirmed}
+                          disabled={busy || !paid}
+                          onChange={(e) => setConfirmed(e.target.checked)}
+                        />
+                        <span>{t("确认更新，连接会短暂中断")}</span>
+                      </label>
+                      <button
+                        className="primary"
+                        disabled={busy || !paid || !nodeID || !confirmed}
+                        onClick={() =>
+                          void act(async () => {
+                            const n = nodes.find((n) => n.id === nodeID);
+                            if (!n) return;
+                            await request(
+                              `/api/v1/certificates/${current.id}/apply`,
+                              "POST",
+                              {
+                                node_id: n.id,
+                                host_id: n.host_id,
+                                confirm: true,
+                              },
+                            );
+                            setConfirmed(false);
+                            setNotice(
+                              "节点更新已排队，请在部署记录中确认结果；签发成功不代表节点已应用。",
+                            );
+                          })
+                        }
+                      >
+                        {t("应用证书")}
+                      </button>
+                    </div>
+                  )}
+                {deleting && (
+                  <div className="certificate-callout">
+                    <p>
+                      {t(
+                        "移除后停止自动续期并删除托管私钥，不撤销 CA 证书，也不会停止节点上的服务。",
+                      )}
+                    </p>
+                    <button
+                      className="danger"
+                      disabled={busy}
+                      onClick={() =>
+                        void act(async () => {
+                          await request(
+                            `/api/v1/certificates/${current.id}`,
+                            "DELETE",
+                            {},
+                          );
+                          setSelected(null);
+                        })
+                      }
+                    >
+                      {t("确认移除")}
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => setDeleting(false)}
+                    >
+                      {t("取消")}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div className="dialog-footer">
+            <button
+              type="button"
               className="secondary"
               disabled={busy}
               onClick={() => setSelected(null)}
@@ -412,203 +652,7 @@ export default function CertificatesPage({
               {t("关闭")}
             </button>
           </div>
-          {current.platform ? (
-            <p className="subtitle">
-              {t(
-                "平台负责此域名的 DNS，无需添加 CNAME。域名绑定原服务器，不会分配给其他用户。",
-              )}
-            </p>
-          ) : (
-            <>
-              {" "}
-              <p className="subtitle">
-                {t(
-                  "在域名的 DNS 中添加以下 CNAME 记录，关闭代理，保留此记录供自动续期使用。无需提交 DNS API 密钥。",
-                )}
-              </p>
-              <dl>
-                <dt>{t("记录名称")}</dt>
-                <dd>
-                  <code>_acme-challenge.{current.domain}</code>
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      void act(() =>
-                        navigator.clipboard.writeText(
-                          `_acme-challenge.${current.domain}`,
-                        ),
-                      )
-                    }
-                  >
-                    {t("复制")}
-                  </button>
-                </dd>
-                <dt>{t("目标")}</dt>
-                <dd>
-                  <code>{current.validation_target}</code>
-                  <button
-                    className="secondary"
-                    onClick={() =>
-                      void act(() =>
-                        navigator.clipboard.writeText(
-                          current.validation_target,
-                        ),
-                      )
-                    }
-                  >
-                    {t("复制")}
-                  </button>
-                </dd>
-              </dl>
-            </>
-          )}
-          {current.error_code && (
-            <p role="status" className="certificate-callout">
-              {t(
-                errors[current.error_code] ??
-                  "证书服务暂时不可用，请联系运营者。",
-              )}
-            </p>
-          )}
-          {canManage && (
-            <>
-              <div className="certificate-actions">
-                <button
-                  className="primary"
-                  disabled={
-                    busy ||
-                    !paid ||
-                    !data?.configured ||
-                    ["issuing", "queued"].includes(current.state) ||
-                    (current.state === "issued" &&
-                      !!current.expires_at &&
-                      Date.parse(current.expires_at) >
-                        now + 30 * 24 * 3600 * 1000 &&
-                      current.directory.includes("staging") === data?.test_mode)
-                  }
-                  onClick={() =>
-                    void act(async () => {
-                      await request(
-                        `/api/v1/certificates/${current.id}/issue`,
-                        "POST",
-                        {},
-                      );
-                      setNotice("签发任务已排队，请等待 DNS 验证与 CA 签发。");
-                    })
-                  }
-                >
-                  {t(current.expires_at ? "申请续期" : "验证并签发")}
-                </button>
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => {
-                    setDeleting((v) => !v);
-                    setConfirmed(false);
-                  }}
-                >
-                  {t("移除管理")}
-                </button>
-              </div>
-              {current.expires_at &&
-                !current.directory.includes("staging") &&
-                Date.parse(current.expires_at) > now && (
-                  <div className="certificate-apply">
-                    <label>
-                      {t("应用到节点")}
-                      <Select
-                        label={t("应用到节点")}
-                        value={nodeID}
-                        disabled={busy || !paid}
-                        onChange={(value) => {
-                          setNodeID(value);
-                          setConfirmed(false);
-                        }}
-                        options={[
-                          { value: "", label: t("选择 TLS 节点") },
-                          ...candidates.map((n) => ({
-                            value: n.id,
-                            label: n.name,
-                          })),
-                        ]}
-                      />
-                    </label>
-                    <p className="subtitle">
-                      {t(
-                        "应用时会将节点 TLS 域名更新为此证书域名。中转依赖需协调维护。续期不会自动重启节点，请在签发后应用并刷新客户端订阅。",
-                      )}
-                    </p>
-                    <label className="certificate-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={confirmed}
-                        disabled={busy || !paid}
-                        onChange={(e) => setConfirmed(e.target.checked)}
-                      />
-                      <span>{t("确认更新，连接会短暂中断")}</span>
-                    </label>
-                    <button
-                      className="primary"
-                      disabled={busy || !paid || !nodeID || !confirmed}
-                      onClick={() =>
-                        void act(async () => {
-                          const n = nodes.find((n) => n.id === nodeID);
-                          if (!n) return;
-                          await request(
-                            `/api/v1/certificates/${current.id}/apply`,
-                            "POST",
-                            {
-                              node_id: n.id,
-                              host_id: n.host_id,
-                              confirm: true,
-                            },
-                          );
-                          setConfirmed(false);
-                          setNotice(
-                            "节点更新已排队，请在部署记录中确认结果；签发成功不代表节点已应用。",
-                          );
-                        })
-                      }
-                    >
-                      {t("应用证书")}
-                    </button>
-                  </div>
-                )}
-              {deleting && (
-                <div className="certificate-callout">
-                  <p>
-                    {t(
-                      "移除后停止自动续期并删除托管私钥，不撤销 CA 证书，也不会停止节点上的服务。",
-                    )}
-                  </p>
-                  <button
-                    className="danger"
-                    disabled={busy}
-                    onClick={() =>
-                      void act(async () => {
-                        await request(
-                          `/api/v1/certificates/${current.id}`,
-                          "DELETE",
-                          {},
-                        );
-                        setSelected(null);
-                      })
-                    }
-                  >
-                    {t("确认移除")}
-                  </button>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => setDeleting(false)}
-                  >
-                    {t("取消")}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </section>
+        </dialog>
       )}
     </section>
   );
