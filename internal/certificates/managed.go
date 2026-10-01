@@ -2,6 +2,7 @@ package certificates
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"golang.org/x/crypto/acme"
 	"net"
@@ -16,6 +17,7 @@ import (
 type ManagedConfig struct {
 	ValidationDomain, PlatformDomain, StateDir, Email, Token, Zone, Directory string
 	AcceptTerms                                                               bool
+	LoadAccountKey                                                            func(context.Context) (*ecdsa.PrivateKey, error)
 }
 
 func ManagedEnvironment() ManagedConfig {
@@ -36,7 +38,7 @@ func ValidDomain(domain string) bool {
 	return len(suffix) >= 2 && strings.IndexFunc(suffix, func(r rune) bool { return r >= 'a' && r <= 'z' }) >= 0 && suffix != "localhost" && suffix != "local" && suffix != "invalid" && suffix != "test" && suffix != "example"
 }
 func (c ManagedConfig) Configured() bool {
-	return ValidDomain(c.ValidationDomain) && len(c.ValidationDomain) <= 204 && c.StateDir != "" && c.Email != "" && c.Token != "" && zoneID.MatchString(c.Zone) && c.AcceptTerms && (c.Directory == Staging || c.Directory == Production)
+	return ValidDomain(c.ValidationDomain) && len(c.ValidationDomain) <= 204 && (c.StateDir != "" || c.LoadAccountKey != nil) && c.Email != "" && c.Token != "" && zoneID.MatchString(c.Zone) && c.AcceptTerms && (c.Directory == Staging || c.Directory == Production)
 }
 func (c ManagedConfig) Target(id string) string {
 	return "_acme-challenge." + strings.TrimPrefix(id, "cert_") + "." + c.ValidationDomain
@@ -78,7 +80,7 @@ func (c ManagedConfig) Issue(ctx context.Context, domain, target string) (Bundle
 	if err := dns.Verify(ctx); err != nil {
 		return Bundle{}, err
 	}
-	key, err := AccountKey(c.StateDir)
+	key, err := c.accountKey(ctx)
 	if err != nil {
 		return Bundle{}, errors.New("account_state_unavailable")
 	}
@@ -150,11 +152,18 @@ func (c ManagedConfig) IssuePlatform(ctx context.Context, domain, address string
 	if err := dns.EnsureAddress(ctx, domain, address); err != nil {
 		return Bundle{}, err
 	}
-	key, err := AccountKey(c.StateDir)
+	key, err := c.accountKey(ctx)
 	if err != nil {
 		return Bundle{}, errors.New("account_state_unavailable")
 	}
 	out, err := Issue(ctx, &acme.Client{Key: key, DirectoryURL: c.Directory, HTTPClient: &http.Client{Timeout: 30 * time.Second}}, dns, domain, c.Email)
 	out.Domain, out.Directory = domain, c.Directory
 	return out, err
+}
+
+func (c ManagedConfig) accountKey(ctx context.Context) (*ecdsa.PrivateKey, error) {
+	if c.LoadAccountKey != nil {
+		return c.LoadAccountKey(ctx)
+	}
+	return AccountKey(c.StateDir)
 }

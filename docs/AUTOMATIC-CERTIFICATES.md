@@ -108,15 +108,17 @@ XINGDU_CERTIFICATE_PLATFORM_DOMAIN=nodes.platform.example
 XINGDU_CERTIFICATE_CLOUDFLARE_ZONE=<Zone ID>
 XINGDU_CERTIFICATE_CLOUDFLARE_TOKEN=<仅目标区域 DNS 编辑权限的 Token>
 XINGDU_CERTIFICATE_EMAIL=<ACME 联系邮箱>
-XINGDU_CERTIFICATE_STATE_DIR=/var/lib/xingdu/certificate-state/acme
+XINGDU_CERTIFICATE_STATE_DIR=
 XINGDU_CERTIFICATE_ACCEPT_TOS=true
 XINGDU_CERTIFICATE_PRODUCTION=false
 ```
 
 以上域名为示例，必须换成实际控制的域名。两个子域名都须位于配置的同一 Cloudflare
 区域；平台域名可留空，此时仅关闭随机域名分配。签发基本配置缺失时关闭创建和签发。
-状态目录需持久保存 ACME 账户私钥，权限 0700；账户文件 0600。Compose 已为 API
-挂载独立状态卷。托管证书私钥使用现有 `XINGDU_CREDENTIAL_KEY` 加密保存在数据库，
+ACME 账户私钥按 CA 分开，使用现有 `XINGDU_CREDENTIAL_KEY` 加密存入 PostgreSQL，
+API 不再需要状态卷。多个实例通过数据库事务锁共用同一账户；数据库解密失败时
+停止签发，不自动覆盖账户。该表为平台级运营配置，仅 API 运行角色可读取和插入，
+不向浏览器或管理 API 暴露。托管证书私钥同样加密保存在数据库，
 不返回浏览器/API 列表。不要更换加密密钥或验证域名而不做相应迁移。
 
 默认测试 CA。确认真实 DNS 验证可用后设置 `XINGDU_CERTIFICATE_PRODUCTION=true`，
@@ -141,3 +143,13 @@ API 每 15 秒发现持久化任务；发现函数只提供任务/组织/当前�
 公开证书会进入 Certificate Transparency；随机名称不会隐藏域名或机器 IP。
 
 证书 API 与权限见 [API 文档](API.md)。
+
+### 从旧账户文件迁移
+
+先部署数据库迁移和新 API，保留原卷与原 `XINGDU_CERTIFICATE_STATE_DIR`。
+首次使用各 CA 时导入该目录的 `account.pem`，不会改写或删除旧文件。
+指定迁移目录却找不到文件时停止初始化，避免意外创建新账户。
+确认当前 CA 的数据库账户存在、重启后签发正常，再清空该变量并解除挂载。
+如仍需保留旧测试 CA 账户，也应在解除挂载前完成测试 CA 导入。
+新安装无需设置目录。回滚旧版本仍需原文件，因此迁移完成前保留原卷备份。
+数据库备份和 `XINGDU_CREDENTIAL_KEY` 必须成对保存。

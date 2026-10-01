@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -65,8 +66,19 @@ func run() error {
 	mailer := emailverification.NewResend(os.Getenv("RESEND_API_KEY"), os.Getenv("XINGDU_EMAIL_FROM"))
 	go store.RunEmailDelivery(ctx, mailer, cfg.PublicOrigin)
 	certificateConfig := certificates.ManagedEnvironment()
+	certificateConfig.LoadAccountKey = func(accountCtx context.Context) (*ecdsa.PrivateKey, error) {
+		return store.ACMEAccountKey(accountCtx, credentialVault, certificateConfig.Directory, certificateConfig.StateDir)
+	}
 	if certificateConfig.Configured() {
-		go store.RunCertificateDelivery(ctx, certificateConfig, credentialVault)
+		go func() {
+			initCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			_, err := certificateConfig.LoadAccountKey(initCtx)
+			cancel()
+			if err != nil {
+				slog.Warn("ACME account initialization unavailable")
+			}
+			store.RunCertificateDelivery(ctx, certificateConfig, credentialVault)
+		}()
 	}
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: httpapi.New(store, httpapi.Options{Certificates: certificateConfig, Mode: cfg.Mode, Billing: gateway, BillingCloud: billingConfig.Cloud(), BillingPremium: billingConfig.PremiumMonthlyPrice != "" && billingConfig.PremiumYearlyPrice != "", BillingTest: billingConfig.Cloud() && !billingConfig.Live(), OAuthProviders: socialauth.New(socialauth.Config{Origin: cfg.PublicOrigin, GoogleClientID: os.Getenv("XINGDU_GOOGLE_CLIENT_ID"), GoogleClientSecret: os.Getenv("XINGDU_GOOGLE_CLIENT_SECRET"), GitHubClientID: os.Getenv("XINGDU_GITHUB_CLIENT_ID"), GitHubClientSecret: os.Getenv("XINGDU_GITHUB_CLIENT_SECRET")}), EmailSender: mailer, PublicOrigin: cfg.PublicOrigin, SecureCookies: cfg.SecureCookies, RegistrationEnabled: os.Getenv("XINGDU_REGISTRATION_ENABLED") == "true", AgentOrigin: agentOrigin, ArtifactDir: connector.ArtifactDir, CredentialVault: credentialVault, SSHConnector: connector}), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 30 * time.Second, IdleTimeout: 60 * time.Second}
 	done := make(chan error, 1)

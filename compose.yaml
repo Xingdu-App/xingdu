@@ -44,7 +44,7 @@ services:
       XINGDU_CERTIFICATE_CLOUDFLARE_TOKEN: ${XINGDU_CERTIFICATE_CLOUDFLARE_TOKEN:-}
       XINGDU_CERTIFICATE_CLOUDFLARE_ZONE: ${XINGDU_CERTIFICATE_CLOUDFLARE_ZONE:-}
       XINGDU_CERTIFICATE_EMAIL: ${XINGDU_CERTIFICATE_EMAIL:-}
-      XINGDU_CERTIFICATE_STATE_DIR: /var/lib/xingdu/certificate-state/acme
+      XINGDU_CERTIFICATE_STATE_DIR: ${XINGDU_CERTIFICATE_STATE_DIR:-}
       XINGDU_CERTIFICATE_ACCEPT_TOS: ${XINGDU_CERTIFICATE_ACCEPT_TOS:-false}
       XINGDU_CERTIFICATE_PRODUCTION: ${XINGDU_CERTIFICATE_PRODUCTION:-false}
       XINGDU_HTTP_ADDR: 0.0.0.0:8080
@@ -67,8 +67,6 @@ services:
       XINGDU_AGENT_ORIGIN: ${XINGDU_AGENT_ORIGIN:-http://127.0.0.1:15173}
       XINGDU_CREDENTIAL_KEY: ${XINGDU_CREDENTIAL_KEY:-}
       XINGDU_SSH_ALLOWED_CIDRS: ${XINGDU_SSH_ALLOWED_CIDRS:-}
-    volumes:
-      - certificate_state:/var/lib/xingdu/certificate-state
     ports:
       - "127.0.0.1:18080:8080"
     depends_on:
@@ -111,5 +109,4 @@ services:
       timeout: 5s
       retries: 12
 volumes:
-  certificate_state:
   postgres_data:
