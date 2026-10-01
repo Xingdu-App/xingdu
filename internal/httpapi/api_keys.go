@@ -17,6 +17,7 @@ import (
 type APIKeyStore interface {
 	APIKeys(context.Context) ([]storage.APIKey, error)
 	CreateAPIKey(context.Context, string, string, string, []string, time.Time) (storage.APIKey, error)
+	UpdateAPIKeyScopes(context.Context, string, []string) (storage.APIKey, error)
 	RevokeAPIKey(context.Context, string) error
 	AuthenticateAPIKey(context.Context, string) (storage.APIKey, error)
 }
@@ -207,6 +208,28 @@ func (a *api) apiKeyRoutes(mux *http.ServeMux) {
 			return
 		}
 		reply(w, 201, map[string]any{"data": map[string]any{"key": k, "secret": secret}})
+	}))
+	mux.HandleFunc("PATCH /api/v1/api-keys/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
+		if !id.Valid("key", r.PathValue("id")) {
+			failure(w, 400, "invalid_id", "无效的密钥 ID")
+			return
+		}
+		var in struct {
+			Scopes []string `json:"scopes"`
+		}
+		if !decode(w, r, &in) {
+			return
+		}
+		if !storage.ValidAPIKeyScopes(in.Scopes) {
+			failure(w, 400, "invalid_input", "请选择有效的密钥权限")
+			return
+		}
+		k, err := a.store.UpdateAPIKeyScopes(r.Context(), r.PathValue("id"), in.Scopes)
+		if err != nil {
+			storeError(w, err)
+			return
+		}
+		reply(w, 200, map[string]any{"data": k})
 	}))
 	mux.HandleFunc("DELETE /api/v1/api-keys/{id}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !id.Valid("key", r.PathValue("id")) {

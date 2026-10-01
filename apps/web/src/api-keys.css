@@ -136,3 +136,27 @@
     padding: 16px;
   }
 }
+
+.api-key-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.api-key-heading h2 {
+  margin: 0;
+}
+.api-key-heading .api-key-actions {
+  gap: 8px;
+}
+.api-key-heading button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  margin: 0;
+  padding: 0 14px;
+  white-space: nowrap;
+}

@@ -46,6 +46,7 @@ export default function APIKeysPanel({
   const [loaded, setLoaded] = useState(false);
   const [revoke, setRevoke] = useState<Key | null>(null);
   const [copied, setCopied] = useState(false);
+  const [editing, setEditing] = useState<Key | null>(null);
   const [creating, setCreating] = useState(false);
   const createDialog = useRef<HTMLDialogElement>(null);
   const closeCreate = () => {
@@ -130,7 +131,13 @@ export default function APIKeysPanel({
           >
             <div className="dialog-heading">
               <h2 id="api-key-create-title">
-                {t(secret ? "请立即保存密钥" : "创建 API 密钥")}
+                {t(
+                  secret
+                    ? "请立即保存密钥"
+                    : editing
+                      ? "修改权限"
+                      : "创建 API 密钥",
+                )}
               </h2>
               <button
                 type="button"
@@ -185,6 +192,22 @@ export default function APIKeysPanel({
                 onSubmit={(e) => {
                   e.preventDefault();
                   void act(async () => {
+                    if (editing) {
+                      await request<Key>(
+                        "/api/v1/api-keys/" + editing.id,
+                        "PATCH",
+                        { scopes },
+                      );
+                      setKeys((items) =>
+                        items.map((key) =>
+                          key.id === editing.id
+                            ? { ...key, scopes: [...scopes] }
+                            : key,
+                        ),
+                      );
+                      setCreating(false);
+                      return;
+                    }
                     const result = await request<{ key: Key; secret: string }>(
                       "/api/v1/api-keys",
                       "POST",
@@ -197,30 +220,39 @@ export default function APIKeysPanel({
                   });
                 }}
               >
-                <label>
-                  {t("密钥名称")}
-                  <input
-                    required
-                    maxLength={64}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t("例如：自动部署脚本")}
-                    disabled={busy}
-                  />
-                </label>
-                <label>
-                  {t("有效期")}
-                  <Select
-                    label={t("有效期")}
-                    value={days}
-                    onChange={setDays}
-                    disabled={busy}
-                    options={["30", "90", "365"].map((value) => ({
-                      value,
-                      label: t("{0} 天", { 0: value }),
-                    }))}
-                  />
-                </label>
+                {!editing && (
+                  <>
+                    <label>
+                      {t("密钥名称")}
+                      <input
+                        required
+                        maxLength={64}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder={t("例如：自动部署脚本")}
+                        disabled={busy}
+                      />
+                    </label>
+                    <label>
+                      {t("有效期")}
+                      <Select
+                        label={t("有效期")}
+                        value={days}
+                        onChange={setDays}
+                        disabled={busy}
+                        options={["30", "90", "365"].map((value) => ({
+                          value,
+                          label: t("{0} 天", { 0: value }),
+                        }))}
+                      />
+                    </label>
+                  </>
+                )}
+                {editing && (
+                  <p className="subtitle">
+                    {editing.name} · {t("权限修改立即生效，现有密钥无需更换。")}
+                  </p>
+                )}
                 <fieldset disabled={busy}>
                   <legend>{t("授权范围")}</legend>
                   {Object.entries(scopeNames).map(([scope, label]) => (
@@ -264,15 +296,17 @@ export default function APIKeysPanel({
                   type="submit"
                   form="api-key-create-form"
                   className="primary"
-                  disabled={busy || !name.trim() || scopes.length === 0}
+                  disabled={
+                    busy || (!editing && !name.trim()) || scopes.length === 0
+                  }
                 >
-                  {busy ? t("处理中…") : t("创建密钥")}
+                  {busy ? t("处理中…") : t(editing ? "保存权限" : "创建密钥")}
                 </button>
               </div>
             )}
           </dialog>
           <section className="panel api-key-list">
-            <div className="section-heading">
+            <div className="api-key-heading">
               <h2>{t("组织密钥")}</h2>
               <div className="api-key-actions">
                 <button className="secondary" onClick={onDocs}>
@@ -290,6 +324,7 @@ export default function APIKeysPanel({
                   disabled={busy}
                   onClick={() => {
                     setError("");
+                    setEditing(null);
                     setName("");
                     setDays("90");
                     setScopes(["hosts:read", "nodes:read"]);
@@ -343,44 +378,60 @@ export default function APIKeysPanel({
                         ? new Date(key.last_used_at).toLocaleString(localeTag())
                         : t("尚未使用")}
                     </p>
-                    {!key.revoked_at &&
-                      (revoke?.id === key.id ? (
-                        <div className="api-key-actions">
-                          <span>{t("撤销后不可恢复。")}</span>
-                          <button
-                            className="danger"
-                            disabled={busy}
-                            onClick={() =>
-                              void act(async () => {
-                                await request(
-                                  "/api/v1/api-keys/" + key.id,
-                                  "DELETE",
-                                );
-                                setRevoke(null);
-                                setSecret("");
-                                await refresh();
-                              })
-                            }
-                          >
-                            {t("确认撤销")}
-                          </button>
-                          <button
-                            className="secondary"
-                            disabled={busy}
-                            onClick={() => setRevoke(null)}
-                          >
-                            {t("取消")}
-                          </button>
-                        </div>
-                      ) : (
+                    <div className="api-key-actions">
+                      {!key.revoked_at && !expired && (
                         <button
                           className="secondary"
                           disabled={busy}
-                          onClick={() => setRevoke(key)}
+                          onClick={() => {
+                            setError("");
+                            setEditing(key);
+                            setScopes([...key.scopes]);
+                            setCreating(true);
+                          }}
                         >
-                          {t("撤销")}
+                          {t("修改权限")}
                         </button>
-                      ))}
+                      )}
+                      {!key.revoked_at &&
+                        (revoke?.id === key.id ? (
+                          <div className="api-key-actions">
+                            <span>{t("撤销后不可恢复。")}</span>
+                            <button
+                              className="danger"
+                              disabled={busy}
+                              onClick={() =>
+                                void act(async () => {
+                                  await request(
+                                    "/api/v1/api-keys/" + key.id,
+                                    "DELETE",
+                                  );
+                                  setRevoke(null);
+                                  setSecret("");
+                                  await refresh();
+                                })
+                              }
+                            >
+                              {t("确认撤销")}
+                            </button>
+                            <button
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() => setRevoke(null)}
+                            >
+                              {t("取消")}
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            className="secondary"
+                            disabled={busy}
+                            onClick={() => setRevoke(key)}
+                          >
+                            {t("撤销")}
+                          </button>
+                        ))}
+                    </div>
                   </article>
                 );
               })

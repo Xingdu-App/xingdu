@@ -73,12 +73,12 @@ func (s *Store) tenantTx(ctx context.Context, write, manage bool) (pgx.Tx, strin
 	if (write && role == "viewer") || (manage && role != "owner" && role != "admin") {
 		return fail(ErrForbidden)
 	}
-	if keyID, ok := ctx.Value(apiKeyContext{}).(string); ok {
+	if key, ok := ctx.Value(apiKeyContext{}).(APIKey); ok {
 		if role != "owner" && role != "admin" {
 			return fail(ErrForbidden)
 		}
 		var valid bool
-		err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM api_keys WHERE id=$1 AND organization_id=$2 AND created_by=$3 AND revoked_at IS NULL AND expires_at>clock_timestamp())", keyID, sc.Org, sc.User).Scan(&valid)
+		err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM api_keys WHERE id=$1 AND organization_id=$2 AND created_by=$3 AND revoked_at IS NULL AND expires_at>clock_timestamp() AND scopes=$4)", key.ID, sc.Org, sc.User, key.Scopes).Scan(&valid)
 		if err != nil {
 			return fail(err)
 		}

@@ -34,7 +34,7 @@ func scanKey(row pgx.Row) (k APIKey, err error) {
 type apiKeyContext struct{}
 
 func WithAPIKeyTenant(ctx context.Context, k APIKey) context.Context {
-	return context.WithValue(WithTenant(ctx, k.CreatedBy, k.OrganizationID), apiKeyContext{}, k.ID)
+	return context.WithValue(WithTenant(ctx, k.CreatedBy, k.OrganizationID), apiKeyContext{}, k)
 }
 func ValidAPIKeyScopes(scopes []string) bool {
 	if len(scopes) == 0 || len(scopes) > 11 {
@@ -98,6 +98,28 @@ func (s *Store) CreateAPIKey(ctx context.Context, name, hash, prefix string, sco
 	}
 	return k, tx.Commit(ctx)
 }
+func (s *Store) UpdateAPIKeyScopes(ctx context.Context, id string, scopes []string) (APIKey, error) {
+	if _, ok := ctx.Value(apiKeyContext{}).(APIKey); ok {
+		return APIKey{}, ErrForbidden
+	}
+	if !ValidAPIKeyScopes(scopes) {
+		return APIKey{}, ErrInvalid
+	}
+	tx, _, err := s.tenantTx(ctx, true, true)
+	if err != nil {
+		return APIKey{}, err
+	}
+	defer tx.Rollback(ctx)
+	k, err := scanKey(tx.QueryRow(ctx, "UPDATE api_keys SET scopes=$2 WHERE id=$1 AND organization_id=request_org_id() AND revoked_at IS NULL AND expires_at>clock_timestamp() RETURNING "+keyColumns, id, scopes))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return APIKey{}, ErrNotFound
+	}
+	if err != nil {
+		return APIKey{}, err
+	}
+	return k, tx.Commit(ctx)
+}
+
 func (s *Store) RevokeAPIKey(ctx context.Context, id string) error {
 	tx, _, err := s.tenantTx(ctx, true, true)
 	if err != nil {

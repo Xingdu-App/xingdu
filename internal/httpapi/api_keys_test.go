@@ -32,6 +32,7 @@ func TestAPIKeyScopeAllowlist(t *testing.T) {
 		{"POST", "/api/v1/hosts/" + host + "/deployments/" + node + "/restart", "nodes:write"},
 		{"DELETE", "/api/v1/hosts/" + host + "/deployments/" + node, "nodes:write"},
 		{"POST", "/api/v1/hosts/" + host + "/deployments/" + node + "/connection", "nodes:credentials"},
+		{"PATCH", "/api/v1/api-keys/" + storage.NewID("key"), ""},
 		{"GET", "/api/v1/api-keys", ""}, {"POST", "/api/v1/auth/logout", ""},
 		{"POST", "/api/v1/hosts/" + host + "/ssh", ""}, {"GET", "/api/v1/hosts/../api-keys", ""},
 		{"GET", "/api/v1/hosts/", ""}, {"POST", "/api/v1/agent/enroll", ""},
@@ -164,6 +165,28 @@ func TestAPIKeyManagementAndIsolation(t *testing.T) {
 	if err = s.RevokeAPIKey(storage.WithTenant(ctx, other, otherOrg), key.ID); err == nil {
 		t.Fatal("cross tenant revoke succeeded")
 	}
+	// Scope changes preserve the secret and apply to subsequent requests.
+	path := "/api/v1/api-keys/" + key.ID
+	assert(call("PATCH", path, `{"scopes":[]}`, "", true, nil), 400)
+	assert(call("PATCH", path, `{"scopes":["unknown"]}`, "", true, nil), 400)
+	assert(call("PATCH", path, `{"scopes":["hosts:read","hosts:read"]}`, "", true, nil), 400)
+	assert(call("PATCH", path, `{"scopes":["hosts:read"]}`, "", true, map[string]string{"X-CSRF-Token": ""}), 403)
+	assert(call("PATCH", path, `{"scopes":["hosts:read"]}`, secret, false, nil), 403)
+	if _, err = s.UpdateAPIKeyScopes(storage.WithTenant(ctx, other, otherOrg), key.ID, []string{"hosts:read"}); err != storage.ErrNotFound {
+		t.Fatalf("cross tenant scope update: %v", err)
+	}
+	w = call("PATCH", path, `{"scopes":["hosts:read"]}`, "", true, nil)
+	assert(w, 200)
+	if strings.Contains(w.Body.String(), secret) || strings.Contains(w.Body.String(), hash) {
+		t.Fatal("update disclosed credential")
+	}
+	assert(call("GET", "/api/v1/nodes", "", secret, false, nil), 403)
+	assert(call("GET", "/api/v1/hosts", "", secret, false, nil), 200)
+	if _, err = s.Hosts(storage.WithAPIKeyTenant(ctx, key)); err != storage.ErrForbidden {
+		t.Fatalf("stale scopes accepted: %v", err)
+	}
+	assert(call("PATCH", path, `{"scopes":["hosts:read","nodes:read"]}`, "", true, nil), 200)
+	assert(call("GET", "/api/v1/nodes", "", secret, false, nil), 200)
 	writer, writeSecret := create(`["hosts:read","hosts:write","nodes:write"]`)
 	payload := `{"name":"API host","address":"vps.example.com","ssh_port":22,"ssh_user":"root","tags":[],"notes":""}`
 	w = call("POST", "/api/v1/hosts", payload, writeSecret, false, nil)
@@ -180,6 +203,7 @@ func TestAPIKeyManagementAndIsolation(t *testing.T) {
 	assert(call("DELETE", "/api/v1/hosts/"+host.Data.ID, "{}", writeSecret, false, nil), 204)
 	assert(call("DELETE", "/api/v1/api-keys/"+writer.ID, "", "", true, nil), 204)
 	assert(call("GET", "/api/v1/hosts", "", writeSecret, false, nil), 401)
+	assert(call("PATCH", "/api/v1/api-keys/"+writer.ID, `{"scopes":["hosts:read"]}`, "", true, nil), 404)
 	// An already authenticated context must also fail once revocation commits.
 	if _, err = s.Hosts(storage.WithAPIKeyTenant(ctx, writer)); err != storage.ErrForbidden {
 		t.Fatalf("stale principal accepted: %v", err)
@@ -204,12 +228,16 @@ func TestAPIKeyManagementAndIsolation(t *testing.T) {
 	if _, err = s.Hosts(storage.WithAPIKeyTenant(ctx, adminKey)); err != storage.ErrForbidden {
 		t.Fatalf("stale downgraded principal: %v", err)
 	}
+	if _, err = s.UpdateAPIKeyScopes(storage.WithTenant(ctx, other, org), key.ID, []string{"hosts:read"}); err != storage.ErrForbidden {
+		t.Fatalf("member updated scopes: %v", err)
+	}
 	if _, err = s.CreateAPIKey(storage.WithTenant(ctx, other, org), "Denied", tokenHash("denied"), "test", []string{"hosts:read"}, time.Now().Add(time.Hour)); err != storage.ErrForbidden {
 		t.Fatalf("member created key: %v", err)
 	}
 	if _, err = owner.Pool.Exec(ctx, "UPDATE api_keys SET expires_at=now()-interval '1 minute' WHERE id=$1", key.ID); err != nil {
 		t.Fatal(err)
 	}
+	assert(call("PATCH", path, `{"scopes":["hosts:read"]}`, "", true, nil), 404)
 	assert(call("GET", "/api/v1/hosts", "", secret, false, nil), 401)
 	var used *time.Time
 	if err = owner.Pool.QueryRow(ctx, "SELECT last_used_at FROM api_keys WHERE id=$1", key.ID).Scan(&used); err != nil || used == nil {

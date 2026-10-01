@@ -3,7 +3,7 @@
 API v1 supports organization-scoped automation for server inventory and managed
 nodes. Open **API 密钥 / API keys** in the console sidebar
 (`/app/api-keys?organization=org_...`). Only owners and administrators can
-create, list or revoke keys. The dedicated console reference is available at
+create, list, edit scopes or revoke keys. The dedicated console reference is available at
 `/app/api-docs`. A key belongs to its issuing user and organization.
 
 ## Authentication and lifecycle
@@ -15,6 +15,13 @@ create, list or revoke keys. The dedicated console reference is available at
   The database stores SHA-256 hashes and a short display prefix.
 - Expiration is required: 1–365 days; the UI defaults to 90 days. An organization
   can have up to 50 unexpired, unrevoked keys.
+- Edit an active key's scopes in the console without rotating its secret. The
+  browser-only `PATCH /api/v1/api-keys/{id}` accepts `{"scopes":["hosts:read"]}`
+  and returns key metadata without the secret or hash. Owner/admin access,
+  organization scope and CSRF validation are required; bearer keys cannot
+  call this endpoint. Empty, duplicate or unknown scopes are rejected, and
+  expired or revoked keys cannot be edited. Changes apply to subsequent
+  requests; already queued jobs are not cancelled.
 - Revoke a key in the console to disable subsequent requests. In-flight remote
   jobs already queued are not cancelled. Rotate by creating a replacement,
   updating your script, then revoking the old key.
