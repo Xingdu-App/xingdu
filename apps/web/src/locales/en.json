@@ -1156,5 +1156,11 @@
   "通过 DNS 委托自动签发和续期；签发完成后，将证书应用到对应节点。": "Issue and renew certificates through DNS delegation, then apply them to the relevant nodes.",
   "验证并签发": "Verify and issue",
   "证书超出当前套餐配额，签发和续期已暂停。请移除多余证书或升级套餐。": "Issuance and renewal are paused because this certificate exceeds your plan quota. Remove excess certificates or upgrade.",
-  "签发任务多次中断，自动重试已停止。请联系运营者检查后重试。": "Issuance was interrupted repeatedly. Automatic retries have stopped. Ask the operator to investigate, then retry."
+  "签发任务多次中断，自动重试已停止。请联系运营者检查后重试。": "Issuance was interrupted repeatedly. Automatic retries have stopped. Ask the operator to investigate, then retry.",
+  "系统信息": "System information",
+  "暂无系统信息": "No system information yet",
+  "内存": "Memory",
+  "负载（1 分钟）": "Load (1 min)",
+  "最后上报的数据": "Last reported data",
+  "{0} 核": "{0} cores"
 }

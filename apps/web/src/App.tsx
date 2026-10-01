@@ -1,5 +1,6 @@
 import { ConsoleAnalytics } from "./MarketingAnalytics";
 import HostCountry from "./HostCountry";
+import HostSystem from "./HostSystem";
 import { TableSkeleton } from "./LoadingSkeleton";
 import RoutePanel from "./RoutePanel";
 import APIDocsPage from "./APIDocsPage";
@@ -381,7 +382,8 @@ function App({
                   <TableSkeleton
                     headers={[
                       t("名称"),
-                      t("地址 / SSH"),
+                      t("地址"),
+                      t("系统信息"),
                       t("标签"),
                       t("状态"),
                       t("Agent 版本"),
@@ -395,7 +397,8 @@ function App({
                         <thead>
                           <tr>
                             <th>{t("名称")}</th>
-                            <th>{t("地址 / SSH")}</th>
+                            <th>{t("地址")}</th>
+                            <th>{t("系统信息")}</th>
                             <th>{t("标签")}</th>
                             <th>{t("状态")}</th>
                             <th>{t("Agent 版本")}</th>
@@ -418,9 +421,9 @@ function App({
                                   {host.address}
                                 </span>
                                 <HostCountry code={host.country_code} />
-                                <small className="host-note">
-                                  {host.ssh_user} · {host.ssh_port}
-                                </small>
+                              </td>
+                              <td>
+                                <HostSystem host={host} />
                               </td>
                               <td>
                                 <div className="host-tags">
@@ -502,9 +505,7 @@ function App({
                           <p className="host-card-ssh">
                             {t("Agent 版本")} · {host.agent_version || "—"}
                           </p>
-                          <p className="host-card-ssh">
-                            SSH · {host.ssh_user} · {host.ssh_port}
-                          </p>
+                          <HostSystem host={host} />
                           {host.notes && (
                             <p className="host-card-notes">{host.notes}</p>
                           )}

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	"xingdu.app/xingdu/internal/machine"
 )
 
 type Input struct {
@@ -20,10 +21,11 @@ type Input struct {
 type Host struct {
 	ID string `json:"id"`
 	Input
-	Status       string     `json:"status"`
-	LastSeenAt   *time.Time `json:"last_seen_at"`
-	CountryCode  string     `json:"country_code,omitempty"`
-	AgentVersion *string    `json:"agent_version"`
+	Status       string           `json:"status"`
+	LastSeenAt   *time.Time       `json:"last_seen_at"`
+	CountryCode  string           `json:"country_code,omitempty"`
+	AgentVersion *string          `json:"agent_version"`
+	Metrics      *machine.Metrics `json:"metrics"`
 }
 
 var label = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)

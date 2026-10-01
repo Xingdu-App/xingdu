@@ -14,6 +14,7 @@ export type Host = HostInput & {
   status: "pending" | "online" | "offline";
   last_seen_at: string | null;
   agent_version: string | null;
+  metrics?: MachineMetrics | null;
 };
 export type Session = { id: string; username: string; csrf_token: string };
 export type System = {

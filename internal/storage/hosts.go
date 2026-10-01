@@ -6,13 +6,13 @@ import (
 	"xingdu.app/xingdu/internal/hosts"
 )
 
-const hostColumns = "id::text,name,address,ssh_port,ssh_user,tags,notes,CASE WHEN status='online' AND last_seen_at<now()-interval '90 seconds' THEN 'offline' ELSE status END,last_seen_at,(SELECT NULLIF(btrim(a.metrics->>'version'),'') FROM machine_agents a WHERE a.host_id=hosts.id AND a.organization_id=hosts.organization_id AND a.revoked_at IS NULL)"
+const hostColumns = "id::text,name,address,ssh_port,ssh_user,tags,notes,CASE WHEN status='online' AND last_seen_at<now()-interval '90 seconds' THEN 'offline' ELSE status END,last_seen_at,(SELECT NULLIF(btrim(a.metrics->>'version'),'') FROM machine_agents a WHERE a.host_id=hosts.id AND a.organization_id=hosts.organization_id AND a.revoked_at IS NULL),(SELECT a.metrics FROM machine_agents a WHERE a.host_id=hosts.id AND a.organization_id=hosts.organization_id AND a.revoked_at IS NULL)"
 
 type scanner interface{ Scan(...any) error }
 
 func scanHost(row scanner) (Host, error) {
 	var h Host
-	err := row.Scan(&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.Tags, &h.Notes, &h.Status, &h.LastSeenAt, &h.AgentVersion)
+	err := row.Scan(&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.Tags, &h.Notes, &h.Status, &h.LastSeenAt, &h.AgentVersion, &h.Metrics)
 	if err == nil {
 		h.CountryCode = geoip.Country(h.Address)
 	}
