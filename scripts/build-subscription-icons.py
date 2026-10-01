@@ -27,10 +27,11 @@ for name, spec in manifest["groups"].items():
     else:
         glyph = ET.fromstring((root / "source" / spec["source"]).read_text().replace("currentColor", spec["color"]))
         # Keep upstream shapes, aspect ratio, paths and multicolor gradients.
-        glyph.set("x", "26")
-        glyph.set("y", "26")
-        glyph.set("width", "76")
-        glyph.set("height", "76")
+        # Leave a small transparent margin instead of a padded tile.
+        glyph.set("x", "10")
+        glyph.set("y", "10")
+        glyph.set("width", "108")
+        glyph.set("height", "108")
         glyph.set("preserveAspectRatio", "xMidYMid meet")
         if spec["style"] == "brand":
             glyph.set("fill", spec["color"])
@@ -38,7 +39,6 @@ for name, spec in manifest["groups"].items():
             glyph.set("stroke", spec["color"])
             glyph.set("stroke-width", "1.8")
         svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-<rect x="3" y="3" width="122" height="122" rx="30" fill="{spec['background']}" stroke="#e2e8f0" stroke-width="1.5"/>
 {ET.tostring(glyph, encoding='unicode')}
 </svg>'''
     (root / (name + ".svg")).write_text(svg + "\n")
