@@ -8,8 +8,9 @@ Docker 镜像将同一版本注入 API、Worker 与 Agent；直接 `go run` 保�
 ## 源码与发布包的边界
 
 同一个 VERSION 下仍可能有 tag 之后的新提交。判断发布包包含哪些功能，
-须核对 tag 指向的源码提交，不能只看版本文本。当前 `agent-v0.14.0-rc.1`
-之后加入的 SELinux 修复尚需新版本发布；新功能验收与旧包可用性分开记录。
+须核对 tag 指向的源码提交，不能只看版本文本。`agent-v0.14.0-rc.1` 不包含后续的 SELinux 修复和 TrustTunnel 支持。
+本次候选版本 `agent-v0.15.0-rc.1` 包含这些改动；发布完成状态以 GitHub Release
+和对应工作流为准，新功能验收与旧包可用性分开记录。
 不要覆盖已公开的包或重复使用同一个 tag，见 [功能状态](IMPLEMENTATION-STATUS.md)。
 
 ## 发布步骤

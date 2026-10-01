@@ -54,7 +54,7 @@
 ### TrustTunnel 开发状态（2026-10-01）
 
 源码新增 TrustTunnel endpoint 1.1.0（HTTP/2）、独立运行时下载与摘要校验、
-节点生命周期、证书管理和 Stash 订阅导出。最低 Agent 0.15.0-dev，尚未发布 Agent。
+节点生命周期、证书管理和 Stash 订阅导出。最低 Agent 0.15.0-dev；候选发布版本为 0.15.0-rc.1，发布状态以 GitHub Release 为准。
 仅新增客户端协议适配，不依赖 Stash 服务端组件。HTTP/3、中转、自动探测和 SELinux
 主机暂不支持；实际验收脚本和范围见 [协议部署](PROTOCOL-DEPLOYMENT.md#trusttunnel)。
 

@@ -101,7 +101,14 @@ jobs:
           Build provenance is available with `gh attestation verify BINARY --repo Xingdu-App/xingdu`.
 
           The Agent supports enrollment, telemetry, managed protocol tasks and administrator-triggered upgrades.
-          This release also includes actionable SSH installation failure diagnostics in the matching control-plane source.
+          This candidate adds managed TrustTunnel nodes using the pinned official endpoint, HTTP/2 TCP/UDP forwarding,
+          certificate management and Stash exports with h2 ALPN and certificate pinning. It also includes the SELinux
+          deployment repairs added after 0.14.0-rc.1 for the existing sing-box runtime.
+
+          TrustTunnel requires a working systemd cgroup BPF egress filter. HTTP/3, relays, automated probes and
+          TrustTunnel on SELinux hosts are not supported in this candidate. Local Ubuntu arm64 endpoint and macOS
+          Stash core acceptance covered forwarding, authentication/TLS rejection, destination blocking and lifecycle
+          operations; this is not mobile App, public VPS or amd64 forwarding verification.
           Deploy the API and Worker from the same tag to keep upgrade versions and artifacts aligned.
 
           Prerelease tags are release candidates, not a claim of production readiness.
