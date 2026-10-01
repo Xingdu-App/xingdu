@@ -176,18 +176,7 @@ function App({
       <aside className="sidebar">
         <a
           className="brand"
-          href={scopedPagePath("overview")}
-          onClick={(event) => {
-            if (
-              event.metaKey ||
-              event.ctrlKey ||
-              event.shiftKey ||
-              event.altKey
-            )
-              return;
-            event.preventDefault();
-            setPage("overview");
-          }}
+          href="/"
           aria-label={t("星渡首页")}
         >
           <img className="brand-logo" src="/xingdu-logo.png" alt="" />
