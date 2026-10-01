@@ -269,6 +269,15 @@ These are format mappings, not a record of real-app display acceptance.
 | `DELETE /api/v1/certificates/{id}` | 停止管理、删除托管密文，保留域名墓碑 | `certificates:write` |
 | `POST /api/v1/certificates/{id}/apply` | `{ "host_id": "srv_…", "node_id": "node_…", "confirm": true }`，更新 TLS 域名及证书并排队 Agent 任务 | 仅浏览器组织会话 |
 
+新建 TLS 节点时，`POST /api/v1/hosts/{srv_id}/deployments` 可提交
+`certificate_id`，例如
+`{ "name": "Tokyo Trojan", "protocol": "trojan", "port": 8443,
+"certificate_id": "cert_…", "confirm_install": true }`。
+此方式要求 API Key 同时具有 `nodes:write` 和 `certificates:write`，
+服务端注入证书与私钥，并自动使用证书域名作为 `server_name`。
+不要同时提交 PEM；只接受有效正式证书，平台域名必须绑定目标机器。
+部署排队事务会再次校验证书、付费资格及配额；私钥不会出现在响应中。
+
 列表包含 `id/domain/validation_target/platform/host_id/state/expires_at/error_code/directory`，
 绝不包含 PEM 私钥、证书密文或 CA 账户。`directory` 用于识别正式/测试 CA。
 平台域名仅应用到绑定机器，测试 CA 证书不能应用。`202` 仅表示排队，最终结果

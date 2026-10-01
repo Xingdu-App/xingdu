@@ -109,7 +109,8 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		}
 		var in struct {
 			protocol.Input
-			ConfirmInstall bool `json:"confirm_install"`
+			ConfirmInstall bool   `json:"confirm_install"`
+			CertificateID  string `json:"certificate_id"`
 		}
 		if !decodeLimit(w, r, &in, 64*1024) {
 			return
@@ -118,17 +119,28 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			failure(w, 422, "confirmation_required", "请确认在服务器安装协议服务")
 			return
 		}
+		var managed *storage.ManagedCertificate
+		if in.CertificateID != "" {
+			var ok bool
+			managed, ok = a.deploymentCertificate(w, r, in.CertificateID, &in.Input)
+			if !ok {
+				return
+			}
+		}
 		spec, err := protocol.NewSpec(in.Input)
 		if err != nil {
 			failure(w, 422, "invalid_deployment", "协议、端口、TLS 域名或证书与私钥无效")
 			return
 		}
 		d := storage.Deployment{ID: storage.NewID("node"), OperationID: storage.NewID("op"), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
+		if managed != nil {
+			d.CertificateID, d.CertificateCipher = managed.ID, managed.Encrypted
+		}
 		plain, _ := json.Marshal(spec)
 		d.Encrypted = a.vault.Seal(plain, deploymentAAD(storage.TenantOrg(r.Context()), d.HostID, d.ID))
 		clear(plain)
 		if err = a.store.QueueDeployment(r.Context(), d); err != nil {
-			storeError(w, err)
+			certificateError(w, err)
 			return
 		}
 		reply(w, 202, map[string]any{"data": map[string]string{"id": d.ID, "state": "queued"}})

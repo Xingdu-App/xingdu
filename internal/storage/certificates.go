@@ -12,6 +12,20 @@ import (
 var ErrCertificatePaid = errors.New("certificate paid subscription required")
 var ErrCertificateQuota = errors.New("certificate quota exceeded")
 
+func validateDeploymentCertificate(ctx context.Context, tx pgx.Tx, d Deployment) error {
+	if err := certificateEntitlement(ctx, tx, d.CertificateID); err != nil {
+		return err
+	}
+	var valid bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM managed_certificates WHERE id=$1 AND state<>'deleted' AND domain=$2 AND encrypted=$3 AND expires_at>now() AND directory=$4 AND (NOT platform OR host_id=$5))`, d.CertificateID, d.ServerName, d.CertificateCipher, certificates.Production, d.HostID).Scan(&valid); err != nil {
+		return err
+	}
+	if !valid {
+		return ErrConflict
+	}
+	return nil
+}
+
 type ManagedCertificate struct {
 	Platform         bool       `json:"platform"`
 	HostID           string     `json:"host_id,omitempty"`

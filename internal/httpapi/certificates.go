@@ -31,6 +31,55 @@ func certificateError(w http.ResponseWriter, err error) {
 	}
 	storeError(w, err)
 }
+
+// Resolve managed material inside the tenant boundary; never return its key.
+func (a *api) deploymentCertificate(w http.ResponseWriter, r *http.Request, id string, in *protocol.Input) (*storage.ManagedCertificate, bool) {
+	if k, ok := r.Context().Value(apiPrincipal{}).(storage.APIKey); ok {
+		allowed := false
+		for _, scope := range k.Scopes {
+			allowed = allowed || scope == "certificates:write"
+		}
+		if !allowed {
+			failure(w, 403, "insufficient_scope", "托管证书部署还需要 certificates:write 权限")
+			return nil, false
+		}
+	}
+	if !resourceid.Valid("cert", id) || !protocol.RequiresTLS(in.Protocol) || in.Certificate != "" || in.PrivateKey != "" {
+		failure(w, 422, "invalid_certificate", "请选择 TLS 协议及托管证书，不要同时提交 PEM")
+		return nil, false
+	}
+	s, ok := a.store.(CertificateStore)
+	if !ok || a.vault == nil {
+		failure(w, 503, "certificates_unavailable", "证书管理不可用")
+		return nil, false
+	}
+	c, err := s.CertificateSecret(r.Context(), id)
+	if err != nil {
+		certificateError(w, err)
+		return nil, false
+	}
+	if c.Platform && c.HostID != r.PathValue("id") {
+		failure(w, 422, "host_mismatch", "平台域名只能应用到绑定服务器")
+		return nil, false
+	}
+	if in.ServerName != "" && in.ServerName != c.Domain {
+		failure(w, 422, "invalid_certificate", "TLS 域名必须与托管证书一致")
+		return nil, false
+	}
+	plain, err := a.vault.Open(c.Encrypted, storage.CertificateAAD(storage.TenantOrg(r.Context()), c.ID))
+	if err != nil {
+		failure(w, 503, "certificate_unavailable", "证书解密不可用")
+		return nil, false
+	}
+	defer clear(plain)
+	var bundle certificates.Bundle
+	if json.Unmarshal(plain, &bundle) != nil || bundle.Directory != certificates.Production {
+		failure(w, 422, "test_certificate", "测试 CA 证书不能应用到节点，请先签发正式证书")
+		return nil, false
+	}
+	in.ServerName, in.Certificate, in.PrivateKey = c.Domain, bundle.Certificate, bundle.PrivateKey
+	return &c, true
+}
 func (a *api) certificateRoutes(mux *http.ServeMux, cfg certificates.ManagedConfig) {
 	// Optional interface keeps existing adapters usable; production Store implements it.
 	get := func(w http.ResponseWriter) (CertificateStore, bool) {

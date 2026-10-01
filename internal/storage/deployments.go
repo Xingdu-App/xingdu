@@ -112,6 +112,11 @@ func (s *Store) QueueDeployment(ctx context.Context, d Deployment) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if d.CertificateID != "" {
+		if err = validateDeploymentCertificate(ctx, tx, d); err != nil {
+			return err
+		}
+	}
 	hash, err := managingAgent(ctx, tx, d.HostID, protocol.MinimumAgentVersion(d.Protocol))
 	if err != nil {
 		return err
@@ -125,6 +130,11 @@ func (s *Store) QueueDeployment(ctx context.Context, d Deployment) error {
 	}
 	if err = audit(ctx, tx, d.HostID, "protocol_deploy_queued"); err != nil {
 		return err
+	}
+	if d.CertificateID != "" {
+		if err = certificateAudit(ctx, tx, d.CertificateID, "certificate_deploy_queued"); err != nil {
+			return err
+		}
 	}
 	return tx.Commit(ctx)
 }

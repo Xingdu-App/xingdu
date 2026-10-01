@@ -161,6 +161,50 @@ func TestCertificatePaidQuotaIsolationAndLeases(t *testing.T) {
 	if err = s.finishCertificate(tenant, claimed, []byte("encrypted-fixture"), &expiry, ""); err != nil {
 		t.Fatal(err)
 	}
+	// Recheck managed material in the deployment transaction, including binding,
+	// tenant isolation and replacement between resolution and queueing.
+	if _, err = admin.Pool.Exec(ctx, `UPDATE managed_certificates SET directory=$2,platform=true,host_id=$3 WHERE id=$1`, c.ID, certificates.Production, publicHost.ID); err != nil {
+		t.Fatal(err)
+	}
+	bound := Deployment{CertificateID: c.ID, ServerName: c.Domain, CertificateCipher: []byte("encrypted-fixture"), HostID: publicHost.ID}
+	if err = s.EnsureBilling(foreign); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.MutateBilling(foreign, "", "", func(r *billing.Record) error {
+		r.Status, r.Plan, r.PeriodEnd = "active", "start", time.Now().Add(time.Hour).Unix()
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name   string
+		ctx    context.Context
+		change func(*Deployment)
+		want   error
+	}{
+		{"valid", tenant, func(*Deployment) {}, nil},
+		{"foreign tenant", foreign, func(*Deployment) {}, ErrNotFound},
+		{"wrong host", tenant, func(d *Deployment) { d.HostID = privateHost.ID }, ErrConflict},
+		{"replaced material", tenant, func(d *Deployment) { d.CertificateCipher = []byte("stale") }, ErrConflict},
+		{"wrong domain", tenant, func(d *Deployment) { d.ServerName = "other.example.com" }, ErrConflict},
+	} {
+		t.Run("deployment certificate "+tc.name, func(t *testing.T) {
+			tx, _, e := s.tenantTx(tc.ctx, true, true)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer tx.Rollback(tc.ctx)
+			d := bound
+			tc.change(&d)
+			e = validateDeploymentCertificate(tc.ctx, tx, d)
+			if !errors.Is(e, tc.want) {
+				t.Fatalf("got %v want %v", e, tc.want)
+			}
+		})
+	}
+	if _, err = admin.Pool.Exec(ctx, `UPDATE managed_certificates SET directory=$2,platform=false,host_id=NULL WHERE id=$1`, c.ID, certificates.Staging); err != nil {
+		t.Fatal(err)
+	}
 	list, _, err = s.Certificates(tenant)
 	if err != nil {
 		t.Fatal(err)
