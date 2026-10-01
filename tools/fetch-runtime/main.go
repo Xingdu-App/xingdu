@@ -36,102 +36,112 @@ func run(output, cache string) error {
 	if err := os.MkdirAll(output, 0755); err != nil {
 		return err
 	}
-	for _, arch := range []string{"amd64", "arm64"} {
-		destination := filepath.Join(output, "sing-box-linux-"+arch)
-		if b, e := os.ReadFile(destination); e == nil && matches(b, protocol.RuntimeSHA256[arch]) {
-			if license, e := os.ReadFile(filepath.Join(output, "sing-box-LICENSE")); e == nil && len(license) > 0 {
-				continue
+	for _, family := range []string{"sing-box", "trusttunnel"} {
+		for _, arch := range []string{"amd64", "arm64"} {
+			version, hashes, archives := protocol.RuntimeVersion, protocol.RuntimeSHA256, protocol.RuntimeArchiveSHA256
+			name := "sing-box-" + version + "-linux-" + arch
+			binaryName, repo := "sing-box", "SagerNet/sing-box"
+			if family == "trusttunnel" {
+				version, hashes, archives = protocol.TrustTunnelVersion, protocol.TrustTunnelSHA256, protocol.TrustTunnelArchiveSHA256
+				upstreamArch := map[string]string{"amd64": "x86_64", "arm64": "aarch64"}[arch]
+				name = "trusttunnel-v" + version + "-linux-" + upstreamArch
+				binaryName, repo = "trusttunnel_endpoint", "TrustTunnel/TrustTunnel"
 			}
-		}
-		name := "sing-box-" + protocol.RuntimeVersion + "-linux-" + arch
-		var archive []byte
-		if cache != "" {
-			archive, _ = os.ReadFile(filepath.Join(cache, name+".tar.gz"))
-		}
-		if len(archive) == 0 {
-			client := http.Client{Timeout: 3 * time.Minute, CheckRedirect: func(r *http.Request, via []*http.Request) error {
-				if r.URL.Scheme != "https" || len(via) > 5 {
-					return errors.New("unsafe runtime redirect")
+			destination := filepath.Join(output, family+"-linux-"+arch)
+			if b, e := os.ReadFile(destination); e == nil && matches(b, hashes[arch]) {
+				if license, e := os.ReadFile(filepath.Join(output, family+"-LICENSE")); e == nil && len(license) > 0 {
+					continue
 				}
-				return nil
-			}}
-			response, err := client.Get("https://github.com/SagerNet/sing-box/releases/download/v" + protocol.RuntimeVersion + "/" + name + ".tar.gz")
-			if err != nil {
-				return errors.New("runtime download failed")
 			}
-			if response.StatusCode != 200 {
+			var archive []byte
+			if cache != "" {
+				archive, _ = os.ReadFile(filepath.Join(cache, name+".tar.gz"))
+			}
+			if len(archive) == 0 {
+				client := http.Client{Timeout: 3 * time.Minute, CheckRedirect: func(r *http.Request, via []*http.Request) error {
+					if r.URL.Scheme != "https" || len(via) > 5 {
+						return errors.New("unsafe runtime redirect")
+					}
+					return nil
+				}}
+				response, err := client.Get("https://github.com/" + repo + "/releases/download/v" + version + "/" + name + ".tar.gz")
+				if err != nil {
+					return errors.New("runtime download failed")
+				}
+				if response.StatusCode != 200 {
+					response.Body.Close()
+					return errors.New("runtime download rejected")
+				}
+				archive, err = io.ReadAll(io.LimitReader(response.Body, 128<<20))
 				response.Body.Close()
-				return errors.New("runtime download rejected")
+				if err != nil {
+					return err
+				}
 			}
-			archive, err = io.ReadAll(io.LimitReader(response.Body, 128<<20))
-			response.Body.Close()
+			if !matches(archive, archives[arch]) {
+				return errors.New("runtime archive checksum mismatch: " + arch)
+			}
+			gz, err := gzip.NewReader(bytes.NewReader(archive))
 			if err != nil {
 				return err
 			}
-		}
-		if !matches(archive, protocol.RuntimeArchiveSHA256[arch]) {
-			return errors.New("runtime archive checksum mismatch: " + arch)
-		}
-		gz, err := gzip.NewReader(bytes.NewReader(archive))
-		if err != nil {
-			return err
-		}
-		tr := tar.NewReader(gz)
-		var binary, license []byte
-		for {
-			h, err := tr.Next()
-			if err == io.EOF {
-				break
+			tr := tar.NewReader(gz)
+			var binary, license []byte
+			for {
+				h, err := tr.Next()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					gz.Close()
+					return err
+				}
+				if h.Name != name+"/"+binaryName && h.Name != name+"/LICENSE" {
+					continue
+				}
+				if h.Typeflag != tar.TypeReg || h.Size <= 0 || h.Size > 128<<20 {
+					gz.Close()
+					return errors.New("invalid runtime archive member")
+				}
+				data, err := io.ReadAll(io.LimitReader(tr, 128<<20))
+				if err != nil {
+					gz.Close()
+					return err
+				}
+				if h.Name == name+"/"+binaryName {
+					binary = data
+				} else {
+					license = data
+				}
 			}
-			if err != nil {
-				gz.Close()
+			gz.Close()
+			if !matches(binary, hashes[arch]) || len(license) == 0 {
+				return errors.New("runtime binary checksum or license missing: " + arch)
+			}
+			if err = os.WriteFile(filepath.Join(output, family+"-LICENSE"), license, 0644); err != nil {
 				return err
 			}
-			if h.Name != name+"/sing-box" && h.Name != name+"/LICENSE" {
-				continue
-			}
-			if h.Typeflag != tar.TypeReg || h.Size <= 0 || h.Size > 128<<20 {
-				gz.Close()
-				return errors.New("invalid runtime archive member")
-			}
-			data, err := io.ReadAll(io.LimitReader(tr, 128<<20))
+			f, err := os.CreateTemp(output, ".runtime-*")
 			if err != nil {
-				gz.Close()
 				return err
 			}
-			if h.Name == name+"/sing-box" {
-				binary = data
-			} else {
-				license = data
+			tmp := f.Name()
+			_, err = f.Write(binary)
+			if err == nil {
+				err = f.Chmod(0755)
 			}
+			if ce := f.Close(); err == nil {
+				err = ce
+			}
+			if err == nil {
+				err = os.Rename(tmp, destination)
+			}
+			os.Remove(tmp)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Verified " + family + " " + version + " linux/" + arch)
 		}
-		gz.Close()
-		if !matches(binary, protocol.RuntimeSHA256[arch]) || len(license) == 0 {
-			return errors.New("runtime binary checksum or license missing: " + arch)
-		}
-		if err = os.WriteFile(filepath.Join(output, "sing-box-LICENSE"), license, 0644); err != nil {
-			return err
-		}
-		f, err := os.CreateTemp(output, ".runtime-*")
-		if err != nil {
-			return err
-		}
-		tmp := f.Name()
-		_, err = f.Write(binary)
-		if err == nil {
-			err = f.Chmod(0755)
-		}
-		if ce := f.Close(); err == nil {
-			err = ce
-		}
-		if err == nil {
-			err = os.Rename(tmp, destination)
-		}
-		os.Remove(tmp)
-		if err != nil {
-			return err
-		}
-		fmt.Println("Verified sing-box " + protocol.RuntimeVersion + " linux/" + arch)
 	}
 	return nil
 }

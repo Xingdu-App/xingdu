@@ -29,6 +29,7 @@ type protocolExecutor struct {
 	run                          func(context.Context, string, ...string) error
 	output                       func(context.Context, string, ...string) ([]byte, error)
 	selinuxEnforcePath           string
+	egressFilter                 func(string) bool
 	root                         bool
 	arch                         string
 	client                       *http.Client
@@ -71,7 +72,10 @@ func atomicProtocolFile(path string, b []byte, mode os.FileMode) error {
 	return os.Rename(f.Name(), path)
 }
 func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error) {
-	expected, ok := protocol.RuntimeSHA256[x.arch]
+	return x.runtimeBinary(ctx, c, "sing-box", protocol.RuntimeVersion, protocol.RuntimeLicense, protocol.RuntimeSHA256, "/api/v1/agent/runtime/")
+}
+func (x *protocolExecutor) runtimeBinary(ctx context.Context, c Config, name, version, license string, hashes map[string]string, route string) (string, error) {
+	expected, ok := hashes[x.arch]
 	if !ok {
 		return "", errors.New("unsupported runtime architecture")
 	}
@@ -93,7 +97,7 @@ func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error)
 	if err := os.Chmod(x.binaryDir, 0755); err != nil {
 		return "", err
 	}
-	licensePath := filepath.Join(x.binaryDir, "sing-box-LICENSE")
+	licensePath := filepath.Join(x.binaryDir, name+"-LICENSE")
 	if st, e := os.Lstat(licensePath); e == nil {
 		if !st.Mode().IsRegular() || st.Mode().Perm()&0022 != 0 {
 			return "", errors.New("unsafe runtime license path")
@@ -101,10 +105,10 @@ func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error)
 	} else if !os.IsNotExist(e) {
 		return "", e
 	}
-	if err := atomicProtocolFile(licensePath, []byte(protocol.RuntimeLicense), 0644); err != nil {
+	if err := atomicProtocolFile(licensePath, []byte(license), 0644); err != nil {
 		return "", err
 	}
-	path := filepath.Join(x.binaryDir, "sing-box-"+protocol.RuntimeVersion)
+	path := filepath.Join(x.binaryDir, name+"-"+version)
 	if st, err := os.Lstat(path); err == nil {
 		if !st.Mode().IsRegular() || st.Mode().Perm()&0022 != 0 {
 			return "", errors.New("unsafe binary")
@@ -118,7 +122,7 @@ func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error)
 		}
 		return "", errors.New("installed runtime checksum mismatch")
 	}
-	req, err := http.NewRequestWithContext(ctx, "GET", c.Server+"/api/v1/agent/runtime/"+x.arch, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", c.Server+route+x.arch, nil)
 	if err != nil {
 		return "", err
 	}
@@ -166,7 +170,7 @@ func serviceName(id string) string { return "xingdu-protocol-" + id + ".service"
 func protocolUnit(id, binary, config string) string {
 	// systemd opens the root-only file before dropping privileges. The special
 	// sing-box "stdin" path reads that descriptor without reopening /dev/stdin.
-	return fmt.Sprintf(`# Xingdu managed deployment %s
+	unit := fmt.Sprintf(`# Xingdu managed deployment %s
 [Unit]
 Description=Xingdu protocol instance
 After=network.target
@@ -196,6 +200,10 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 `, id, config, binary)
+	if strings.HasPrefix(filepath.Base(binary), "trusttunnel-") {
+		unit = strings.Replace(unit, "[Install]", "# Supplemental destination guard for cloud control-plane and multicast addresses.\nIPAddressDeny=168.63.129.16/32 224.0.0.0/4 240.0.0.0/4 ff00::/8\n[Install]", 1)
+	}
+	return unit
 }
 func portAvailable(s protocol.Spec) bool {
 	addr := fmt.Sprintf(":%d", s.Port)
@@ -253,7 +261,10 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 			return "start_failed"
 		}
 		if !x.runtimePolicyReady(ctx, t.DeploymentID) {
-			return "selinux_domain_failed"
+			if x.trustTunnelUnit(t.DeploymentID) && x.run(ctx, "systemctl", "stop", serviceName(localID)) != nil {
+				return "stop_failed"
+			}
+			return x.runtimePolicyFailure(t.DeploymentID)
 		}
 		return "restarted"
 	}
@@ -325,7 +336,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 	if err := atomicProtocolFile(marker, []byte(localID), 0600); err != nil {
 		return "write_failed"
 	}
-	binary, err := x.binary(ctx, c)
+	binary, err := x.specBinary(ctx, c, t.Spec)
 	if err != nil {
 		return "runtime_unavailable"
 	}
@@ -390,7 +401,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 		return "start_failed"
 	}
 	if !x.runtimePolicyReady(ctx, t.DeploymentID) {
-		return "selinux_domain_failed"
+		return x.runtimePolicyFailure(t.DeploymentID)
 	}
 	completed = true
 	return "deployed"

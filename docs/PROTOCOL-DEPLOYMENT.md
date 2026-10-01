@@ -1,15 +1,16 @@
 # 协议部署
 
-星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
+星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2**，TrustTunnel 使用官方 **TrustTunnel endpoint 1.1.0**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
 
 ## 协议与最低 Agent 版本
 
-以下为 15 个 API 协议选项的实现矩阵，不代表全部系统或客户端均已验收。
+以下为 16 个 API 协议选项的实现矩阵，不代表全部系统或客户端均已验收。
 最低版本来自 `internal/protocol.MinimumAgentVersion`；dev 标签表示能力门槛，
 不是建议使用未发布构建。源码与已发布产物的区别见 [功能状态](IMPLEMENTATION-STATUS.md)。
 
 | 协议（API 值） | 传输 / 认证 | 域名与证书 | 最低 Agent |
 | --- | --- | --- | --- |
+| TrustTunnel (`trusttunnel`) | HTTP/2 + TLS；用户名/密码；TCP 与 UDP-over-H2 | 自备匹配 PEM | 0.15.0-dev |
 | Shadowsocks (`shadowsocks`) | TCP；chacha20-ietf-poly1305 密码 | 无需 | 0.8.0-dev |
 | SS2022 (`shadowsocks2022`) | TCP；2022-blake3-aes-256-gcm 密钥 | 无需 | 0.8.0-dev |
 | Trojan (`trojan`) | TCP + TLS；密码 | 自备匹配 PEM | 0.7.0-dev |
@@ -217,3 +218,34 @@ Agent 测试程序验证自动策略安装、重复修复、文件标签与进�
 
 参考：[Red Hat 自定义 SELinux 策略](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/10/html/using_selinux/writing-a-custom-selinux-policy)、
 [SELinux NoNewPrivileges 域转换](https://github.com/SELinuxProject/selinux-notebook/blob/main/src/object_classes_permissions.md)。
+
+## TrustTunnel
+
+TrustTunnel 使用独立的官方 endpoint；不会被渲染为不存在的 sing-box 入站。
+只启用 HTTP/2，订阅显式导出 `alpn: [h2]`、`quic: false`、用户名 `xingdu`、
+随机密码与服务端证书指纹。UDP 在 HTTP/2 隧道内转发，服务端只需 TCP 监听端口。
+当前仅开放 Stash 导出；不支持 HTTP/3、作为中转入口/出口或 sing-box 自动探测。
+探测器跳过 TrustTunnel，不把不支持的探测记为节点故障。
+
+控制端打包 amd64/arm64 的固定上游版本，下载时校验官方归档摘要，Agent 再校验
+可执行文件摘要。Agent 的固定启动器复制到运行时目录，systemd 通过 stdin 提供
+单份 0600 JSON 修订；启动器将 TOML、凭据、证书和私钥放进密封的匿名内存文件，
+通过文件描述符传给 endpoint。私钥和密码不进入命令行、环境或上游配置检查输出。
+配置更新继续沿用原子的候选文件、回滚副本和启动检查；运行时使用 DynamicUser。
+
+endpoint 禁止私网目的地址，并对域名解析后的地址执行检查。systemd
+`IPAddressDeny` 补充阻止 Azure 平台地址、组播和保留地址；此补充限制依赖宿主机
+cgroup BPF 支持；Agent 查询服务 cgroup 的实际 egress 程序，未加载时拒绝报告部署成功并回滚。
+TrustTunnel 的 SELinux 策略尚未验收，因此检测到 SELinux 时拒绝部署该协议，
+不会禁用 SELinux 或以未受限域运行。其余协议的 SELinux 策略不变。
+
+本地完整验收入口（需要已准备好的 Agent Lab、可用节点额度及自行构建的客户端）：
+
+```sh
+python3 scripts/trusttunnel-lab.py --client /path/to/stash-core-rs --geodb-dir /path/to/mmdb
+```
+
+脚本仅升级已有 Ubuntu 测试容器中的 Agent，创建临时节点与订阅，通过回环端口桥接
+真实 endpoint；测试显式/默认 h2、TCP/UDP、错误密码/指纹/ALPN、私网阻断、
+重启、密码轮换、历史修订恢复，最后删除临时节点与订阅。测试不修改已安装 Stash App。
+这不代表 iOS/Android App、公开 VPS 或 amd64 已完成联网验收。

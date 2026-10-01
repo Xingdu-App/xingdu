@@ -34,7 +34,7 @@ func (s *Store) MachineTarget(ctx context.Context, id string) (machine.Target, e
 	return t, mapError(err)
 }
 func (s *Store) MachineState(ctx context.Context, id string) (MachineState, error) {
-	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.MinimumDeploymentVersion, RequiredAgentVersions: map[string]string{"socks": protocol.MinimumAgentVersion("socks"), "mixed": protocol.MinimumAgentVersion("mixed"), "hysteria": protocol.MinimumAgentVersion("hysteria"), "shadowtls": protocol.MinimumAgentVersion("shadowtls"), "snell": protocol.MinimumAgentVersion("snell"), "snell6": protocol.MinimumAgentVersion("snell6"), "anytls": protocol.MinimumAgentVersion("anytls"), "http": protocol.MinimumAgentVersion("http"), "shadowsocks": protocol.MinimumAgentVersion("shadowsocks"), "shadowsocks2022": protocol.MinimumAgentVersion("shadowsocks2022")}}
+	out := MachineState{Jobs: []machine.Job{}, RequiredAgentVersion: machine.MinimumDeploymentVersion, RequiredAgentVersions: map[string]string{"trusttunnel": protocol.MinimumAgentVersion("trusttunnel"), "socks": protocol.MinimumAgentVersion("socks"), "mixed": protocol.MinimumAgentVersion("mixed"), "hysteria": protocol.MinimumAgentVersion("hysteria"), "shadowtls": protocol.MinimumAgentVersion("shadowtls"), "snell": protocol.MinimumAgentVersion("snell"), "snell6": protocol.MinimumAgentVersion("snell6"), "anytls": protocol.MinimumAgentVersion("anytls"), "http": protocol.MinimumAgentVersion("http"), "shadowsocks": protocol.MinimumAgentVersion("shadowsocks"), "shadowsocks2022": protocol.MinimumAgentVersion("shadowsocks2022")}}
 	tx, role, err := s.tenantTx(ctx, false, false)
 	if err != nil {
 		return out, err

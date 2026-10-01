@@ -240,3 +240,29 @@ func TestResourceIDNamespaceSeparateFromProtocolCredential(t *testing.T) {
 		}
 	}
 }
+
+func TestTrustTunnelStashExport(t *testing.T) {
+	node := fixture(t, "trusttunnel", 1)
+	b, err := Render("stash", "TrustTunnel", []Node{node}, nil, "proxy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cfg struct {
+		Proxies []map[string]any `yaml:"proxies"`
+	}
+	if err = yaml.Unmarshal(b, &cfg); err != nil {
+		t.Fatal(err)
+	}
+	p := cfg.Proxies[0]
+	if p["username"] != "xingdu" || p["password"] != node.Spec.Credential || p["quic"] != false || p["udp"] != true || p["skip-cert-verify"] != false || p["server-cert-fingerprint"] == nil || !reflect.DeepEqual(p["alpn"], []any{"h2"}) {
+		t.Fatal("TrustTunnel export lost transport or authentication fields")
+	}
+	if strings.Contains(string(b), "PRIVATE KEY") {
+		t.Fatal("private key exported")
+	}
+	for _, format := range []string{"mihomo", "surge", "loon", "hysteria2_uri"} {
+		if _, err = Render(format, "TrustTunnel", []Node{node}, nil, "proxy"); err == nil {
+			t.Fatalf("unsupported %s accepted", format)
+		}
+	}
+}

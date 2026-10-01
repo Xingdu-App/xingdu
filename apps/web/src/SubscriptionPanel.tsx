@@ -38,6 +38,7 @@ const formatLabels: Record<string, string> = {
   hysteria2_uri: "Hysteria 2 · 分享链接",
 };
 function supportsFormat(format: string, protocol: string) {
+  if (protocol === "trusttunnel") return format === "stash";
   if (["anytls", "http"].includes(protocol))
     return ["stash", "mihomo"].includes(format);
   if (isShadowsocks(protocol))

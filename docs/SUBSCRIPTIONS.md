@@ -153,3 +153,10 @@ Snell v6 需要支持 v6 的 Surge 版本，不能当作旧版客户端兼容选
 策略组可配置 HTTPS 图标 URL。Stash/Mihomo 输出 icon；Mihomo 显示取决于面板，
 其他格式在预览或下载响应中说明图标未导出。网页编辑、节点选择和模板切换
 保留同 ID 策略组的图标。此项尚未完成真实客户端图标显示验收。
+
+## TrustTunnel 导出
+
+`trusttunnel` 当前仅支持 `format=stash`：包含 `username: xingdu`、随机 `password`、
+`alpn: [h2]`、`quic: false`、`udp: true`、`sni` 和 `server-cert-fingerprint`，
+保持证书校验开启。其他客户端格式返回不兼容错误，不会忽略该节点。
+HTTP/3 和中转未开放。真实验证范围见 [协议部署](PROTOCOL-DEPLOYMENT.md#trusttunnel)。

@@ -52,3 +52,20 @@ func TestPublicRuntimeAcceptsMachineBearer(t *testing.T) {
 		}
 	}
 }
+
+func TestTrustTunnelRuntimeArtifact(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "trusttunnel-linux-arm64"), []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	a := &api{artifacts: dir}
+	mux := http.NewServeMux()
+	a.runtimeRoutes(mux)
+	for path, status := range map[string]int{"/api/v1/agent/runtime/trusttunnel/arm64": 200, "/api/v1/agent/runtime/trusttunnel/mips": 404, "/api/v1/agent/runtime/other/arm64": 404} {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		if w.Code != status {
+			t.Fatalf("%s: %d", path, w.Code)
+		}
+	}
+}

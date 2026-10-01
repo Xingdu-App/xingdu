@@ -460,3 +460,103 @@ func TestRuntimeOperationBudgetFitsLease(t *testing.T) {
 		t.Fatal("server expires download before client")
 	}
 }
+
+func TestTrustTunnelRefusesUnverifiedSELinuxPolicy(t *testing.T) {
+	x, c, _ := executorFixture(t)
+	x.selinuxEnforcePath = filepath.Join(t.TempDir(), "enforce")
+	if err := os.WriteFile(x.selinuxEnforcePath, []byte("1"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	task := taskFixture(t)
+	task.Spec.Protocol = "trusttunnel"
+	if _, err := x.specBinary(context.Background(), c, task.Spec); err == nil {
+		t.Fatal("unconfined TrustTunnel allowed")
+	}
+}
+func TestTrustTunnelUnitGuard(t *testing.T) {
+	unit := protocolUnit("node_test", "/usr/local/lib/xingdu/trusttunnel-1.1.0", "/private/config.json")
+	for _, want := range []string{"DynamicUser=yes", "StandardInput=file:/private/config.json", "IPAddressDeny=168.63.129.16/32", "run -c stdin", "NoNewPrivileges=yes"} {
+		if !strings.Contains(unit, want) {
+			t.Fatal("missing guard", want)
+		}
+	}
+}
+
+func TestTrustTunnelDeployUpdateRollbackAndRemove(t *testing.T) {
+	x, c, _ := executorFixture(t)
+	x.egressFilter = func(string) bool { return true }
+	body := []byte("verified-trusttunnel-fixture")
+	sum := sha256.Sum256(body)
+	protocol.TrustTunnelSHA256["test"] = hex.EncodeToString(sum[:])
+	t.Cleanup(func() { delete(protocol.TrustTunnelSHA256, "test") })
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/v1/agent/runtime/trusttunnel/test" || r.Header.Get("Authorization") != "Bearer machine" {
+			t.Error("wrong artifact request")
+		}
+		w.Write(body)
+	}))
+	defer srv.Close()
+	c.Server = srv.URL
+	x.client = srv.Client()
+	task := taskFixture(t)
+	task.Spec.Protocol = "trusttunnel"
+	ctx := context.Background()
+	if r := x.apply(ctx, c, task); !r.Success {
+		t.Fatal(r.Code)
+	}
+	if x.runtimeVersion(task.DeploymentID) != protocol.TrustTunnelVersion {
+		t.Fatal("incorrect runtime version")
+	}
+	path := filepath.Join(x.stateDir, task.DeploymentID, "config.json")
+	before, _ := os.ReadFile(path)
+	task.Action = "update"
+	task.ID = "op_00000000000040008000000000000009"
+	task.Spec.Name = "Updated"
+	run := x.run
+	restarts := 0
+	x.run = func(ctx context.Context, name string, args ...string) error {
+		if len(args) > 0 && args[0] == "restart" {
+			restarts++
+			if restarts == 1 {
+				return errors.New("fixture restart failure")
+			}
+		}
+		return run(ctx, name, args...)
+	}
+	if r := x.apply(ctx, c, task); r.Code != "update_rolled_back" {
+		t.Fatal(r.Code)
+	}
+	after, _ := os.ReadFile(path)
+	if string(before) != string(after) {
+		t.Fatal("failed update lost prior revision")
+	}
+	task.ID = "op_0000000000004000800000000000000a"
+	if r := x.apply(ctx, c, task); !r.Success {
+		t.Fatal(r.Code)
+	}
+	x.egressFilter = func(string) bool { return false }
+	if x.serviceStatus(ctx, task.DeploymentID) != "policy_required" {
+		t.Fatal("missing BPF reported active")
+	}
+	task.ID = "op_0000000000004000800000000000000c"
+	task.Action = "restart"
+	stopped := false
+	priorRun := x.run
+	x.run = func(ctx context.Context, name string, args ...string) error {
+		if name == "systemctl" && len(args) > 0 && args[0] == "stop" {
+			stopped = true
+		}
+		return priorRun(ctx, name, args...)
+	}
+	if r := x.apply(ctx, c, task); r.Code != "runtime_policy_failed" || !stopped {
+		t.Fatal("unfiltered restart was not stopped", r.Code)
+	}
+	task.ID = "op_0000000000004000800000000000000b"
+	task.Action = "remove"
+	if r := x.apply(ctx, c, task); !r.Success {
+		t.Fatal(r.Code)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("secret revision remains")
+	}
+}

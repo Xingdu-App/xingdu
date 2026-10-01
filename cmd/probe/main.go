@@ -81,7 +81,7 @@ func run() error {
 			return e
 		}
 		for _, n := range nodes.Data {
-			if n.State != "succeeded" || n.Action != "deploy" {
+			if n.State != "succeeded" || n.Action != "deploy" || n.Protocol == "trusttunnel" {
 				continue
 			}
 			path := "/api/v1/hosts/" + n.HostID + "/deployments/" + n.ID

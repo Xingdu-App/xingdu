@@ -30,6 +30,8 @@ func ValidFormat(format string) bool {
 }
 func Supports(format, kind string) bool {
 	switch kind {
+	case "trusttunnel":
+		return format == "stash"
 	case "socks", "mixed":
 		return format == "stash" || format == "mihomo" || format == "surge"
 	case "hysteria", "shadowtls":

@@ -12,13 +12,20 @@ import (
 // folder. Managed agents verify their compiled-in hash before running it.
 func (a *api) runtimeRoutes(mux *http.ServeMux) {
 	slots := make(chan struct{}, 4)
-	mux.HandleFunc("GET /api/v1/agent/runtime/{arch}", func(w http.ResponseWriter, r *http.Request) {
+	serve := func(w http.ResponseWriter, r *http.Request) {
 		arch := r.PathValue("arch")
 		if _, ok := protocol.RuntimeSHA256[arch]; !ok || a.artifacts == "" {
 			http.NotFound(w, r)
 			return
 		}
-		path := filepath.Join(a.artifacts, "sing-box-linux-"+arch)
+		family := "sing-box"
+		if r.PathValue("family") == "trusttunnel" {
+			family = "trusttunnel"
+		} else if r.PathValue("family") != "" {
+			http.NotFound(w, r)
+			return
+		}
+		path := filepath.Join(a.artifacts, family+"-linux-"+arch)
 		st, err := os.Lstat(path)
 		if err != nil || !st.Mode().IsRegular() {
 			http.NotFound(w, r)
@@ -36,5 +43,7 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 		_ = http.NewResponseController(w).SetWriteDeadline(time.Now().Add(protocol.RuntimeResponseTimeout))
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, path)
-	})
+	}
+	mux.HandleFunc("GET /api/v1/agent/runtime/{arch}", serve)
+	mux.HandleFunc("GET /api/v1/agent/runtime/{family}/{arch}", serve)
 }

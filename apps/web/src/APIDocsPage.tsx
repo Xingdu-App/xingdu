@@ -408,8 +408,8 @@ export default function APIDocsPage({
         </ol>
         <p>
           {copy(
-            "协议值：shadowsocks、shadowsocks2022、trojan、vless、vmess、hysteria2、tuic、anytls、http、socks、mixed、hysteria、shadowtls、snell、snell6。最后六项需要 Agent 0.14.0-dev。Shadowsocks、SOCKS5、Mixed 和 Snell 无需 TLS 字段；http 为 HTTPS 代理，hysteria 为 Hysteria 1，均需要证书。SOCKS5 / Mixed 不加密，仅限可信网络或加密隧道接入。",
-            "Protocol values: shadowsocks, shadowsocks2022, trojan, vless, vmess, hysteria2, tuic, anytls, http, socks, mixed, hysteria, shadowtls, snell, snell6. The last six require Agent 0.14.0-dev. Shadowsocks, SOCKS5, Mixed and Snell omit TLS fields; http (HTTPS) and hysteria (Hysteria 1) require certificates. SOCKS5 / Mixed are unencrypted: use a trusted network or encrypted tunnel.",
+            "协议值：trusttunnel、shadowsocks、shadowsocks2022、trojan、vless、vmess、hysteria2、tuic、anytls、http、socks、mixed、hysteria、shadowtls、snell、snell6。TrustTunnel 需要 Agent 0.15.0-dev，使用 HTTP/2 + TLS、TCP/UDP、Stash 导出；暂不支持中转、自动探测或 SELinux 主机。最后六项需要 Agent 0.14.0-dev。Shadowsocks、SOCKS5、Mixed 和 Snell 无需 TLS 字段；http 为 HTTPS 代理，hysteria 为 Hysteria 1，均需要证书。SOCKS5 / Mixed 不加密，仅限可信网络或加密隧道接入。",
+            "Protocol values: trusttunnel, shadowsocks, shadowsocks2022, trojan, vless, vmess, hysteria2, tuic, anytls, http, socks, mixed, hysteria, shadowtls, snell, snell6. TrustTunnel requires Agent 0.15.0-dev: HTTP/2 + TLS, TCP/UDP, Stash export; relays, automated probes and SELinux hosts are not supported. The last six require Agent 0.14.0-dev. Shadowsocks, SOCKS5, Mixed and Snell omit TLS fields; http (HTTPS) and hysteria (Hysteria 1) require certificates. SOCKS5 / Mixed are unencrypted: use a trusted network or encrypted tunnel.",
           )}
         </p>
         <p>

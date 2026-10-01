@@ -116,6 +116,15 @@ func (x *protocolExecutor) ensureRuntimePolicy(ctx context.Context, binary, conf
 	return ""
 }
 func (x *protocolExecutor) runtimePolicyReady(ctx context.Context, id string) bool {
+	if x.trustTunnelUnit(id) {
+		check := x.egressFilter
+		if check == nil {
+			check = hasEgressFilter
+		}
+		if !check(filepath.Join("/sys/fs/cgroup/system.slice", serviceName(x.localDeploymentID(id)))) {
+			return false
+		}
+	}
 	enabled, err := x.selinuxEnabled()
 	if err != nil {
 		return false

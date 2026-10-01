@@ -26,11 +26,17 @@ export default function RoutePanel({
     return () => c.abort();
   }, []);
   const eligible = nodes.filter(
-    (n) => n.state === "succeeded" && n.action === "deploy",
+    (n) =>
+      n.state === "succeeded" &&
+      n.action === "deploy" &&
+      n.protocol !== "trusttunnel",
   );
   const source = eligible.find((n) => n.id === entry);
   const exits = eligible.filter(
-    (n) => n.host_id !== source?.host_id && !n.relay_exit_id,
+    (n) =>
+      n.host_id !== source?.host_id &&
+      !n.relay_exit_id &&
+      n.protocol !== "trusttunnel",
   );
   const destination = exits.find((n) => n.id === exit);
   const valid = !!source && (!exit || !!destination);

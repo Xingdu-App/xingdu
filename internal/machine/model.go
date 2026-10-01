@@ -11,7 +11,7 @@ import (
 )
 
 // Version is injected by versioned builds; go run retains a development label.
-var Version = "0.14.0-dev"
+var Version = "0.15.0-dev"
 
 type Metrics struct {
 	Hostname        string  `json:"hostname"`

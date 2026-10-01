@@ -311,6 +311,7 @@ export const upgradeSSH = (id: string, input: Record<string, unknown>) =>
   );
 
 export type Protocol =
+  | "trusttunnel"
   | "trojan"
   | "vless"
   | "vmess"
@@ -529,6 +530,7 @@ export const rotateSubscription = (id: string, signal: AbortSignal) =>
   );
 
 export const protocolNames: Record<Protocol, string> = {
+  trusttunnel: "TrustTunnel",
   socks: "SOCKS5",
   mixed: "HTTP / SOCKS5",
   hysteria: "Hysteria 1",

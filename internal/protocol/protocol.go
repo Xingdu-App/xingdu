@@ -66,7 +66,7 @@ func SnellClientVersion(p string) int {
 	return 4
 }
 func Username(p string) string {
-	if p == "http" || p == "socks" || p == "mixed" {
+	if p == "trusttunnel" || p == "http" || p == "socks" || p == "mixed" {
 		return "xingdu"
 	}
 	return ""
@@ -82,6 +82,8 @@ func Cipher(p string) string {
 }
 func MinimumAgentVersion(p string) string {
 	switch p {
+	case "trusttunnel":
+		return "0.15.0-dev"
 	case "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
 		return "0.14.0-dev"
 	}
@@ -98,7 +100,7 @@ func ValidateInput(in Input) error {
 		return errors.New("name must contain 1-80 printable characters")
 	}
 	switch in.Protocol {
-	case "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
+	case "trusttunnel", "trojan", "vless", "vmess", "hysteria2", "tuic", "shadowsocks", "shadowsocks2022", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
 	default:
 		return errors.New("unsupported protocol")
 	}
@@ -193,6 +195,9 @@ func NewSpec(in Input) (Spec, error) {
 }
 func ValidateSpec(s Spec) error {
 	if s.Relay != nil {
+		if s.Protocol == "trusttunnel" {
+			return errors.New("TrustTunnel relays are not supported")
+		}
 		if err := s.Relay.Validate(); err != nil {
 			return err
 		}
@@ -226,6 +231,9 @@ func validPassword(s string) bool {
 	return e == nil && len(b) == 32
 }
 func Render(s Spec) ([]byte, error) {
+	if s.Protocol == "trusttunnel" {
+		return RenderTrustTunnel(s)
+	}
 	if err := ValidateSpec(s); err != nil {
 		return nil, err
 	}
@@ -314,7 +322,7 @@ func Render(s Spec) ([]byte, error) {
 // ValidResultCode bounds agent reports to non-sensitive, user-facing codes.
 func ValidResultCode(code string) bool {
 	switch code {
-	case "selinux_detection_failed", "selinux_tools_missing", "selinux_tools_install_failed", "selinux_policy_failed", "selinux_label_failed", "selinux_label_conflict", "selinux_domain_failed", "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
+	case "runtime_policy_failed", "selinux_detection_failed", "selinux_tools_missing", "selinux_tools_install_failed", "selinux_policy_failed", "selinux_label_failed", "selinux_label_conflict", "selinux_domain_failed", "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
 		return true
 	default:
 		return false

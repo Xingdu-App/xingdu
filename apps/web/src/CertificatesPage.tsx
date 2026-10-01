@@ -150,6 +150,7 @@ export default function CertificatesPage({
         "hysteria2",
         "tuic",
         "anytls",
+        "trusttunnel",
         "http",
       ].includes(n.protocol) &&
       (!current?.platform || n.host_id === current.host_id) &&

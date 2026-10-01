@@ -6,3 +6,6 @@ import _ "embed"
 //
 //go:embed runtime-LICENSE.txt
 var RuntimeLicense string
+
+//go:embed trusttunnel-LICENSE.txt
+var TrustTunnelLicense string

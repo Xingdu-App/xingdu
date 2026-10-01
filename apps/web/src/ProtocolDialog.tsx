@@ -29,6 +29,11 @@ import type {
 
 const protocols = [
   {
+    value: "trusttunnel",
+    label: "TrustTunnel",
+    description: "HTTP/2 + TLS · TCP / UDP · Stash",
+  },
+  {
     value: "socks",
     label: "SOCKS5",
     get description() {
@@ -198,6 +203,9 @@ const resultLabels: Record<string, string> = {
   },
   get write_failed() {
     return t("配置写入失败，请检查磁盘和权限。");
+  },
+  get runtime_policy_failed() {
+    return t("TrustTunnel requires an active cgroup BPF egress filter. Check systemd and kernel support.");
   },
   get runtime_unavailable() {
     return t("运行时不可用，请检查下载连通性和机器架构。");
@@ -575,7 +583,7 @@ export default function ProtocolDialog({
                   <p>
                     {t("服务端版本")}：
                     {row.runtime_version
-                      ? `sing-box ${row.runtime_version}`
+                      ? `${row.protocol === "trusttunnel" ? "TrustTunnel" : "sing-box"} ${row.runtime_version}`
                       : t("未上报")}
                     {!row.runtime_version && (
                       <small>

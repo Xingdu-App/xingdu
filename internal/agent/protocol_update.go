@@ -35,12 +35,16 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	}
 	defer clear(old)
 	var current struct {
+		Runtime  string `json:"runtime"`
 		Inbounds []struct {
 			Port int `json:"listen_port"`
 		} `json:"inbounds"`
 	}
 	if json.Unmarshal(old, &current) != nil || len(current.Inbounds) != 1 {
 		return "unsafe_state"
+	}
+	if (current.Runtime == "trusttunnel") != (t.Spec.Protocol == "trusttunnel") {
+		return "invalid_spec"
 	}
 	if current.Inbounds[0].Port != t.Spec.Port && !portAvailable(t.Spec) {
 		return "port_in_use"
@@ -56,7 +60,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	if atomicProtocolFile(candidate, config, 0600) != nil {
 		return "write_failed"
 	}
-	binary, err := x.binary(ctx, c)
+	binary, err := x.specBinary(ctx, c, t.Spec)
 	if err != nil {
 		return "runtime_unavailable"
 	}
@@ -86,7 +90,16 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 			return false
 		case <-time.After(2 * time.Second):
 		}
-		return x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) == nil && x.runtimePolicyReady(ctx, t.DeploymentID)
+		if x.run(ctx, "systemctl", "is-active", "--quiet", serviceName(localID)) != nil {
+			return false
+		}
+		if !x.runtimePolicyReady(ctx, t.DeploymentID) {
+			if x.trustTunnelUnit(t.DeploymentID) {
+				_ = x.run(ctx, "systemctl", "stop", serviceName(localID))
+			}
+			return false
+		}
+		return true
 	}
 	if healthy(ctx) {
 		if os.Remove(backup) != nil {

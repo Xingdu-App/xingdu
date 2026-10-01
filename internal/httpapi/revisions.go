@@ -155,7 +155,7 @@ func (a *api) relayPeer(ctx context.Context, node, entryHost string) (*protocol.
 		}
 		defer clear(plain)
 		var spec protocol.Spec
-		if json.Unmarshal(plain, &spec) != nil || spec.Relay != nil {
+		if json.Unmarshal(plain, &spec) != nil || spec.Relay != nil || spec.Protocol == "trusttunnel" {
 			return nil, nil, storage.ErrConflict
 		}
 		resolve, cancel := context.WithTimeout(ctx, 5*time.Second)

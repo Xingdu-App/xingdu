@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -26,6 +27,11 @@ func main() {
 	}
 }
 func run() error {
+	if strings.HasPrefix(filepath.Base(os.Args[0]), "trusttunnel-") {
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		defer stop()
+		return agent.RunTrustTunnel(ctx, os.Args[1:])
+	}
 	selfUpdate := flag.Bool("self-update", false, "check and execute an authorized update (root updater service only)")
 	version := flag.Bool("version", false, "print version")
 	upgrade := flag.Bool("upgrade", false, "upgrade an existing systemd installation using an expectation from stdin")

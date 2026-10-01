@@ -159,7 +159,7 @@ export default function NodePanel({
                   <dt>{t("服务端版本")}</dt>
                   <dd>
                     {node.runtime_version
-                      ? `sing-box ${node.runtime_version}`
+                      ? `${node.protocol === "trusttunnel" ? "TrustTunnel" : "sing-box"} ${node.runtime_version}`
                       : t("未上报")}
                   </dd>
                 </div>

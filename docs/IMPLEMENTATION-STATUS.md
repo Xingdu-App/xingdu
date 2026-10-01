@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | 账户与组织 | 邮箱验证注册、密码找回、Google/GitHub 登录与绑定、会话撤销、邀请、成员权限、所有权转移、组织 RLS | Passkey、MFA、组织销毁及远端清理；实际邮件/OAuth 配置需部署验收 |
 | 机器管理 | 服务器资料、主动 Agent 接入、默认托管安装、SSH 指纹固定、可选加密保存凭据、遥测、受控 Agent 升级及失败恢复 | 不执行任意命令；撤销身份不会停止已有服务；各发行版需单独验收 |
-| 协议与节点 | 15 个协议选项、预检、安装/卸载、重启、本机状态、运行时版本、SELinux 检测和受控修复 | 不是 15 个客户端组合全部验收；防火墙/安全组不自动修改；Reality/WS/gRPC 未接入 |
+| 协议与节点 | 16 个协议选项（TrustTunnel 为独立 HTTP/2 runtime）、预检、安装/卸载、重启、本机状态、运行时版本、SELinux 检测和受控修复 | 不是全部客户端组合均已验收；防火墙/安全组不自动修改；Reality/WS/gRPC 未接入 |
 | 配置生命周期 | 端口/证书编辑、凭据轮换、加密修订、启动失败恢复、历史版本恢复 | 结果不确定时需人工核实；不代表协议引擎升级或公网故障恢复已验收 |
 | 线路与探测 | 直连、已有节点单层 TCP 中转、依赖保护、独立组织级协议探测进程 | 无多跳、UDP 中转、默认全球探测、告警通知投递和自动最优线路 |
 | 证书 | ACME DNS-01 / Cloudflare 签发与续期程序、付费组织证书管理、CNAME 委托、随机域名、持久化续期及手动节点应用 | 已完成本地模拟与 RLS 验证；真实 DNS/公共 CA/节点应用待验收；无 ARI、CF OAuth 和自动节点应用，DNS 退役需人工维护 |
@@ -50,3 +50,16 @@
 [节点生命周期](NODE-LIFECYCLE.md)、[可靠部署](RELIABLE-DEPLOYMENTS.md)、
 [订阅](SUBSCRIPTIONS.md)、[自动证书](AUTOMATIC-CERTIFICATES.md)、
 [账单](BILLING.md)及 [Zeabur 部署](ZEABUR.md)。
+
+### TrustTunnel 开发状态（2026-10-01）
+
+源码新增 TrustTunnel endpoint 1.1.0（HTTP/2）、独立运行时下载与摘要校验、
+节点生命周期、证书管理和 Stash 订阅导出。最低 Agent 0.15.0-dev，尚未发布 Agent。
+仅新增客户端协议适配，不依赖 Stash 服务端组件。HTTP/3、中转、自动探测和 SELinux
+主机暂不支持；实际验收脚本和范围见 [协议部署](PROTOCOL-DEPLOYMENT.md#trusttunnel)。
+
+本地验收已通过：`make check`、Docker Compose 构建与健康检查，以及 Ubuntu 24.04
+arm64 官方 endpoint ↔ macOS Stash Core CLI 的真实协议测试。显式/默认 h2、TCP、
+UDP、错误密码/指纹/ALPN 拒绝、私网 IP/域名/UDP 与平台地址阻断、重启、密码轮换、
+历史修订恢复和删除均通过。Linux 容器另执行了真实 BPF 查询回归；临时节点、订阅、
+平台地址别名和测试额度已清理。未测试手机 App、公网 VPS、HTTP/3 或 amd64 转发。

@@ -126,10 +126,14 @@ func (x *protocolExecutor) runtimeVersion(id string) string {
 			return ""
 		}
 		name := filepath.Base(path)
-		if !strings.HasPrefix(name, "sing-box-") {
+		prefix := "sing-box-"
+		if strings.HasPrefix(name, "trusttunnel-") {
+			prefix = "trusttunnel-"
+		}
+		if !strings.HasPrefix(name, prefix) {
 			return ""
 		}
-		version := strings.TrimPrefix(name, "sing-box-")
+		version := strings.TrimPrefix(name, prefix)
 		if !protocol.ValidRuntimeVersion(version) {
 			return ""
 		}

@@ -186,6 +186,9 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			} else {
 				p["up"], p["down"] = "100 Mbps", "100 Mbps"
 			}
+		case "trusttunnel":
+			p["username"], p["password"], p["sni"] = "xingdu", s.Credential, s.ServerName
+			p["quic"], p["alpn"] = false, []string{"h2"}
 		case "anytls", "http":
 			p["password"] = s.Credential
 			p["sni"] = s.ServerName
