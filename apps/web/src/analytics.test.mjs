@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   analyticsAISource,
+  analyticsContent,
+  analyticsClick,
+  analyticsScrollDepth,
   analyticsID,
   analyticsPage,
   analyticsReferrer,
@@ -77,4 +80,38 @@ test("AI source tags are allowlisted and removed from page URLs", () => {
     ]),
     null,
   );
+});
+
+test("conversion events accept only fixed plans and public content", () => {
+  const origin = "https://example.com";
+  const paths = ["/", "/blog", "/blog/example", "/docs/api", "/pricing"];
+  assert.deepEqual(analyticsClick("/app/billing?plan=premium", origin, paths), {
+    name: "marketing_plan_select",
+    params: { plan: "premium" },
+  });
+  assert.deepEqual(analyticsClick("/blog/example", origin, paths), {
+    name: "marketing_content_click",
+    params: { content_type: "article", content_id: "/blog/example" },
+  });
+  for (const href of [
+    "/app/billing?plan=secret",
+    "/app/billing?plan=start&token=secret",
+    "/app/billing?plan=start&plan=premium",
+    "/app/billing?plan=start#secret",
+    "https://evil.example/app/billing?plan=start",
+    "/blog/secret",
+    "/docs/api?token=secret",
+    "/api/subscriptions/secret",
+    "mailto:private@example.com",
+  ])
+    assert.equal(analyticsClick(href, origin, paths), null, href);
+  assert.equal(analyticsContent("/app", paths), null);
+  assert.equal(analyticsContent("/blog/secret", paths), null);
+});
+test("scroll depth ignores short pages and invalid measurements", () => {
+  assert.equal(analyticsScrollDepth(400, 2000, 600), 50);
+  assert.equal(analyticsScrollDepth(1200, 2000, 600), 90);
+  assert.equal(analyticsScrollDepth(0, 500, 600), 0);
+  assert.equal(analyticsScrollDepth(NaN, 2000, 600), 0);
+  assert.equal(analyticsScrollDepth(2000, 2000, 600), 100);
 });

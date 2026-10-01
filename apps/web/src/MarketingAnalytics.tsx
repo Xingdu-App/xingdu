@@ -5,7 +5,9 @@ import {
   analyticsID,
   analyticsPage,
   analyticsReferrer,
-  analyticsTarget,
+  analyticsClick,
+  analyticsContent,
+  analyticsScrollDepth,
 } from "./analytics";
 
 const id = analyticsID(import.meta.env.VITE_GA_MEASUREMENT_ID);
@@ -48,7 +50,18 @@ function start() {
       ].title,
   });
   const aiSource = analyticsAISource(window.location.href, document.referrer);
-  send("event", "page_view", aiSource ? { ai_source: aiSource } : {});
+  const content = analyticsContent(window.location.pathname, paths)!;
+  const emit = (name: string, params: Record<string, unknown> = {}) => {
+    if (analyticsPage(window.location.href, paths) !== location) return;
+    send("event", name, {
+      page_location: location,
+      ...content,
+      ...(aiSource ? { ai_source: aiSource } : {}),
+      ...params,
+    });
+  };
+  emit("page_view");
+  if (content.content_type !== "page") emit("marketing_content_view");
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${id}`;
@@ -57,14 +70,40 @@ function start() {
     if (!analyticsPage(window.location.href, paths)) return;
     const anchor =
       event.target instanceof Element ? event.target.closest("a") : null;
-    const target =
-      anchor && analyticsTarget(anchor.href, window.location.origin);
-    if (target)
-      send("event", "marketing_cta_click", {
-        destination: target,
-        ...(aiSource ? { ai_source: aiSource } : {}),
-      });
+    const action =
+      anchor && analyticsClick(anchor.href, window.location.origin, paths);
+    if (action) {
+      const placement = anchor.closest("header")
+        ? "header"
+        : anchor.closest("footer")
+          ? "footer"
+          : "content";
+      emit(action.name, { ...action.params, placement });
+    }
   });
+  const reported = new Set<number>();
+  document.addEventListener(
+    "scroll",
+    () => {
+      if (
+        document.visibilityState !== "visible" ||
+        analyticsPage(window.location.href, paths) !== location
+      )
+        return;
+      const depth = analyticsScrollDepth(
+        window.scrollY,
+        document.documentElement.scrollHeight,
+        window.innerHeight,
+      );
+      for (const percent of [50, 90]) {
+        if (depth >= percent && !reported.has(percent)) {
+          reported.add(percent);
+          emit("marketing_scroll", { percent_scrolled: percent });
+        }
+      }
+    },
+    { passive: true },
+  );
 }
 export default function MarketingAnalytics() {
   useEffect(() => {

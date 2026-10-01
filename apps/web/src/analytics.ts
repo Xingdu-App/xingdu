@@ -58,3 +58,64 @@ export function analyticsTarget(href: string, origin: string) {
     return "github";
   return null;
 }
+
+export function analyticsContent(path: string, paths: readonly string[]) {
+  if (!paths.includes(path)) return null;
+  const content_type = path.startsWith("/blog/")
+    ? "article"
+    : path === "/blog"
+      ? "blog"
+      : path === "/pricing"
+        ? "pricing"
+        : path === "/help" || path.startsWith("/docs/")
+          ? "documentation"
+          : "page";
+  return { content_type, content_id: path };
+}
+
+export function analyticsClick(
+  href: string,
+  origin: string,
+  paths: readonly string[],
+) {
+  let url: URL;
+  try {
+    url = new URL(href, origin);
+  } catch {
+    return null;
+  }
+  if (url.origin === origin && url.pathname === "/app/billing" && !url.hash) {
+    const entries = [...url.searchParams.entries()];
+    if (
+      entries.length === 1 &&
+      entries[0][0] === "plan" &&
+      ["start", "premium"].includes(entries[0][1])
+    )
+      return { name: "marketing_plan_select", params: { plan: entries[0][1] } };
+    return null;
+  }
+  const destination = analyticsTarget(href, origin);
+  if (destination)
+    return { name: "marketing_cta_click", params: { destination } };
+  if (url.origin === origin && !url.search && !url.hash) {
+    const content = analyticsContent(url.pathname, paths);
+    if (content) return { name: "marketing_content_click", params: content };
+  }
+  if (href === "mailto:info@xingdu.app")
+    return { name: "marketing_cta_click", params: { destination: "contact" } };
+  return null;
+}
+
+export function analyticsScrollDepth(
+  scrollY: number,
+  height: number,
+  viewport: number,
+) {
+  if (
+    ![scrollY, height, viewport].every(Number.isFinite) ||
+    viewport <= 0 ||
+    height <= viewport
+  )
+    return 0;
+  return Math.min(100, Math.max(0, ((scrollY + viewport) / height) * 100));
+}

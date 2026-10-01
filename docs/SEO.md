@@ -92,7 +92,19 @@ referrer 仅保留 origin。不要添加邮箱、用户 ID、组织 ID、机器�
 | 事件 | 含义 |
 | --- | --- |
 | `page_view` | 公开页面访问，关闭默认自动 page view 避免重复 |
-| `marketing_cta_click` | 固定 `destination`：`console`、`pricing`、`github` |
+| `marketing_cta_click` | 固定 `destination`：`console`、`pricing`、`github`、`contact`；`placement` 区分 header/footer/content |
+| `marketing_plan_select` | 官网套餐入口选择，仅记录 `plan=start/premium`，不是进入 Stripe 或支付成功 |
+| `marketing_content_view` | 博客、文章、价格和帮助/API 文档页面访问 |
+| `marketing_content_click` | 公开白名单内其他内容入口点击 |
+| `marketing_scroll` | 实际滚动到页面 50% / 90%，每个阈值每页一次，短页面不记录 |
+
+所有事件携带固定的 `content_type` 和公开白名单路径 `content_id`；
+不发送任意链接、按钮文本、邮箱或表单输入。滚动深度不代表读完或阅读时长。
+在 GA4 注册事件范围自定义维度：`destination`、`placement`、`plan`、
+`content_type`、`content_id`、`ai_source`；`percent_scrolled` 为数值参数。
+可把 `marketing_plan_select` 标记为意向类关键事件，但不要当作购买转化。
+自定义维度需要在 GA4 界面另行配置，参考
+[Google 官方事件参数说明](https://developers.google.com/analytics/devguides/collection/ga4/event-parameters)。
 
 在 GA4 为 `destination` 建立事件范围自定义维度。入口点击不是注册成功、
 首次接入成功或支付成功；本次未实现这些后台业务转化事件。
