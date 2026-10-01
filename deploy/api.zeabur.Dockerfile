@@ -1,10 +1,14 @@
 # Zeabur: ZBPACK_DOCKERFILE_PATH=deploy/api.zeabur.Dockerfile
-FROM golang:1.26-alpine AS protocol-assets
+FROM golang:1.26.1-alpine AS protocol-assets
+RUN apk add --no-cache curl patch
 WORKDIR /src
 COPY go.mod ./
 COPY internal/protocol/runtime_manifest.go ./internal/protocol/
-COPY tools/fetch-runtime/main.go ./tools/fetch-runtime/
-RUN --mount=type=cache,target=/runtime-cache go run ./tools/fetch-runtime --output /runtime-cache && mkdir -p /runtimes && cp /runtime-cache/* /runtimes/
+COPY tools/fetch-runtime/*.go ./tools/fetch-runtime/
+COPY tools/build-runtime ./tools/build-runtime
+COPY tools/runtime-patches ./tools/runtime-patches
+COPY tools/compatibility ./tools/compatibility
+RUN --mount=type=cache,target=/runtime-cache --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build go run ./tools/fetch-runtime --output /runtime-cache && mkdir -p /runtimes && cp /runtime-cache/* /runtimes/
 
 FROM golang:1.26-alpine AS build
 WORKDIR /src
