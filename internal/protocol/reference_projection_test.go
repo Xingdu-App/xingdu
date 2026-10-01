@@ -76,6 +76,16 @@ print(json.dumps([m.reference_client(c)[1] for c in json.load(sys.stdin)]))`
 		var a, b any
 		json.Unmarshal(actual[i], &a)
 		json.Unmarshal(want, &b)
+		if i == 6 || i == 71 {
+			// Public WireGuard probes must not leak resolution to a host fake-IP
+			// resolver. This DNS path is additional to the isolated IP-only lab.
+			var dns any
+			json.Unmarshal([]byte(`{"servers":[{"type":"https","tag":"remote","server":"1.1.1.1","path":"/dns-query","detour":"proxy","tls":{"enabled":true,"server_name":"cloudflare-dns.com"}}],"final":"remote"}`), &dns)
+			if !reflect.DeepEqual(a.(map[string]any)["dns"], dns) {
+				t.Fatal("WireGuard public probe must resolve DNS through its tunnel")
+			}
+			delete(a.(map[string]any), "dns")
+		}
 		if !reflect.DeepEqual(normalize(a), normalize(b)) {
 			t.Fatalf("case %d public projection differs from runtime-tested client", i+1)
 		}

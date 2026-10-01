@@ -85,6 +85,9 @@ def reference_client(c):
     if kind == 'wireguard':
         w = c['wireguard']
         del cfg['outbounds']
+        # Resolve inside WireGuard; host DNS may return local fake-IP addresses
+        # that are intentionally rejected by the server's private-target guard.
+        cfg['dns'] = {'servers': [{'type': 'https', 'tag': 'remote', 'server': '1.1.1.1', 'path': '/dns-query', 'detour': 'proxy', 'tls': {'enabled': True, 'server_name': 'cloudflare-dns.com'}}], 'final': 'remote'}
         cfg['endpoints'] = [{'type': 'wireguard', 'tag': 'proxy', 'system': False, 'mtu': w['mtu'], 'address': [w['ip']+'/32'], 'private_key': w['private_key'], 'peers': [{'address': c['server'], 'port': c['port'], 'public_key': w['public_key'], 'pre_shared_key': w.get('pre_shared_key', ''), 'allowed_ips': ['0.0.0.0/0'], 'persistent_keepalive_interval': w.get('keepalive', 0), 'reserved': w.get('reserved') or []}]}]
     return 'sing-box', cfg
 
