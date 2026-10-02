@@ -205,7 +205,10 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 		if format == "surge" || format == "loon" {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		}
-		if format == "hysteria2_uri" {
+		if format == "singbox" {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		}
+		if subscription.LinkOnly(format) {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		}
 		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": subscriptionFilename(sub.Name, format)}))
@@ -228,7 +231,7 @@ func subscriptionFilename(name, format string) string {
 	ext := ".yaml"
 	if format == "surge" || format == "loon" {
 		ext = ".conf"
-	} else if format == "hysteria2_uri" {
+	} else if subscription.LinkOnly(format) {
 		ext = ".txt"
 	}
 	return name + ext

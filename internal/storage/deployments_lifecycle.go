@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"xingdu.app/xingdu/internal/id"
+	"xingdu.app/xingdu/internal/machine"
 	"xingdu.app/xingdu/internal/protocol"
 )
 
@@ -12,11 +13,14 @@ func (s *Store) RestartDeployment(ctx context.Context, host, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	var kind string
-	if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind); err != nil {
+	var kind, minimum string
+	if err = tx.QueryRow(ctx, `SELECT protocol,minimum_agent_version FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind, &minimum); err != nil {
 		return mapError(err)
 	}
-	hash, err := managingAgent(ctx, tx, host, protocol.MinimumAgentVersion(kind))
+	if !machine.VersionAtLeast(minimum, protocol.MinimumAgentVersion(kind)) {
+		minimum = protocol.MinimumAgentVersion(kind)
+	}
+	hash, err := managingAgent(ctx, tx, host, minimum)
 	if err != nil {
 		return err
 	}

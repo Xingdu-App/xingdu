@@ -1162,5 +1162,15 @@
   "内存": "Memory",
   "负载（1 分钟）": "Load (1 min)",
   "最后上报的数据": "Last reported data",
-  "{0} 核": "{0} cores"
+  "{0} 核": "{0} cores",
+  "安全方式": "Security mode",
+  "当前自定义配置": "Current custom configuration",
+  "部署预设": "Deployment preset",
+  "REALITY 使用握手域名和自动生成的密钥，不需要上传证书。": "REALITY uses an approved handshake domain and generated keys. No certificate upload is required.",
+  "sing-box 格式暂不支持现有 Clash 规则模板，请使用基础分流规则": "This sing-box format does not support Clash rule templates. Use basic routing rules.",
+  "完整配置，支持基础分流规则": "Full configuration with basic routing rules",
+  "通用分享链接 · 系统 CA": "Universal share links · System CA",
+  "通用订阅 · Base64 · 系统 CA": "Universal subscription · Base64 · System CA",
+  "REALITY 与 Trojan 传输配置需要 Agent 0.17.0-dev 或更新版本。": "REALITY and Trojan transport options require Agent 0.17.0-dev or later.",
+  "编辑传输配置": "Edit transport settings"
 }

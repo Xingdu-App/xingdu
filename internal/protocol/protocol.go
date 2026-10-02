@@ -32,6 +32,9 @@ type Input struct {
 	PrivateKey  string            `json:"private_key"`
 }
 type Spec struct {
+	RealityPrivateKey   string         `json:"reality_private_key,omitempty"`
+	RealityPublicKey    string         `json:"reality_public_key,omitempty"`
+	RealityShortID      string         `json:"reality_short_id,omitempty"`
 	WireGuardKeys       *WireGuardKeys `json:"wireguard_keys,omitempty"`
 	ObfsPassword        string         `json:"obfs_password,omitempty"`
 	EncryptionKey       string         `json:"encryption_key,omitempty"`
@@ -131,6 +134,12 @@ func ValidateInput(in Input) error {
 		}
 		return nil
 	}
+	if in.RealityEnabled() {
+		if !ValidHandshakeHost(in.ServerName) || in.Certificate != "" || in.PrivateKey != "" {
+			return errors.New("REALITY requires an approved handshake domain and no uploaded certificate")
+		}
+		return nil
+	}
 	if !in.NeedsCertificate() {
 		if in.ServerName != "" || in.Certificate != "" || in.PrivateKey != "" {
 			return errors.New("this protocol does not accept TLS configuration")
@@ -199,6 +208,11 @@ func NewSpec(in Input) (Spec, error) {
 		return Spec{}, err
 	}
 	s := Spec{Input: in, Credential: randomPassword()}
+	if in.RealityEnabled() {
+		if err := newRealityKeys(&s); err != nil {
+			return Spec{}, err
+		}
+	}
 	if in.Protocol == "shadowsocks2022" || in.Protocol == "shadowtls" {
 		raw, _ := base64.RawURLEncoding.DecodeString(s.Credential)
 		s.Credential = base64.StdEncoding.EncodeToString(raw)
@@ -231,6 +245,9 @@ func NewSpec(in Input) (Spec, error) {
 	return s, nil
 }
 func ValidateSpec(s Spec) error {
+	if err := validateRealityKeys(s); err != nil {
+		return err
+	}
 	if s.QUIC != nil && s.QUIC.Salamander {
 		if !validPassword(s.ObfsPassword) {
 			return errors.New("invalid obfuscation password")
@@ -327,6 +344,12 @@ func Render(s Spec) ([]byte, error) {
 		user["username"] = "xingdu"
 	}
 	tlsConfig := map[string]any{"enabled": true, "server_name": s.ServerName, "min_version": "1.2", "certificate": strings.Split(strings.TrimSpace(s.Certificate), "\n"), "key": strings.Split(strings.TrimSpace(s.PrivateKey), "\n")}
+	if s.RealityEnabled() {
+		delete(tlsConfig, "certificate")
+		delete(tlsConfig, "key")
+		tlsConfig["min_version"] = "1.3"
+		tlsConfig["reality"] = map[string]any{"enabled": true, "private_key": s.RealityPrivateKey, "short_id": []string{s.RealityShortID}, "handshake": map[string]any{"server": s.ServerName, "server_port": 443, "domain_resolver": "public"}}
+	}
 	if IsQUIC(s.Protocol) {
 		tlsConfig["min_version"] = "1.3"
 		tlsConfig["alpn"] = []string{"h3"}
@@ -406,7 +429,7 @@ func Render(s Spec) ([]byte, error) {
 // ValidResultCode bounds agent reports to non-sensitive, user-facing codes.
 func ValidResultCode(code string) bool {
 	switch code {
-	case "runtime_policy_failed", "selinux_detection_failed", "selinux_tools_missing", "selinux_tools_install_failed", "selinux_policy_failed", "selinux_label_failed", "selinux_label_conflict", "selinux_domain_failed", "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
+	case "runtime_change_requires_new_node", "runtime_policy_failed", "selinux_detection_failed", "selinux_tools_missing", "selinux_tools_install_failed", "selinux_policy_failed", "selinux_label_failed", "selinux_label_conflict", "selinux_domain_failed", "updated", "update_rolled_back", "deployed", "removed", "restarted", "manage_required", "invalid_task", "unsafe_state", "ownership_mismatch", "stop_failed", "remove_failed", "reload_failed", "invalid_spec", "port_in_use", "instance_exists", "write_failed", "runtime_unavailable", "config_rejected", "start_failed", "journal_conflict", "interrupted", "journal_unavailable", "rollback_failed":
 		return true
 	default:
 		return false

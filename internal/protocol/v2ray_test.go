@@ -78,9 +78,9 @@ func TestV2RayRejectLossyCombinations(t *testing.T) {
 		}
 	}
 	in := inputFixture(t)
-	in.V2Ray = &V2RayOptions{Network: "tcp"}
+	in.V2Ray = &V2RayOptions{Network: "tcp", TLS: &disabled}
 	if ValidateInput(in) == nil {
-		t.Fatal("accepted options for Trojan")
+		t.Fatal("accepted plaintext Trojan")
 	}
 	in.Protocol = "vless"
 	in.V2Ray.TLS = &disabled

@@ -132,7 +132,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 			failure(w, 422, "invalid_deployment", "协议、端口、TLS 域名或证书与私钥无效")
 			return
 		}
-		d := storage.Deployment{ID: storage.NewID("node"), OperationID: storage.NewID("op"), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
+		d := storage.Deployment{MinimumAgentVersion: spec.Input.RequiredAgentVersion(), ID: storage.NewID("node"), OperationID: storage.NewID("op"), HostID: r.PathValue("id"), Name: spec.Name, Protocol: spec.Protocol, Port: spec.Port, ServerName: spec.ServerName, CertificateExpiresAt: protocol.CertificateExpiry(spec.Certificate)}
 		if managed != nil {
 			d.CertificateID, d.CertificateCipher = managed.ID, managed.Encrypted
 		}
@@ -162,7 +162,7 @@ func (a *api) deploymentRoutes(mux *http.ServeMux) {
 		if !a.openDeployment(w, d, storage.TenantOrg(r.Context()), &spec) {
 			return
 		}
-		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "username": protocol.Username(spec.Protocol), "cipher": protocol.Cipher(spec.Protocol), "certificate": spec.Certificate, "v2ray": spec.V2Ray, "encryption": spec.ClientEncryption(), "quic": spec.QUIC, "obfs_password": spec.ObfsPassword, "wireguard": spec.WireGuardClient(), "udp_enabled": spec.UDPEnabled}})
+		reply(w, 200, map[string]any{"data": map[string]any{"protocol": spec.Protocol, "server": d.Server, "port": spec.Port, "server_name": spec.ServerName, "credential": spec.Credential, "password": spec.Password, "username": protocol.Username(spec.Protocol), "cipher": protocol.Cipher(spec.Protocol), "certificate": spec.Certificate, "v2ray": spec.V2Ray, "encryption": spec.ClientEncryption(), "reality_public_key": spec.RealityPublicKey, "reality_short_id": spec.RealityShortID, "quic": spec.QUIC, "obfs_password": spec.ObfsPassword, "wireguard": spec.WireGuardClient(), "udp_enabled": spec.UDPEnabled}})
 	}))
 	mux.HandleFunc("DELETE /api/v1/hosts/{id}/deployments/{deployment}", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validDeploymentID(w, r) {

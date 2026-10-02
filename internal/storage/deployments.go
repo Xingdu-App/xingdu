@@ -10,6 +10,7 @@ import (
 )
 
 type Deployment struct {
+	MinimumAgentVersion  string     `json:"-"`
 	CertificateID        string     `json:"-"`
 	CertificateCipher    []byte     `json:"-"`
 	RuntimeVersion       string     `json:"runtime_version"`
@@ -117,14 +118,18 @@ func (s *Store) QueueDeployment(ctx context.Context, d Deployment) error {
 			return err
 		}
 	}
-	hash, err := managingAgent(ctx, tx, d.HostID, protocol.MinimumAgentVersion(d.Protocol))
+	minimum := protocol.MinimumAgentVersion(d.Protocol)
+	if machine.VersionAtLeast(d.MinimumAgentVersion, minimum) {
+		minimum = d.MinimumAgentVersion
+	}
+	hash, err := managingAgent(ctx, tx, d.HostID, minimum)
 	if err != nil {
 		return err
 	}
 	if err = cleanupDeployments(ctx, tx, d.HostID); err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,operation_id,encrypted,agent_hash,certificate_expires_at) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9,$10)`, d.ID, d.HostID, d.Name, d.Protocol, d.Port, d.ServerName, d.OperationID, d.Encrypted, hash, d.CertificateExpiresAt)
+	_, err = tx.Exec(ctx, `INSERT INTO protocol_deployments(id,organization_id,host_id,created_by,name,protocol,port,server_name,operation_id,encrypted,agent_hash,certificate_expires_at,minimum_agent_version) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9,$10,$11)`, d.ID, d.HostID, d.Name, d.Protocol, d.Port, d.ServerName, d.OperationID, d.Encrypted, hash, d.CertificateExpiresAt, minimum)
 	if err != nil {
 		return mapError(err)
 	}
@@ -163,11 +168,14 @@ func (s *Store) RemoveDeployment(ctx context.Context, host, id string) error {
 	if err = checkRelayDependents(ctx, tx, id); err != nil {
 		return err
 	}
-	var kind string
-	if err = tx.QueryRow(ctx, `SELECT protocol FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind); err != nil {
+	var kind, minimum string
+	if err = tx.QueryRow(ctx, `SELECT protocol,minimum_agent_version FROM protocol_deployments WHERE id=$1 AND host_id=$2`, id, host).Scan(&kind, &minimum); err != nil {
 		return mapError(err)
 	}
-	hash, err := managingAgent(ctx, tx, host, protocol.MinimumAgentVersion(kind))
+	if !machine.VersionAtLeast(minimum, protocol.MinimumAgentVersion(kind)) {
+		minimum = protocol.MinimumAgentVersion(kind)
+	}
+	hash, err := managingAgent(ctx, tx, host, minimum)
 	if err != nil {
 		return err
 	}
@@ -230,14 +238,14 @@ func (s *Store) ClaimDeployment(ctx context.Context, hash string) (*Deployment, 
 	var d Deployment
 	d.OrgID = org
 	d.HostID = host
-	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,''),protocol,COALESCE(relay_exit_id,'') FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease, &d.Protocol, &d.RelayExitID)
+	err = tx.QueryRow(ctx, `SELECT id::text,operation_id::text,created_by::text,action,encrypted,COALESCE(lease::text,''),protocol,COALESCE(relay_exit_id,''),minimum_agent_version FROM protocol_deployments WHERE host_id=$1 AND state IN ('queued','running') ORDER BY queued_at LIMIT 1 FOR UPDATE`, host).Scan(&d.ID, &d.OperationID, &d.UserID, &d.Action, &d.Encrypted, &d.Lease, &d.Protocol, &d.RelayExitID, &d.MinimumAgentVersion)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, tx.Commit(ctx)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if !machine.VersionAtLeast(version, protocol.MinimumAgentVersion(d.Protocol)) {
+	if !machine.VersionAtLeast(version, protocol.MinimumAgentVersion(d.Protocol)) || !machine.VersionAtLeast(version, d.MinimumAgentVersion) {
 		return nil, ErrConflict
 	}
 	if d.Action == "update" {

@@ -79,6 +79,18 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 		}
 	}
 	minimum := "0.12.0-dev"
+	// Recovery can restart the previous spec. Never lower the feature gate while
+	// a node can still require that spec, including after a failed update.
+	var previousMinimum string
+	if err = tx.QueryRow(ctx, `SELECT minimum_agent_version FROM protocol_deployments WHERE id=$1 AND host_id=$2`, d.ID, d.HostID).Scan(&previousMinimum); err != nil {
+		return mapError(err)
+	}
+	if machine.VersionAtLeast(previousMinimum, minimum) {
+		minimum = previousMinimum
+	}
+	if machine.VersionAtLeast(d.MinimumAgentVersion, minimum) {
+		minimum = d.MinimumAgentVersion
+	}
 	if required := protocol.MinimumAgentVersion(d.Protocol); !machine.VersionAtLeast(minimum, required) {
 		minimum = required
 	}
@@ -131,7 +143,7 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET pending_revision=$2,action='update',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='' WHERE id=$1`, d.ID, rev, NewID("op"), hash)
+	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET pending_revision=$2,action='update',state='queued',operation_id=$3,created_by=request_user_id(),agent_hash=$4,lease=NULL,lease_until=NULL,queued_at=now(),finished_at=NULL,result='',minimum_agent_version=$5 WHERE id=$1`, d.ID, rev, NewID("op"), hash, minimum)
 	if err != nil {
 		return mapError(err)
 	}

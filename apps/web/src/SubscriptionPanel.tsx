@@ -31,6 +31,9 @@ import Select from "./Select";
 import { isShadowsocks, protocolNames } from "./api";
 
 const formatLabels: Record<string, string> = {
+  singbox: "sing-box / Hiddify · JSON",
+  uri: "通用分享链接 · 系统 CA",
+  base64: "通用订阅 · Base64 · 系统 CA",
   stash: "Stash",
   mihomo: "Mihomo / Clash.Meta",
   surge: "Surge",
@@ -38,6 +41,31 @@ const formatLabels: Record<string, string> = {
   hysteria2_uri: "Hysteria 2 · 分享链接",
 };
 function supportsFormat(format: string, protocol: string) {
+  if (["uri", "base64"].includes(format))
+    return [
+      "vless",
+      "vmess",
+      "trojan",
+      "shadowsocks",
+      "shadowsocks2022",
+      "hysteria2",
+      "tuic",
+    ].includes(protocol);
+  if (format === "singbox")
+    return [
+      "vless",
+      "vmess",
+      "trojan",
+      "shadowsocks",
+      "shadowsocks2022",
+      "hysteria2",
+      "hysteria",
+      "tuic",
+      "anytls",
+      "http",
+      "socks",
+      "mixed",
+    ].includes(protocol);
   if (protocol === "trusttunnel") return format === "stash";
   if (["anytls", "http"].includes(protocol))
     return ["stash", "mihomo"].includes(format);
@@ -517,6 +545,21 @@ export default function SubscriptionPanel({
                 disabled={busy}
                 options={[
                   { value: "stash", label: "Stash" },
+                  {
+                    value: "singbox",
+                    label: "sing-box / Hiddify · JSON",
+                    description: t("完整配置，支持基础分流规则"),
+                  },
+                  {
+                    value: "uri",
+                    label: t("通用分享链接 · 系统 CA"),
+                    description: t("仅节点链接，不含规则"),
+                  },
+                  {
+                    value: "base64",
+                    label: t("通用订阅 · Base64 · 系统 CA"),
+                    description: t("仅节点链接，不含规则"),
+                  },
                   { value: "mihomo", label: "Mihomo / Clash.Meta" },
                   {
                     value: "surge",
@@ -562,7 +605,7 @@ export default function SubscriptionPanel({
                 {t("已选节点包含不兼容协议，请取消选择或更换客户端格式。")}
               </p>
             )}
-            {input.format === "hysteria2_uri" &&
+            {["hysteria2_uri", "uri", "base64"].includes(input.format) &&
               (input.rules.length > 0 ||
                 input.final_action !== "proxy" ||
                 !!input.routing) && (
@@ -572,6 +615,13 @@ export default function SubscriptionPanel({
                   )}
                 </p>
               )}
+            {input.format === "singbox" && !!input.routing && (
+              <p className="form-error">
+                {t(
+                  "sing-box 格式暂不支持现有 Clash 规则模板，请使用基础分流规则",
+                )}
+              </p>
+            )}
             {catalogError && (
               <p className="form-error">
                 {t("配置模板加载失败，请刷新页面重试。")}
@@ -717,12 +767,13 @@ export default function SubscriptionPanel({
               disabled={
                 busy ||
                 !validRoutingNames(input) ||
+                (input.format === "singbox" && !!input.routing) ||
                 (!editor && !input.node_ids.length) ||
                 input.node_ids.some((id) => {
                   const node = available.find((n) => n.id === id);
                   return node && !supportsFormat(input.format, node.protocol);
                 }) ||
-                (input.format === "hysteria2_uri" &&
+                (["hysteria2_uri", "uri", "base64"].includes(input.format) &&
                   (input.rules.length > 0 ||
                     input.final_action !== "proxy" ||
                     !!input.routing))

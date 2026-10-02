@@ -102,3 +102,28 @@ public/private/public destination changes and mapped-loopback rejection.
 This is not all 72 forwarding cases or mobile/public VPS acceptance. Release
 publication and native architecture CI are established only by the matching
 GitHub Release workflow. See [Agent releases](AGENT-RELEASE.md).
+
+### Hiddify-inspired proxy and subscription improvements (0.17 development)
+
+Development source adds VLESS TCP REALITY (optional Vision), Trojan transport
+options and three independent subscription adapters: sing-box JSON, URI and
+Base64. Deployment presets separate protocol, transport and security. Database
+migration 047 persists feature-specific Agent minimums; queue, claim, restart
+and remove reject older Agents. Revision recovery retains encrypted keys.
+
+Local Linux arm64 forwarding passed 21 basic sing-box transport/TLS/Vision
+combinations including Trojan TCP/WS/gRPC/HTTP. REALITY + Vision passed actual
+HTTP forwarding and wrong-short-ID rejection with official sing-box 1.14.2
+client/server and official Xray 26.9.9 client/server, using an isolated TLS
+origin. Cross-engine sing-box client to Xray REALITY failed authentication;
+that JSON adapter is explicitly blocked, and Mihomo to new Xray REALITY is
+unverified and blocked. Native sing-box parsed 15 generated node configurations
+and ordered routing rules. None of this is Hiddify App, mobile device, public
+VPS, public handshake-origin or Agent systemd/DNS acceptance. No new Agent
+artifact has been published; the previously released Agent lacks these features.
+
+`make check` passed Go vet/race tests and frontend lint/tests/build. Full
+API/storage integration passed against disposable PostgreSQL with the new
+migration, including format persistence and tenant boundaries. Rebuilt Docker
+Compose API, worker, web and database passed health checks. These are local
+checks, not deployment or released-artifact verification.

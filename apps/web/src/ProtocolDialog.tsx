@@ -367,10 +367,12 @@ export default function ProtocolDialog({
   });
   const [socksUDP, setSocksUDP] = useState(false);
   const [v2ray, setV2ray] = useState<V2RayOptions>(defaultV2Ray);
-  const isV2Ray = protocol === "vless" || protocol === "vmess";
+  const isV2Ray =
+    protocol === "vless" || protocol === "vmess" || protocol === "trojan";
   const transportOptions =
     isV2Ray &&
-    (v2ray.engine === "xray" ||
+    (v2ray.reality ||
+      v2ray.engine === "xray" ||
       v2ray.network !== "tcp" ||
       v2ray.tls === false ||
       v2ray.flow ||
@@ -379,6 +381,7 @@ export default function ProtocolDialog({
       : undefined;
   const needsTLS =
     requiresTLS(protocol) &&
+    !v2ray.reality &&
     (!isV2Ray || v2ray.tls !== false || v2ray.download?.tls === true);
   const [handshakeHost, setHandshakeHost] = useState(handshakeHosts[0]);
   const selectedProtocol = creating
@@ -387,7 +390,10 @@ export default function ProtocolDialog({
   const requiredVersionFor = (kind?: string) =>
     (kind ? machine?.required_agent_versions?.[kind] : undefined) ??
     machine?.required_agent_version;
-  const requiredVersion = requiredVersionFor(selectedProtocol);
+  const requiredVersion =
+    creating && (v2ray.reality || (protocol === "trojan" && transportOptions))
+      ? "0.17.0-dev"
+      : requiredVersionFor(selectedProtocol);
   const versionCompatible = agentVersionAtLeast(
     agent?.metrics.version,
     requiredVersion,
@@ -463,7 +469,7 @@ export default function ProtocolDialog({
             wireguard: protocol === "wireguard" ? wireguard : undefined,
             udp_enabled: protocol === "socks" ? socksUDP : undefined,
             server_name:
-              protocol === "shadowtls"
+              protocol === "shadowtls" || v2ray.reality
                 ? handshakeHost
                 : needsTLS
                   ? serverName
@@ -857,6 +863,14 @@ export default function ProtocolDialog({
                         <br />
                         {connection.data.server_name || t("无需域名")}
                       </p>
+                      {connection.data.reality_public_key && (
+                        <p>
+                          REALITY · public key:{" "}
+                          <code>{connection.data.reality_public_key}</code> ·
+                          short ID:{" "}
+                          <code>{connection.data.reality_short_id}</code>
+                        </p>
+                      )}
                       {connection.data.v2ray && (
                         <p>
                           {connection.data.v2ray.network} · TLS{" "}
@@ -1135,7 +1149,7 @@ export default function ProtocolDialog({
                   )}
                 </div>
               )}
-              {protocol === "shadowtls" && (
+              {(protocol === "shadowtls" || v2ray.reality) && (
                 <Select
                   id="handshake-host"
                   label={t("握手域名")}
@@ -1179,31 +1193,33 @@ export default function ProtocolDialog({
                 </>
               )}
               <p className="form-hint">
-                {isV2Ray && !needsTLS
-                  ? t(
-                      "TLS 已关闭。请确认客户端支持所选传输与加密参数。",
-                    )
-                  : ["socks", "mixed"].includes(protocol)
-                    ? t(
-                        "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入。",
-                      )
-                    : protocol === "shadowtls"
+                {v2ray.reality
+                  ? t("REALITY 使用握手域名和自动生成的密钥，不需要上传证书。")
+                  : isV2Ray && !needsTLS
+                    ? t("TLS 已关闭。请确认客户端支持所选传输与加密参数。")
+                    : ["socks", "mixed"].includes(protocol)
                       ? t(
-                          "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。",
+                          "此协议不加密传输，账号和流量可能被链路观察者读取。请仅通过可信网络或已加密隧道接入。",
                         )
-                      : protocol === "snell6"
+                      : protocol === "shadowtls" || v2ray.reality
                         ? t(
-                            "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
+                            "使用所选公共域名完成 TLS 握手，无需上传证书。服务器必须能访问该域名的 443 端口；客户端需要 ShadowTLS v3 和 Shadowsocks 2022 支持。",
                           )
-                        : protocol === "wireguard"
-                          ? t("WireGuard 使用 UDP；密钥自动生成，无需 TLS 证书。请放行所选 UDP 端口。")
-                          : needsTLS
+                        : protocol === "snell6"
                           ? t(
-                              "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                              "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
                             )
-                          : t(
-                              "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
-                            )}
+                          : protocol === "wireguard"
+                            ? t(
+                                "WireGuard 使用 UDP；密钥自动生成，无需 TLS 证书。请放行所选 UDP 端口。",
+                              )
+                            : needsTLS
+                              ? t(
+                                  "TLS 协议需提供匹配域名的有效证书与私钥；不自动申请或续签。私钥不回显，认证凭据自动生成。",
+                                )
+                              : t(
+                                  "直接使用服务器 IP，无需域名和证书。加密凭据自动生成；请放行 TCP 端口。当前暂不开放 UDP 转发。",
+                                )}
               </p>
               <p className="form-hint">
                 {t("请自行在云安全组和机器防火墙放行")}
@@ -1249,7 +1265,7 @@ export default function ProtocolDialog({
                         protocol === "wireguard" ? wireguard : undefined,
                       udp_enabled: protocol === "socks" ? socksUDP : undefined,
                       server_name:
-                        protocol === "shadowtls"
+                        protocol === "shadowtls" || v2ray.reality
                           ? handshakeHost
                           : needsTLS
                             ? serverName

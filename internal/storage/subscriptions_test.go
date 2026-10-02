@@ -115,7 +115,7 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 	if changed, e := s.SaveSubscription(ca, in, "", false); e != nil || changed.Format != "mihomo" {
 		t.Fatal("omitted format must preserve existing value", e)
 	}
-	for _, format := range []string{"surge", "loon"} {
+	for _, format := range []string{"surge", "loon", "singbox"} {
 		in.Format = format
 		if changed, e := s.SaveSubscription(ca, in, "", false); e != nil || changed.Format != format {
 			t.Fatal("client format not persisted", format, e)
@@ -123,6 +123,13 @@ func TestSubscriptionTenantCapabilityLifecycle(t *testing.T) {
 	}
 	in.Format = "hysteria2_uri"
 	in.Rules = nil
+	for _, format := range []string{"uri", "base64"} {
+		in.Format = format
+		if changed, e := s.SaveSubscription(ca, in, "", false); e != nil || changed.Format != format {
+			t.Fatal("share-link format not persisted", format, e)
+		}
+	}
+	in.Format = "hysteria2_uri"
 	if _, e := s.SaveSubscription(ca, in, "", false); !errors.Is(e, ErrInvalid) {
 		t.Fatal("unsupported Trojan share-link subscription accepted", e)
 	}

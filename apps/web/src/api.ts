@@ -380,6 +380,7 @@ export type Deployment = {
   finished_at: string | null;
 };
 export type V2RayOptions = {
+  reality?: boolean;
   engine?: "sing-box" | "xray";
   network: "tcp" | "ws" | "grpc" | "http" | "httpupgrade" | "xhttp";
   encryption?: boolean;
@@ -409,6 +410,8 @@ export type WireGuardOptions = {
   preshared?: boolean;
 };
 export type DeploymentConnection = {
+  reality_public_key?: string;
+  reality_short_id?: string;
   quic?: QUICOptions;
   wireguard?: Record<string, unknown>;
   obfs_password?: string;
@@ -528,7 +531,15 @@ export const loadRoutingCatalog = (signal: AbortSignal) =>
   );
 export type SubscriptionInput = {
   revision?: number;
-  format: "stash" | "mihomo" | "surge" | "loon" | "hysteria2_uri";
+  format:
+    | "stash"
+    | "mihomo"
+    | "surge"
+    | "loon"
+    | "hysteria2_uri"
+    | "singbox"
+    | "uri"
+    | "base64";
   name: string;
   node_ids: string[];
   rules: SubscriptionRule[];
@@ -607,8 +618,27 @@ export const saveAvatar = (image: string, signal: AbortSignal) =>
 export const removeAvatar = (signal: AbortSignal) =>
   request<void>("/api/v1/account/avatar", "DELETE", undefined, signal);
 
-export type RuleTemplateInput = Pick<SubscriptionInput, "name" | "rules" | "final_action">;
-export type RuleTemplate = RuleTemplateInput & { id: string; created_at: string; updated_at: string };
-export const listRuleTemplates = (signal: AbortSignal) => request<RuleTemplate[]>("/api/v1/rule-templates", "GET", undefined, signal);
-export const saveRuleTemplate = (id: string | undefined, input: RuleTemplateInput, signal: AbortSignal) => request<RuleTemplate>(id ? `/api/v1/rule-templates/${id}` : "/api/v1/rule-templates", id ? "PUT" : "POST", input, signal);
-export const deleteRuleTemplate = (id: string, signal: AbortSignal) => request<void>(`/api/v1/rule-templates/${id}`, "DELETE", undefined, signal);
+export type RuleTemplateInput = Pick<
+  SubscriptionInput,
+  "name" | "rules" | "final_action"
+>;
+export type RuleTemplate = RuleTemplateInput & {
+  id: string;
+  created_at: string;
+  updated_at: string;
+};
+export const listRuleTemplates = (signal: AbortSignal) =>
+  request<RuleTemplate[]>("/api/v1/rule-templates", "GET", undefined, signal);
+export const saveRuleTemplate = (
+  id: string | undefined,
+  input: RuleTemplateInput,
+  signal: AbortSignal,
+) =>
+  request<RuleTemplate>(
+    id ? `/api/v1/rule-templates/${id}` : "/api/v1/rule-templates",
+    id ? "PUT" : "POST",
+    input,
+    signal,
+  );
+export const deleteRuleTemplate = (id: string, signal: AbortSignal) =>
+  request<void>(`/api/v1/rule-templates/${id}`, "DELETE", undefined, signal);

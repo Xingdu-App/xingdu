@@ -1,4 +1,5 @@
 import type { V2RayOptions } from "./api";
+import Select from "./Select";
 import { t } from "./i18n";
 
 export const defaultV2Ray: V2RayOptions = { network: "tcp", tls: true };
@@ -16,6 +17,40 @@ export default function V2RayFields({
     onChange({ ...value, ...change });
   return (
     <div className="deployment-fields">
+      <label>
+        {t("部署预设")}
+        <Select
+          label={t("部署预设")}
+          value="custom"
+          options={[
+            { value: "custom", label: t("当前自定义配置") },
+            { value: "tcp", label: "TCP + TLS" },
+            { value: "ws", label: "WebSocket + TLS" },
+            { value: "grpc", label: "gRPC + TLS" },
+            ...(protocol === "vless"
+              ? [{ value: "reality", label: "REALITY + Vision" }]
+              : []),
+          ]}
+          onChange={(preset) => {
+            if (preset === "custom") return;
+            const network =
+              preset === "reality" ? "tcp" : (preset as "tcp" | "ws" | "grpc");
+            onChange({
+              engine: value.engine,
+              network,
+              tls: true,
+              ...(network === "ws"
+                ? { path: "/xingdu" }
+                : network === "grpc"
+                  ? { service_name: "xingdu" }
+                  : {}),
+              ...(preset === "reality"
+                ? { reality: true, flow: "xtls-rprx-vision" }
+                : {}),
+            });
+          }}
+        />
+      </label>
       <label>
         {t("运行时")}
         <select
@@ -43,6 +78,7 @@ export default function V2RayFields({
               encryption: value.encryption,
               packet_encoding: value.packet_encoding,
               fingerprint: value.fingerprint,
+              reality: value.reality && network === "tcp",
               network,
               tls: value.tls,
               ...(network === "grpc"
@@ -67,14 +103,41 @@ export default function V2RayFields({
           )}
         </select>
       </label>
-      <label className="check-row">
-        <input
-          type="checkbox"
-          checked={value.tls !== false}
-          onChange={(e) => patch({ tls: e.target.checked, alpn: [], flow: "" })}
-        />
-        TLS
-      </label>
+      {protocol === "vless" && (
+        <label>
+          {t("安全方式")}
+          <Select
+            label={t("安全方式")}
+            value={value.reality ? "reality" : "tls"}
+            options={[
+              { value: "tls", label: "TLS" },
+              { value: "reality", label: "REALITY" },
+            ]}
+            onChange={(security) =>
+              onChange({
+                engine: value.engine,
+                network: "tcp",
+                tls: true,
+                ...(security === "reality"
+                  ? { reality: true, flow: "xtls-rprx-vision" }
+                  : {}),
+              })
+            }
+          />
+        </label>
+      )}
+      {protocol !== "trojan" && !value.reality && (
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={value.tls !== false}
+            onChange={(e) =>
+              patch({ tls: e.target.checked, alpn: [], flow: "" })
+            }
+          />
+          TLS
+        </label>
+      )}
       {!["tcp", "grpc"].includes(value.network) && (
         <>
           <label>
@@ -109,6 +172,7 @@ export default function V2RayFields({
         </label>
       )}
       {value.tls !== false &&
+        !value.reality &&
         (value.network === "tcp" || value.engine === "xray") && (
           <label>
             ALPN
@@ -142,7 +206,7 @@ export default function V2RayFields({
         )}
       {value.engine === "xray" && (
         <>
-          {protocol === "vless" && (
+          {protocol === "vless" && !value.reality && (
             <label className="check-row">
               <input
                 type="checkbox"

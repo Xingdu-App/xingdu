@@ -78,8 +78,11 @@ func ValidateRouting(r *Routing, nodeIDs []string, rules []Rule, final, format s
 	if r == nil {
 		return ValidateRules(rules, final)
 	}
-	if format == "hysteria2_uri" {
+	if LinkOnly(format) {
 		return &CompatibilityError{Reason: "分享链接不支持配置模板，请选择完整配置格式"}
+	}
+	if format == "singbox" {
+		return &CompatibilityError{Reason: "sing-box 格式暂不支持现有 Clash 规则模板，请使用基础分流规则"}
 	}
 	p, ok := presetFor(r.Preset)
 	if !ok || len(r.Groups) < 1 || len(r.Groups) > 20 {

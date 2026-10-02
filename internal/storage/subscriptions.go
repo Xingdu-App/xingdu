@@ -49,7 +49,7 @@ func (s Subscription) Validate() error {
 	if subscription.ValidateRouting(s.Routing, s.NodeIDs, s.Rules, s.FinalAction, s.Format) != nil {
 		return ErrInvalid
 	}
-	if s.Format == "hysteria2_uri" && (len(s.Rules) > 0 || s.FinalAction != "proxy") {
+	if subscription.LinkOnly(s.Format) && (len(s.Rules) > 0 || s.FinalAction != "proxy") {
 		return ErrInvalid
 	}
 	return nil

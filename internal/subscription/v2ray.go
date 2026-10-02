@@ -12,6 +12,17 @@ func applyV2Ray(format string, s protocol.Spec, p map[string]any) error {
 	if format != "stash" && format != "mihomo" {
 		return &CompatibilityError{format, s.Protocol, "此客户端导出尚未支持自定义传输配置"}
 	}
+	if s.RealityEnabled() {
+		if s.UsesXray() {
+			return &CompatibilityError{format, s.Protocol, "此客户端适配器尚未验证新版 Xray REALITY；请使用对应 Xray 客户端"}
+		}
+		if format == "stash" {
+			return &CompatibilityError{format, s.Protocol, "此 Stash 适配器尚未验证 REALITY；请选择 sing-box 或 Mihomo"}
+		}
+		p["reality-opts"] = map[string]any{"public-key": s.RealityPublicKey, "short-id": s.RealityShortID}
+		p["client-fingerprint"] = "chrome"
+		p["servername"] = s.ServerName
+	}
 	if format == "mihomo" && v.Network == "xhttp" {
 		return &CompatibilityError{format, s.Protocol, "此适配器尚未验证 Mihomo XHTTP；请使用对应参考客户端"}
 	}

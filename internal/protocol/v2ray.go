@@ -10,6 +10,7 @@ import (
 // V2RayOptions is a bounded transport contract, independent of client YAML and
 // engine JSON. Nil preserves the original TCP + TLS deployment contract.
 type V2RayOptions struct {
+	Reality        bool              `json:"reality,omitempty"`
 	PacketEncoding string            `json:"packet_encoding,omitempty"`
 	Engine         string            `json:"engine,omitempty"`
 	Encryption     bool              `json:"encryption,omitempty"`
@@ -34,6 +35,12 @@ func (in Input) TLSEnabled() bool {
 }
 
 func (v V2RayOptions) Validate(kind string) error {
+	if v.Reality && (kind != "vless" || v.Network != "tcp" || v.TLS != nil && !*v.TLS || v.Encryption || v.Download != nil || len(v.ALPN) > 0) {
+		return errors.New("REALITY requires VLESS TCP TLS without certificate ALPN, encryption or split download")
+	}
+	if kind == "trojan" && v.TLS != nil && !*v.TLS {
+		return errors.New("Trojan requires TLS")
+	}
 	if v.PacketEncoding != "" && v.PacketEncoding != "xudp" {
 		return errors.New("invalid packet encoding")
 	}
@@ -46,8 +53,8 @@ func (v V2RayOptions) Validate(kind string) error {
 	if v.Encryption || v.Download != nil || v.Mode != "" || len(v.Headers) > 0 || v.Fingerprint != "" {
 		return errors.New("advanced options require Xray")
 	}
-	if kind != "vless" && kind != "vmess" {
-		return errors.New("transport options require VLESS or VMess")
+	if kind != "vless" && kind != "vmess" && kind != "trojan" {
+		return errors.New("transport options require VLESS, VMess or Trojan")
 	}
 	switch v.Network {
 	case "tcp", "ws", "grpc", "http":

@@ -89,7 +89,7 @@ func TestClientFormatBoundary(t *testing.T) {
 		format string
 		status int
 	}{
-		{"surge", 409}, {"hysteria2_uri", 409}, {"loon", 422}, {"shadowrocket", 422}, {"unknown", 422},
+		{"singbox", 409}, {"uri", 409}, {"base64", 409}, {"surge", 409}, {"hysteria2_uri", 409}, {"loon", 422}, {"shadowrocket", 422}, {"unknown", 422},
 	} {
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/subscriptions/"+storage.NewID("sub")+"/content?token="+token+"&format="+tc.format, nil))

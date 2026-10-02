@@ -88,7 +88,9 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 			if in.V2Ray != nil {
 				spec.V2Ray = in.V2Ray
 				if !spec.NeedsCertificate() {
-					spec.ServerName = ""
+					if !spec.RealityEnabled() {
+						spec.ServerName = ""
+					}
 					spec.Certificate = ""
 					spec.PrivateKey = ""
 				}
@@ -146,6 +148,10 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 				spec.EncryptionPublicKey = fresh.EncryptionPublicKey
 			}
 		}
+		if err := protocol.ReconcileFeatureKeys(&spec, in.Revision == 0 && in.RotateCredential); err != nil {
+			failure(w, 422, "invalid_deployment", "REALITY 配置无效")
+			return
+		}
 		if spec.V2Ray == nil || !spec.V2Ray.Encryption {
 			spec.EncryptionKey = ""
 			spec.EncryptionPublicKey = ""
@@ -180,6 +186,7 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 		plain, _ := json.Marshal(spec)
 		d.Encrypted = a.vault.Seal(plain, deploymentAAD(storage.TenantOrg(r.Context()), d.HostID, d.ID))
 		clear(plain)
+		d.MinimumAgentVersion = spec.Input.RequiredAgentVersion()
 		d.Name = spec.Name
 		d.Protocol = spec.Protocol
 		d.Port = spec.Port

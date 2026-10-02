@@ -18,7 +18,7 @@ func (s Spec) UsesXray() bool {
 	return (s.V2Ray != nil && s.V2Ray.Engine == "xray") || s.Protocol == "socks" && s.UDPEnabled
 }
 func (in Input) NeedsCertificate() bool {
-	return in.TLSEnabled() || in.V2Ray != nil && in.V2Ray.Download != nil && in.V2Ray.Download.TLS
+	return !in.RealityEnabled() && (in.TLSEnabled() || in.V2Ray != nil && in.V2Ray.Download != nil && in.V2Ray.Download.TLS)
 }
 func (s Spec) ClientEncryption() string {
 	if s.EncryptionPublicKey == "" {
@@ -54,8 +54,8 @@ func validateEncryptionKeys(s Spec) error {
 	return nil
 }
 func (v V2RayOptions) validateXray(kind string) error {
-	if kind != "vless" && kind != "vmess" {
-		return errors.New("Xray options require VLESS or VMess")
+	if kind != "vless" && kind != "vmess" && kind != "trojan" {
+		return errors.New("Xray options require VLESS, VMess or Trojan")
 	}
 	switch v.Network {
 	case "tcp", "ws", "grpc", "http", "httpupgrade", "xhttp":
@@ -193,6 +193,9 @@ func XrayServer(s Spec, socket string) ([]byte, error) {
 			settings["decryption"] = "mlkem768x25519plus.native.600s." + s.EncryptionKey
 		}
 	}
+	if s.Protocol == "trojan" {
+		settings = map[string]any{"clients": []any{map[string]any{"password": s.Credential, "email": "xingdu"}}}
+	}
 	if s.Protocol == "socks" {
 		settings = map[string]any{"auth": "password", "accounts": []any{map[string]any{"user": "xingdu", "pass": s.Credential}}, "udp": true, "ip": "0.0.0.0"}
 	}
@@ -200,6 +203,11 @@ func XrayServer(s Spec, socket string) ([]byte, error) {
 	if s.TLSEnabled() {
 		stream["security"] = "tls"
 		stream["tlsSettings"] = map[string]any{"alpn": v.ALPN, "certificates": []any{map[string]any{"certificate": strings.Split(strings.TrimSpace(s.Certificate), "\n"), "key": strings.Split(strings.TrimSpace(s.PrivateKey), "\n")}}}
+	}
+	if s.RealityEnabled() {
+		delete(stream, "tlsSettings")
+		stream["security"] = "reality"
+		stream["realitySettings"] = map[string]any{"show": false, "target": s.ServerName + ":443", "serverNames": []string{s.ServerName}, "privateKey": s.RealityPrivateKey, "shortIds": []string{s.RealityShortID}}
 	}
 	inbound := map[string]any{"tag": "xingdu-in", "listen": "0.0.0.0", "port": s.Port, "protocol": s.Protocol, "settings": settings, "streamSettings": stream}
 	if v.Network == "xhttp" {
@@ -252,6 +260,11 @@ func XrayClient(s Spec, server string, port int) ([]byte, error) {
 		stream["security"] = "tls"
 		stream["tlsSettings"] = tlsSettings(v.ALPN)
 	}
+	if s.RealityEnabled() {
+		delete(stream, "tlsSettings")
+		stream["security"] = "reality"
+		stream["realitySettings"] = map[string]any{"serverName": s.ServerName, "fingerprint": "chrome", "password": s.RealityPublicKey, "shortId": s.RealityShortID}
+	}
 	if v.Download != nil {
 		d := xrayTransport(v)
 		d["address"] = server
@@ -270,6 +283,9 @@ func XrayClient(s Spec, server string, port int) ([]byte, error) {
 		u["security"] = "auto"
 	}
 	cfg := map[string]any{"log": map[string]any{"loglevel": "warning"}, "inbounds": []any{map[string]any{"listen": "127.0.0.1", "port": port, "protocol": "socks", "settings": map[string]any{"udp": true}}}, "outbounds": []any{map[string]any{"protocol": s.Protocol, "settings": map[string]any{"vnext": []any{map[string]any{"address": server, "port": s.Port, "users": []any{u}}}}, "streamSettings": stream}}}
+	if s.Protocol == "trojan" {
+		cfg["outbounds"].([]any)[0].(map[string]any)["settings"] = map[string]any{"servers": []any{map[string]any{"address": server, "port": s.Port, "password": s.Credential}}}
+	}
 	if v.PacketEncoding == "xudp" {
 		cfg["outbounds"].([]any)[0].(map[string]any)["mux"] = map[string]any{"enabled": true, "concurrency": -1, "xudpConcurrency": 8, "xudpProxyUDP443": "allow"}
 	}

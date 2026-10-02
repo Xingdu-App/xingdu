@@ -90,6 +90,19 @@ func RunXray(ctx context.Context, args []string) error {
 	if err != nil {
 		return fail
 	}
+	if args[0] != "check" && cfg.Spec.RealityEnabled() {
+		target, e := resolveRealityTarget(ctx, cfg.Spec.ServerName)
+		if e != nil {
+			clear(config)
+			return fail
+		}
+		pinned, e := pinRealityTarget(config, target)
+		clear(config)
+		if e != nil {
+			return fail
+		}
+		config = pinned
+	}
 	defer clear(config)
 	childCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

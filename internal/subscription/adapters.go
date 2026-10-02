@@ -23,12 +23,18 @@ func (e *CompatibilityError) Error() string { return e.Reason }
 
 func ValidFormat(format string) bool {
 	switch format {
-	case "stash", "mihomo", "surge", "loon", "hysteria2_uri":
+	case "stash", "mihomo", "surge", "loon", "hysteria2_uri", "singbox", "uri", "base64":
 		return true
 	}
 	return false
 }
 func Supports(format, kind string) bool {
+	if format == "uri" || format == "base64" {
+		return kind == "vless" || kind == "vmess" || kind == "trojan" || protocol.IsShadowsocks(kind) || kind == "hysteria2" || kind == "tuic"
+	}
+	if format == "singbox" {
+		return kind == "vless" || kind == "vmess" || kind == "trojan" || protocol.IsShadowsocks(kind) || kind == "hysteria2" || kind == "hysteria" || kind == "tuic" || kind == "anytls" || kind == "http" || kind == "socks" || kind == "mixed"
+	}
 	switch kind {
 	case "wireguard":
 		return format == "stash" || format == "mihomo"

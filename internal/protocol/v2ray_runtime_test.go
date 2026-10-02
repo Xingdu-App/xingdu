@@ -35,9 +35,12 @@ func TestV2RayRuntimeForwarding(t *testing.T) {
 	var inbounds, clients, outbounds, rules []any
 	var probes []string
 	index := 0
-	for _, kind := range []string{"vless", "vmess"} {
+	for _, kind := range []string{"vless", "vmess", "trojan"} {
 		for _, network := range []string{"tcp", "ws", "grpc", "http", "vision"} {
 			for _, enabled := range []bool{false, true} {
+				if kind == "trojan" && !enabled {
+					continue
+				}
 				if network == "vision" && (kind != "vless" || !enabled) {
 					continue
 				}
@@ -80,6 +83,10 @@ func TestV2RayRuntimeForwarding(t *testing.T) {
 				out := map[string]any{"type": kind, "tag": tag, "server": "127.0.0.1", "server_port": in.Port, "uuid": s.Credential}
 				if in.V2Ray.Flow != "" {
 					out["flow"] = in.V2Ray.Flow
+				}
+				if kind == "trojan" {
+					delete(out, "uuid")
+					out["password"] = s.Credential
 				}
 				if kind == "vmess" {
 					out["security"] = "auto"
@@ -128,7 +135,7 @@ sleep 1
 ` + strings.Join(probes, "\n") + `
 if curl -fsS --max-time 3 --socks5-hostname 127.0.0.1:21999 http://93.184.216.34:18081/probe >/dev/null 2>&1; then echo 'bad credential accepted'; exit 1; fi
 if curl -fsS --max-time 3 --socks5-hostname 127.0.0.1:21000 http://127.0.0.1:18081/probe >/dev/null 2>&1; then echo 'private target accepted'; exit 1; fi
-echo '17 transport/TLS/Vision handshakes, bad authentication and private egress checks passed'
+echo '21 transport/TLS/Vision handshakes, including Trojan, bad authentication and private egress checks passed'
 `
 	if err = os.WriteFile(filepath.Join(dir, "test.sh"), []byte(script), 0600); err != nil {
 		t.Fatal(err)

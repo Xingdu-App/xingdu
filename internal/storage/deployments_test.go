@@ -71,7 +71,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		if e := s.EnrollAgent(ctx, machine.Hash(token), identity, mode); e != nil {
 			t.Fatal(e)
 		}
-		if e := s.Heartbeat(ctx, identity, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
+		if e := s.Heartbeat(ctx, identity, machine.Metrics{Version: "0.17.0-dev", CPUs: 1}); e != nil {
 			t.Fatal(e)
 		}
 		return identity
@@ -97,6 +97,11 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		t.Fatal("old agent accepted", e)
 	}
 	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.8.0-dev", CPUs: 1})
+	d.MinimumAgentVersion = "0.17.0-dev"
+	if e := s.QueueDeployment(ca, d); !errors.Is(e, ErrConflict) {
+		t.Fatal("missing feature gate", e)
+	}
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.17.0-dev", CPUs: 1})
 	if e := s.QueueDeployment(ca, d); e != nil {
 		t.Fatal(e)
 	}
@@ -129,13 +134,13 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		return nodes
 	}
 	assertNodes(ca, 0, "") // Queued installation is not yet a node.
-	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.16.0-rc.1", CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := s.ClaimDeployment(ctx, hash); !errors.Is(e, ErrConflict) {
 		t.Fatal("old agent claimed prefixed-ID work", e)
 	}
-	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.17.0-dev", CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
 	claimed, e := s.ClaimDeployment(ctx, hash)
@@ -173,7 +178,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if e := s.RestartDeployment(ca, h.ID, d.ID); !errors.Is(e, ErrConflict) {
 		t.Fatal("old agent restart", e)
 	}
-	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1}); e != nil {
+	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.17.0-dev", CPUs: 1}); e != nil {
 		t.Fatal(e)
 	}
 	if e := s.ReportServices(ctx, hash, []protocol.ServiceStatus{{ID: d.ID, Status: "active", RuntimeVersion: "1.14.2"}}); e != nil {
@@ -232,7 +237,7 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	if nodes := assertNodes(ca, 1, "succeeded"); nodes[0].HostStatus != "offline" {
 		t.Fatal("stale agent shown online")
 	}
-	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.7.0-dev", CPUs: 1})
+	s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.17.0-dev", CPUs: 1})
 	list, e := s.Deployments(ca, h.ID)
 	if e != nil || len(list) != 1 || list[0].State != "succeeded" {
 		t.Fatal("state", list, e)

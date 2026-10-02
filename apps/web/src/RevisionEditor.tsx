@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
-import { request, requiresTLS, handshakeHosts, type Deployment } from "./api";
+import {
+  request,
+  requiresTLS,
+  handshakeHosts,
+  type Deployment,
+  type V2RayOptions,
+  deploymentConnection,
+} from "./api";
 import { t } from "./i18n";
 import Select from "./Select";
+import V2RayFields, { defaultV2Ray } from "./V2RayFields";
 
 type Revision = {
   revision: number;
@@ -21,6 +29,8 @@ export default function RevisionEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const advanced = ["vless", "vmess", "trojan"].includes(node.protocol);
+  const [v2ray, setV2ray] = useState<V2RayOptions>();
   const [port, setPort] = useState(node.port);
   const [name, setName] = useState(node.name),
     [serverName, setServerName] = useState(node.server_name);
@@ -61,6 +71,7 @@ export default function RevisionEditor({
             port,
             certificate,
             private_key: privateKey,
+            v2ray,
             rotate_credential: rotate,
             restore_revision: restore,
             confirm,
@@ -123,7 +134,47 @@ export default function RevisionEditor({
               onChange={(e) => setPort(Number(e.target.value))}
             />
           </label>
-          {node.protocol === "shadowtls" && (
+          {advanced && !v2ray && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  const config = await deploymentConnection(host, node.id);
+                  setV2ray(config.v2ray || defaultV2Ray);
+                  setServerName(config.server_name);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              {t("编辑传输配置")}
+            </button>
+          )}
+          {v2ray && (
+            <V2RayFields
+              protocol={node.protocol}
+              value={v2ray}
+              onChange={(value) => {
+                setV2ray(value);
+                if (value.reality && !handshakeHosts.includes(serverName))
+                  setServerName(handshakeHosts[0]);
+              }}
+            />
+          )}
+          {v2ray && (v2ray.reality || node.protocol === "trojan") && (
+            <p>
+              {t(
+                "REALITY 与 Trojan 传输配置需要 Agent 0.17.0-dev 或更新版本。",
+              )}
+            </p>
+          )}
+          {(node.protocol === "shadowtls" || v2ray?.reality) && (
             <div className="revision-field">
               <label htmlFor={`handshake-${node.id}`}>{t("握手域名")}</label>
               <Select
@@ -139,32 +190,35 @@ export default function RevisionEditor({
               />
             </div>
           )}
-          {requiresTLS(node.protocol) && (
-            <>
-              <label className="revision-field">
-                {t("TLS 域名")}
-                <input
-                  value={serverName}
-                  onChange={(e) => setServerName(e.target.value)}
-                />
-              </label>
-              <label className="revision-field">
-                {t("替换证书（留空保留）")}
-                <textarea
-                  value={certificate}
-                  onChange={(e) => setCertificate(e.target.value)}
-                />
-              </label>
-              <label className="revision-field">
-                {t("替换私钥（不会回显）")}
-                <textarea
-                  value={privateKey}
-                  autoComplete="off"
-                  onChange={(e) => setPrivateKey(e.target.value)}
-                />
-              </label>
-            </>
-          )}
+          {requiresTLS(node.protocol) &&
+            !v2ray?.reality &&
+            (!advanced || !!v2ray) &&
+            v2ray?.tls !== false && (
+              <>
+                <label className="revision-field">
+                  {t("TLS 域名")}
+                  <input
+                    value={serverName}
+                    onChange={(e) => setServerName(e.target.value)}
+                  />
+                </label>
+                <label className="revision-field">
+                  {t("替换证书（留空保留）")}
+                  <textarea
+                    value={certificate}
+                    onChange={(e) => setCertificate(e.target.value)}
+                  />
+                </label>
+                <label className="revision-field">
+                  {t("替换私钥（不会回显）")}
+                  <textarea
+                    value={privateKey}
+                    autoComplete="off"
+                    onChange={(e) => setPrivateKey(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
           <label className="check-row">
             <input
               type="checkbox"

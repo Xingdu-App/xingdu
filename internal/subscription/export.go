@@ -135,6 +135,12 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 		return nil, errors.New("unsupported client format")
 	}
 
+	if format == "singbox" {
+		return renderSingbox(name, nodes, rules, final)
+	}
+	if format == "uri" || format == "base64" {
+		return renderLinks(format, name, nodes, rules, final)
+	}
 	if format != "stash" && format != "mihomo" {
 		return renderOther(format, name, nodes, rules, final)
 	}
@@ -151,7 +157,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 		s := node.Spec
 		label := exportNames[i]
 		p := map[string]any{"name": label, "type": s.Protocol, "server": node.Server, "port": s.Port, "udp": true}
-		if s.TLSEnabled() {
+		if s.TLSEnabled() && !s.RealityEnabled() {
 			cert, _ := pem.Decode([]byte(s.Certificate))
 			if cert == nil || cert.Type != "CERTIFICATE" {
 				return nil, errors.New("invalid node certificate")
@@ -237,7 +243,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 			p["udp-relay-mode"] = "native"
 		}
 		if format == "stash" {
-			if s.TLSEnabled() {
+			if s.TLSEnabled() && !s.RealityEnabled() {
 				p["server-cert-fingerprint"] = p["fingerprint"]
 				delete(p, "fingerprint")
 				p["sni"] = s.ServerName

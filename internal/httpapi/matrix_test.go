@@ -47,6 +47,7 @@ func TestCompatibility72APIEncryptedProjection(t *testing.T) {
 	if err = json.Unmarshal(raw, &inputs); err != nil {
 		t.Fatal(err)
 	}
+	inputs = append(inputs, protocol.Input{Name: "Reality", Protocol: "vless", Port: 443, ServerName: "www.microsoft.com", V2Ray: &protocol.V2RayOptions{Network: "tcp", Reality: true, Flow: "xtls-rprx-vision"}}, protocol.Input{Name: "Trojan WS", Protocol: "trojan", Port: 443, V2Ray: &protocol.V2RayOptions{Network: "ws", Path: "/fixture"}})
 	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	cert := &x509.Certificate{SerialNumber: big.NewInt(1), DNSNames: []string{"proxy.example.com"}, NotBefore: time.Now().Add(-time.Hour), NotAfter: time.Now().Add(time.Hour), KeyUsage: x509.KeyUsageDigitalSignature, ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}}
 	der, _ := x509.CreateCertificate(rand.Reader, cert, cert, &key.PublicKey, key)
@@ -93,6 +94,17 @@ func TestCompatibility72APIEncryptedProjection(t *testing.T) {
 				return spec
 			}
 			spec := decode()
+			if store.deployment.MinimumAgentVersion != in.RequiredAgentVersion() {
+				t.Fatal("API omitted feature requirement")
+			}
+			if spec.RealityEnabled() {
+				old := spec.RealityPublicKey
+				call("PUT", base+"/"+store.deployment.ID, map[string]any{"confirm": true, "rotate_credential": true}, 202)
+				spec = decode()
+				if spec.RealityPublicKey == old {
+					t.Fatal("REALITY identity not rotated")
+				}
+			}
 			if err := protocol.ValidateSpec(spec); err != nil {
 				t.Fatal(err)
 			}
@@ -101,7 +113,7 @@ func TestCompatibility72APIEncryptedProjection(t *testing.T) {
 			if strings.Contains(w.Body.String(), "PRIVATE KEY") {
 				t.Fatal("TLS private key exposed")
 			}
-			for _, secret := range []string{spec.PrivateKey, spec.EncryptionKey} {
+			for _, secret := range []string{spec.PrivateKey, spec.EncryptionKey, spec.RealityPrivateKey} {
 				if secret != "" && strings.Contains(w.Body.String(), secret) {
 					t.Fatal("server key exposed")
 				}

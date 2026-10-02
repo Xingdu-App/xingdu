@@ -1,6 +1,6 @@
 # 协议部署
 
-星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **sing-box 1.14.2-xingdu.1** 与 **Xray 26.3.27-xingdu.1**，TrustTunnel 使用官方 **TrustTunnel endpoint 1.1.0**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
+星渡通过托管 Agent 执行固定的安装、启动与卸载任务。当前使用独立进程运行的 **官方原版 sing-box 1.14.2** 与 **官方原版 Xray 26.9.9**，TrustTunnel 使用官方 **TrustTunnel endpoint 1.1.0**，不绑定 Stash 或其他客户端；客户端需自行支持所选协议。已提供节点列表与 Stash / Mihomo / Surge / Loon 等受限订阅格式，具体范围见 [订阅文档](SUBSCRIPTIONS.md)；新增配置编辑、版本恢复和单层 TCP 中转；自动证书为独立运营者进程，详见 [可靠部署](RELIABLE-DEPLOYMENTS.md) 与 [自动证书](AUTOMATIC-CERTIFICATES.md)。
 
 ## 协议与最低 Agent 版本
 
@@ -28,8 +28,8 @@
 | Snell v6 测试版 (`snell6`) | 加密 TCP；PSK；需 v6 客户端 | 无需 | 0.14.0-dev |
 
 TCP 协议需放行所选 TCP 端口；QUIC 协议需放行所选 UDP 端口。
-QUIC 是传输方式，没有独立的通用 QUIC 代理选项。Reality、WebSocket、gRPC
-尚未接入。SS/SS2022 当前仅开放 TCP：运行时 UDP 会话复用无法保证逐报文
+QUIC 是传输方式，没有独立的通用 QUIC 代理选项。VLESS / VMess 的
+WebSocket、gRPC 已接入；Trojan 的扩展传输与 VLESS REALITY 见下方开发能力。SS/SS2022 当前仅开放 TCP：运行时 UDP 会话复用无法保证逐报文
 私网目标隔离，因此服务端和订阅均关闭 UDP。其他选项的限制见下文。
 
 ## 安装前提
@@ -255,3 +255,26 @@ python3 scripts/trusttunnel-lab.py --client /path/to/stash-core-rs --geodb-dir /
 0.16.0-dev 源码新增传输参数、新建表单、配置修订和 Stash/Mihomo 导出。
 字段、客户端限制、17 个本地容器转发用例与尚未完成的组合见
 [传输兼容性](TRANSPORT-COMPATIBILITY.md)。这不是 72 个组合全部通过或线上部署完成的声明。
+
+## 0.17 开发能力：部署预设与 REALITY
+
+参考 [Hiddify Manager v13](https://github.com/hiddify/Hiddify-Manager/releases/tag/v13.0.3)
+的协议、传输、安全层、内核与客户端分离方式。模板组合不计作独立协议；
+星渡没有复制其安装脚本，也没有改动上游内核。
+
+控制台增加 TCP + TLS、WebSocket + TLS、gRPC + TLS、REALITY + Vision 预设。
+Trojan 可使用 sing-box 的 TCP / WS / gRPC / HTTP，Xray 另可选择
+HTTPUpgrade / XHTTP；协议校验与客户端适配范围分别判断。
+Trojan 扩展传输与 REALITY 需要 Agent 0.17.0-dev 源码构建，尚未发布。
+已有 Agent 和节点不会随控制端更新而自动获得能力。
+
+REALITY 仅开放 VLESS + TCP，可选 Vision。`server_name` 必须是允许的公共
+握手域名，不上传证书。控制端生成 X25519 密钥及 short ID，服务端私钥加密
+保存，连接信息只返回公钥与 short ID。轮换连接凭据会同步轮换 REALITY 密钥；
+恢复修订保留该修订的密钥。暂不组合 VLESS Encryption、拆分下载、显式 ALPN
+或其他传输。Xray 启动前通过公共 DNS 解析并检查目标地址，避免私网握手目标。
+
+新能力在队列提交、领取、重启及卸载时均检查记录的 Agent 最低版本。
+配置更新只允许具有官方运行时出口过滤的受管服务单元；旧单元需重新部署，
+避免将历史运行时的验收结果沿用到新组合。真实公网 DNS、VPS 与手机 App
+仍需单独验收。

@@ -168,3 +168,28 @@ HTTP/h2、ALPN、VLESS Encryption 与 Vision；WireGuard 导出客户端密钥�
 Stash XHTTP 的 HTTP/1.1/3、无 TLS gRPC、gRPC/HTTP Vision、TUIC cubic
 以及 Surge/Loon 自定义传输会明确拒绝，不会静默降级。
 详见[传输兼容性及验收范围](TRANSPORT-COMPATIBILITY.md)。
+
+## 原生 sing-box 与通用分享订阅（0.17 开发能力）
+
+新增 `singbox`（JSON）、`uri`（每行一个分享链接）和 `base64`（整个 URI
+列表的标准 Base64）。创建、编辑、预览及下载使用同一格式值，链接保持原有
+访问控制与令牌语义。原生 JSON 可供支持对应配置格式的客户端使用；尚未宣称
+Hiddify App 的所有版本已完成导入验收。
+
+`singbox` 输出 SS、SS2022、VLESS、VMess、Trojan、HY2、HY1、TUIC、AnyTLS、
+HTTPS、SOCKS5、Mixed。保留有序域名/IP 规则及默认策略，不导出 Clash 远程
+规则预设。暂不输出 WireGuard、ShadowTLS、Snell、TrustTunnel、XHTTP、VLESS
+Encryption 或 Xray 原始 HTTP 传输。不兼容时整个导出失败，不删除选中节点。
+
+普通 TLS JSON 仅使用所选叶证书作为信任锚，保持域名与有效期检查，不关闭
+证书验证；不把完整链中的根或中间证书扩大为信任锚。REALITY 导出公钥、
+short ID、握手域名与 Chrome 指纹；可输出为 Mihomo、sing-box、URI、Base64，
+Stash 格式明确拒绝未验收的 REALITY。Xray 26.9.9 REALITY 的握手要求与
+当前 sing-box 客户端不兼容，sing-box / Mihomo 完整配置明确拒绝该组合；
+Xray 服务端请使用支持新版 REALITY 的 Xray 客户端，不能沿用旧客户端验收。
+
+`uri` / `base64` 输出 SS、SS2022、VLESS、VMess、Trojan、HY2、TUIC。
+分享列表无法携带分流规则、策略组或图标，因此带这些路由配置的订阅不允许
+选择链接格式。复杂请求头、拆分传输、原始 HTTP、XHTTP 和中转配置明确拒绝。
+普通 TLS 链接要求系统信任的完整证书链；私有 CA 应使用完整配置。HY2 链接
+保留叶证书 SHA-256 校验，REALITY 使用公钥认证。仍需客户端逐项验收。
