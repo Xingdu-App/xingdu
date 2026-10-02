@@ -90,3 +90,22 @@ func TestHardenedArtifactsAndSourceWithMachineBearer(t *testing.T) {
 		}
 	}
 }
+
+func TestOfficialRuntimeHasSeparateMachineDownloadRoute(t *testing.T) {
+	dir := t.TempDir()
+	for name, body := range map[string]string{"official-sing-box-linux-arm64": "official", "sing-box-linux-arm64": "historical", "official-xray-linux-arm64": "official xray"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	h := New(nil, Options{ArtifactDir: dir})
+	for path, body := range map[string]string{"/api/v1/agent/runtime/official/sing-box/arm64": "official", "/api/v1/agent/runtime/sing-box/arm64": "historical", "/api/v1/agent/runtime/official/xray/arm64": "official xray"} {
+		req := httptest.NewRequest("GET", path, nil)
+		req.Header.Set("Authorization", "Bearer machine-credential")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+		if w.Code != 200 || w.Body.String() != body {
+			t.Fatal("runtime provenance or auth changed", path, w.Code, w.Body.String())
+		}
+	}
+}

@@ -2,10 +2,11 @@ package protocol
 
 // RuntimeVersion is pinned intentionally; upgrades require configuration and
 // client-handshake acceptance checks, not an unreviewed "latest" download.
-const RuntimeVersion = "1.14.2-xingdu.1"
+const RuntimeVersion = "1.14.2"
+const HardenedRuntimeVersion = "1.14.2-xingdu.1"
 
-// RuntimeSHA256 verifies the extracted executable again on each managed machine.
-var RuntimeSHA256 = map[string]string{
+// Historical patched executable hashes remain available for older Agents.
+var HardenedRuntimeSHA256 = map[string]string{
 	"amd64": "350177a4aee448381690ca3bcefc38009d42370fc915f577ad5d7ed5b9c25250",
 	"arm64": "d755d2ce931a888d14e94f3840ff0fee8b34c78d02c657cf1ec0026a56c4fbda",
 }
@@ -28,10 +29,11 @@ var TrustTunnelArchiveSHA256 = map[string]string{
 	"arm64": "c2aee17a1ced349283cba4775202e2baba053b8ea835d4cc23dc67d16c6b9686",
 }
 
-// Xray is independently built from pinned upstream source with reviewed patches.
-const XrayVersion = "26.3.27-xingdu.1"
+// New Agents use the pinned official Xray release; historical builds are retained.
+const XrayVersion = "26.9.9"
+const HardenedXrayVersion = "26.3.27-xingdu.1"
 
-var XraySHA256 = map[string]string{
+var HardenedXraySHA256 = map[string]string{
 	"amd64": "b9c16509df923e99ca43a2258d18156943e960ae21b983b85ca8c2af382e2f7f",
 	"arm64": "e04e3d874502e5cafcbbe13216a3024d057bcd7d767ea82949f8931c6ca2d5a3",
 }
@@ -47,4 +49,18 @@ const LegacyRuntimeVersion = "1.14.2"
 var LegacyRuntimeSHA256 = map[string]string{
 	"amd64": "fc9c6e6ab345f045b16a0ed10d1ff28d68e8e56e7749fca30738d1406e98d7b8",
 	"arm64": "b8610f45abb7e967e195264383f5cbd20fba7821a3c37e3a8c4c5ab6cad28eac",
+}
+
+// Official executables are extracted unchanged from verified upstream archives.
+var RuntimeSHA256 = map[string]string{
+	"amd64": "fc9c6e6ab345f045b16a0ed10d1ff28d68e8e56e7749fca30738d1406e98d7b8",
+	"arm64": "b8610f45abb7e967e195264383f5cbd20fba7821a3c37e3a8c4c5ab6cad28eac",
+}
+var XraySHA256 = map[string]string{
+	"amd64": "c4ae6798c38e0e5343b192406746333cd0ba7ff3eb984f8c4b9939dcb68c3f8a",
+	"arm64": "c1defe42b6db958a97c5e049a02a00a4baaedaca7b51c1c229f0830e288acef5",
+}
+var OfficialXrayArchiveSHA256 = map[string]string{
+	"amd64": "1eb9175d0f0a8f8149c9230a7fc5ae66ce332ed20a53155ce61fe62e3f58b7df",
+	"arm64": "3e38d72dfc5eb65c91df0e5583e9b6676c32232041da47de6ae73946b526d66c",
 }

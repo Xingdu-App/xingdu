@@ -52,7 +52,7 @@ func executorFixture(t *testing.T) (*protocolExecutor, Config, *[]string) {
 	protocol.RuntimeSHA256["test"] = hex.EncodeToString(h[:])
 	t.Cleanup(func() { delete(protocol.RuntimeSHA256, "test") })
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/v1/agent/runtime/sing-box/test" {
+		if r.URL.Path != "/api/v1/agent/runtime/official/sing-box/test" {
 			t.Error("wrong runtime path")
 		}
 		if r.Header.Get("Authorization") != "Bearer machine" {
@@ -61,7 +61,7 @@ func executorFixture(t *testing.T) (*protocolExecutor, Config, *[]string) {
 		w.Write(body)
 	}))
 	t.Cleanup(srv.Close)
-	x := &protocolExecutor{stateDir: filepath.Join(root, "state"), unitDir: filepath.Join(root, "units"), binaryDir: filepath.Join(root, "bin"), root: true, arch: "test", client: srv.Client(), run: func(_ context.Context, name string, args ...string) error {
+	x := &protocolExecutor{egressFilter: func(string) bool { return true }, stateDir: filepath.Join(root, "state"), unitDir: filepath.Join(root, "units"), binaryDir: filepath.Join(root, "bin"), root: true, arch: "test", client: srv.Client(), run: func(_ context.Context, name string, args ...string) error {
 		calls = append(calls, name+" "+strings.Join(args, " "))
 		return nil
 	}}

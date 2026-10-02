@@ -4,17 +4,23 @@ Xingdu's original source is licensed under [MIT](LICENSE). Protocol engines
 run as separate processes and retain their own licenses; they are not affiliated
 with Xingdu. No upstream component is relicensed under Xingdu's MIT license.
 
-- **sing-box 1.14.2-xingdu.1** is built from upstream commit
+- New Agents use the unmodified official **sing-box 1.14.2** release
+  ([GPL-3.0-or-later source](https://github.com/SagerNet/sing-box/tree/v1.14.2))
+  and **Xray 26.9.9** release
+  ([MPL-2.0 source](https://github.com/XTLS/Xray-core/tree/v26.9.9)).
+  Archive and executable hashes are pinned; original licenses are retained.
+- Historical **sing-box 1.14.2-xingdu.1** is built from upstream commit
   `af6e64c3b69e6132ebaee0e1a3d24e93903f6709` with the per-datagram public-egress
   guard in `tools/runtime-patches/sing-box-udp-guard.patch`.
   [Source and GPL-3.0-or-later license](https://github.com/SagerNet/sing-box/tree/af6e64c3b69e6132ebaee0e1a3d24e93903f6709).
-- **Xray 26.3.27-xingdu.1** is built from upstream commit
+- Historical **Xray 26.3.27-xingdu.1** is built from upstream commit
   `d2758a023cd7f4174a5a5fa4ff66e487d4342ba0`, with the per-datagram egress guard
   and the explicit HTTP/1.1 ALPN correction listed in `tools/build-runtime/build.sh`.
   [Source and MPL-2.0 license](https://github.com/XTLS/Xray-core/tree/d2758a023cd7f4174a5a5fa4ff66e487d4342ba0).
 - TrustTunnel remains a separately executed, unmodified pinned upstream endpoint.
 
-`make runtimes` verifies fixed source/archive hashes, builds with Go 1.26.1,
+`make runtimes` fetches verified official assets and retains legacy patched assets
+for old Agents. Legacy builds verify fixed source/archive hashes, use Go 1.26.1,
 verifies the resulting executables against `internal/protocol/runtime_manifest.go`,
 and preserves upstream notices. The build recipe and patches are distributed
 with this repository. Docker artifacts include the modified source trees and

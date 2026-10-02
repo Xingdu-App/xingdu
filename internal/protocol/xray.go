@@ -211,7 +211,7 @@ func XrayServer(s Spec, socket string) ([]byte, error) {
 		delete(stream, "tlsSettings")
 		stream["security"] = "none"
 	}
-	cfg := map[string]any{"log": map[string]any{"loglevel": "none"}, "inbounds": []any{inbound}, "outbounds": []any{map[string]any{"tag": "direct", "protocol": "freedom", "settings": map[string]any{"domainStrategy": "UseIP"}}, map[string]any{"tag": "blocked", "protocol": "blackhole"}}, "routing": map[string]any{"domainStrategy": "IPOnDemand", "rules": []any{map[string]any{"type": "field", "ip": []string{"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.168.0.0/16", "168.63.129.16/32", "224.0.0.0/4", "240.0.0.0/4", "::/128", "::1/128", "fc00::/7", "fe80::/10", "ff00::/8"}, "outboundTag": "blocked"}}}}
+	cfg := map[string]any{"dns": map[string]any{"servers": []string{"9.9.9.9", "1.1.1.1"}}, "log": map[string]any{"loglevel": "none"}, "inbounds": []any{inbound}, "outbounds": []any{map[string]any{"tag": "direct", "protocol": "freedom", "settings": map[string]any{"domainStrategy": "UseIP"}}, map[string]any{"tag": "blocked", "protocol": "blackhole"}}, "routing": map[string]any{"domainStrategy": "IPOnDemand", "rules": []any{map[string]any{"type": "field", "ip": []string{"0.0.0.0/8", "10.0.0.0/8", "100.64.0.0/10", "127.0.0.0/8", "169.254.0.0/16", "172.16.0.0/12", "192.168.0.0/16", "168.63.129.16/32", "224.0.0.0/4", "240.0.0.0/4", "::/128", "::1/128", "fc00::/7", "fe80::/10", "ff00::/8"}, "outboundTag": "blocked"}}}}
 	return json.Marshal(cfg)
 }
 func xrayTransport(v *V2RayOptions) map[string]any {

@@ -58,7 +58,7 @@ func (x *protocolExecutor) trustTunnelUnit(id string) bool {
 	return false
 }
 func (x *protocolExecutor) runtimePolicyFailure(id string) string {
-	if x.trustTunnelUnit(id) {
+	if x.requiresEgressFilter(id) {
 		return "runtime_policy_failed"
 	}
 	return "selinux_domain_failed"

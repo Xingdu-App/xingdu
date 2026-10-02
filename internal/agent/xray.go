@@ -17,7 +17,7 @@ import (
 )
 
 func (x *protocolExecutor) xrayBinary(ctx context.Context, c Config) (string, error) {
-	if _, err := x.runtimeBinary(ctx, c, "xray-core", protocol.XrayVersion, protocol.XrayLicense, protocol.XraySHA256, "/api/v1/agent/runtime/xray/"); err != nil {
+	if _, err := x.runtimeBinary(ctx, c, "xray-core", protocol.XrayVersion, protocol.XrayLicense, protocol.XraySHA256, "/api/v1/agent/runtime/official/xray/"); err != nil {
 		return "", err
 	}
 	self, err := os.Executable()

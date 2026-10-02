@@ -78,20 +78,24 @@ adds WireGuard to the database protocol constraint.
 
 ## Runtime isolation and reproducibility
 
-Both server engines have a per-packet public-destination guard. Routing once at
-UDP association creation was insufficient: a later datagram could switch to a
-private or metadata address. The patched engines validate each resolved address,
-including IPv4-mapped IPv6, and drop only the denied datagram. Existing route
-rules still protect initial TCP/UDP destinations.
+Agent 0.16.0-rc.1 installs unmodified official sing-box 1.14.2 and Xray 26.9.9.
+Archive and executable hashes are pinned. New services enforce private and
+metadata address restrictions with systemd cgroup BPF filtering; deployment
+fails closed if the actual service filter is missing. The filter also rejects
+private-source inbound connections. Public DNS avoids blocked local resolvers.
+XHTTP retains Xingdu's managed frontend with the official Xray executable.
 
-Older Agents retain their original runtime download endpoint and digest. New
-Agents fetch hardened sing-box from `/api/v1/agent/runtime/sing-box/{arch}`.
-Existing service processes are not silently replaced by a control-plane update.
+New download paths are `/api/v1/agent/runtime/official/sing-box/{arch}` and
+`/api/v1/agent/runtime/official/xray/{arch}`. Historical patched binaries and
+sources remain at their original paths for older Agents with pinned hashes.
+An Agent upgrade or configuration update does not migrate existing service
+units. Explicit node redeployment is required to change those engines/policies.
 
-The fixed-source build recipe, patches, checksums and downloadable corresponding
-sources are described in [third-party notices](../THIRD_PARTY_NOTICES.md).
-The reference Xray client also corrects explicit HTTP/1.1 ALPN when a browser
-fingerprint would otherwise advertise HTTP/2. Tests retain the requested ALPN.
+Local arm64 acceptance covers 72 configuration parsers, 17 basic sing-box
+forwarding combinations and real systemd per-datagram filtering. The historical
+patched-runtime 72-case forwarding result must not be attributed to this release.
+See [release boundaries](AGENT-RELEASE.md) and
+[third-party notices](../THIRD_PARTY_NOTICES.md).
 
 ## Client boundary
 

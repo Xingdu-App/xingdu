@@ -29,6 +29,13 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 			http.NotFound(w, r)
 			return
 		}
+		if r.PathValue("provenance") == "official" {
+			if family != "sing-box" && family != "xray" {
+				http.NotFound(w, r)
+				return
+			}
+			family = "official-" + family
+		}
 		path := filepath.Join(a.artifacts, family+"-linux-"+arch)
 		st, err := os.Lstat(path)
 		if err != nil || !st.Mode().IsRegular() {
@@ -72,6 +79,7 @@ func (a *api) runtimeRoutes(mux *http.ServeMux) {
 		w.Header().Set("Content-Disposition", `attachment; filename="`+family+`-source.tar.gz"`)
 		http.ServeFile(w, r, path)
 	})
+	mux.HandleFunc("GET /api/v1/agent/runtime/official/{family}/{arch}", func(w http.ResponseWriter, r *http.Request) { r.SetPathValue("provenance", "official"); serve(w, r) })
 	mux.HandleFunc("GET /api/v1/agent/runtime/{arch}", serve)
 	mux.HandleFunc("GET /api/v1/agent/runtime/{family}/{arch}", serve)
 }

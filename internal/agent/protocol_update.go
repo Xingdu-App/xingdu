@@ -103,7 +103,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 			return false
 		}
 		if !x.runtimePolicyReady(ctx, t.DeploymentID) {
-			if x.trustTunnelUnit(t.DeploymentID) {
+			if x.requiresEgressFilter(t.DeploymentID) {
 				_ = x.run(ctx, "systemctl", "stop", serviceName(localID))
 			}
 			return false

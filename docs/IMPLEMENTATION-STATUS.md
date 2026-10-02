@@ -69,10 +69,10 @@ UDP、错误密码/指纹/ALPN 拒绝、私网 IP/域名/UDP 与平台地址阻�
 The 0.16.0-dev source adds independent Xray and sing-box adapters for the
 72-case matrix, including split XHTTP HTTP/1.1, HTTP/2 and HTTP/3, VLESS
 Encryption/Vision, WireGuard, SOCKS5 UDP and QUIC parameter preservation.
-The runtime builds now contain per-datagram egress guards after testing found
+The historical patched runtime builds contained per-datagram egress guards after testing found
 that reused UDP associations could bypass initial private-address route checks.
 
-The local Linux arm64 72-case forwarding run passed all cases, including repeated
+The historical patched-runtime local Linux arm64 72-case forwarding run passed all cases, including repeated
 TCP requests, UDP destination changes and private/mapped-IP rejection. Four
 additional HTTPUpgrade combinations also passed. API encrypted projections for
 all 72 inputs and the 40 exportable Stash candidates pass unit tests; 32 rows
@@ -87,3 +87,18 @@ historical evidence for those basic combinations only.
 AWS HK remains on its previous Agent; no advanced public deployment has yet
 been verified. See [the matrix](PROTOCOL-MATRIX-72.md) and
 [API contract](TRANSPORT-COMPATIBILITY.md). Stash Rust Core is unchanged.
+
+### Official runtime candidate (0.16.0-rc.1)
+
+New Agent deployments use unmodified official sing-box 1.14.2 and Xray 26.9.9.
+Older Agents retain their original downloads and existing nodes retain their
+service units. The new systemd address filter must actually be attached or the
+Agent refuses deployment; it also blocks private-source inbound traffic.
+Managed XHTTP still uses Xingdu's frontend around official Xray.
+
+Local Linux arm64 validation passed all 72 configuration inputs, 17 sing-box
+forwarding combinations and real systemd BPF queries with same-socket UDP
+public/private/public destination changes and mapped-loopback rejection.
+This is not all 72 forwarding cases or mobile/public VPS acceptance. Release
+publication and native architecture CI are established only by the matching
+GitHub Release workflow. See [Agent releases](AGENT-RELEASE.md).

@@ -382,11 +382,11 @@ func Render(s Spec) ([]byte, error) {
 	// private services from otherwise authenticated proxy clients.
 	cfg := map[string]any{
 		"log":       map[string]any{"disabled": true},
-		"dns":       map[string]any{"servers": []any{map[string]any{"type": "local", "tag": "local", "prefer_go": true}}},
+		"dns":       map[string]any{"servers": []any{map[string]any{"type": "udp", "tag": "public", "server": "9.9.9.9"}}},
 		"inbounds":  inbounds,
 		"outbounds": []any{map[string]any{"type": "direct", "tag": "direct"}},
 		"route": map[string]any{"rules": []any{
-			map[string]any{"action": "resolve", "server": "local"},
+			map[string]any{"action": "resolve", "server": "public"},
 			map[string]any{"ip_is_private": true, "action": "reject"},
 			map[string]any{"ip_cidr": []string{"0.0.0.0/8", "100.64.0.0/10", "168.63.129.16/32", "224.0.0.0/4", "240.0.0.0/4", "::/128", "ff00::/8"}, "action": "reject"},
 		}, "final": "direct"},

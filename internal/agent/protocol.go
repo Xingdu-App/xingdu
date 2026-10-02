@@ -72,7 +72,7 @@ func atomicProtocolFile(path string, b []byte, mode os.FileMode) error {
 	return os.Rename(f.Name(), path)
 }
 func (x *protocolExecutor) binary(ctx context.Context, c Config) (string, error) {
-	return x.runtimeBinary(ctx, c, "sing-box", protocol.RuntimeVersion, protocol.RuntimeLicense, protocol.RuntimeSHA256, "/api/v1/agent/runtime/sing-box/")
+	return x.runtimeBinary(ctx, c, "sing-box", protocol.RuntimeVersion, protocol.RuntimeLicense, protocol.RuntimeSHA256, "/api/v1/agent/runtime/official/sing-box/")
 }
 func (x *protocolExecutor) runtimeBinary(ctx context.Context, c Config, name, version, license string, hashes map[string]string, route string) (string, error) {
 	expected, ok := hashes[x.arch]
@@ -200,6 +200,9 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 `, id, config, binary)
+	if officialRuntimeBinary(binary) {
+		unit = strings.Replace(unit, "[Install]", "# Xingdu official runtime egress guard\nIPAddressDeny="+officialDeniedNetworks+"\n[Install]", 1)
+	}
 	if strings.HasPrefix(filepath.Base(binary), "trusttunnel-") {
 		unit = strings.Replace(unit, "[Install]", "# Supplemental destination guard for cloud control-plane and multicast addresses.\nIPAddressDeny=168.63.129.16/32 224.0.0.0/4 240.0.0.0/4 ff00::/8\n[Install]", 1)
 	}
@@ -268,7 +271,7 @@ func (x *protocolExecutor) execute(ctx context.Context, c Config, t protocol.Tas
 			return "start_failed"
 		}
 		if !x.runtimePolicyReady(ctx, t.DeploymentID) {
-			if x.trustTunnelUnit(t.DeploymentID) && x.run(ctx, "systemctl", "stop", serviceName(localID)) != nil {
+			if x.requiresEgressFilter(t.DeploymentID) && x.run(ctx, "systemctl", "stop", serviceName(localID)) != nil {
 				return "stop_failed"
 			}
 			return x.runtimePolicyFailure(t.DeploymentID)

@@ -127,7 +127,7 @@ func (x *protocolExecutor) ensureRuntimePolicy(ctx context.Context, binary, conf
 	return ""
 }
 func (x *protocolExecutor) runtimePolicyReady(ctx context.Context, id string) bool {
-	if x.trustTunnelUnit(id) {
+	if x.requiresEgressFilter(id) {
 		check := x.egressFilter
 		if check == nil {
 			check = hasEgressFilter

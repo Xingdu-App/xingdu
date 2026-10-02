@@ -144,11 +144,14 @@ func run(output, cache string) error {
 			fmt.Println("Verified " + family + " " + version + " linux/" + arch)
 		}
 	}
+	if err := fetchOfficial(output, cache); err != nil {
+		return err
+	}
 	for _, family := range []string{"sing-box", "xray"} {
 		for _, arch := range []string{"amd64", "arm64"} {
-			hashes := protocol.RuntimeSHA256
+			hashes := protocol.HardenedRuntimeSHA256
 			if family == "xray" {
-				hashes = protocol.XraySHA256
+				hashes = protocol.HardenedXraySHA256
 			}
 			path := filepath.Join(output, family+"-linux-"+arch)
 			if b, err := os.ReadFile(path); err == nil && matches(b, hashes[arch]) {
