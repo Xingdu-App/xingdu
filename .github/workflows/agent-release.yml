@@ -101,15 +101,21 @@ jobs:
           Build provenance is available with `gh attestation verify BINARY --repo Xingdu-App/xingdu`.
 
           The Agent supports enrollment, telemetry, managed protocol tasks and administrator-triggered upgrades.
-          This candidate adds managed TrustTunnel nodes using the pinned official endpoint, HTTP/2 TCP/UDP forwarding,
-          certificate management and Stash exports with h2 ALPN and certificate pinning. It also includes the SELinux
-          deployment repairs added after 0.14.0-rc.1 for the existing sing-box runtime.
+          This candidate installs unmodified official sing-box 1.14.2 and Xray 26.9.9,
+          with pinned archive and executable checksums. Legacy runtime downloads remain
+          available for older Agents. Existing nodes are not automatically migrated:
+          upgrading the Agent alone does not replace their service units or engines.
 
-          TrustTunnel requires a working systemd cgroup BPF egress filter. HTTP/3, relays, automated probes and
-          TrustTunnel on SELinux hosts are not supported in this candidate. Local Ubuntu arm64 endpoint and macOS
-          Stash core acceptance covered forwarding, authentication/TLS rejection, destination blocking and lifecycle
-          operations; this is not mobile App, public VPS or amd64 forwarding verification.
-          Deploy the API and Worker from the same tag to keep upgrade versions and artifacts aligned.
+          New official runtime services require working systemd cgroup BPF address
+          filtering. Unsupported hosts fail deployment instead of running without the
+          filter. Private-source connections are also blocked by this service policy.
+          XHTTP still uses Xingdu's managed frontend around the official Xray engine.
+
+          Local Linux arm64 checks covered all 72 configuration inputs, 17 sing-box
+          forwarding combinations and actual per-packet UDP filtering. Configuration
+          acceptance is not full 72-case forwarding, mobile App or public VPS acceptance.
+          TrustTunnel retains its existing boundaries documented in the protocol docs.
+          Deploy the API and Worker from the same tag to align artifacts and versions.
 
           Prerelease tags are release candidates, not a claim of production readiness.
           CI covers PostgreSQL integration, frontend checks, native architecture tests and binary version smoke tests.
