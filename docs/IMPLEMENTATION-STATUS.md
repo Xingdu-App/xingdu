@@ -103,7 +103,7 @@ This is not all 72 forwarding cases or mobile/public VPS acceptance. Release
 publication and native architecture CI are established only by the matching
 GitHub Release workflow. See [Agent releases](AGENT-RELEASE.md).
 
-### Hiddify-inspired proxy and subscription improvements (0.17 development)
+### Proxy and subscription candidate (0.17.0-rc.1)
 
 Development source adds VLESS TCP REALITY (optional Vision), Trojan transport
 options and three independent subscription adapters: sing-box JSON, URI and
@@ -119,8 +119,9 @@ origin. Cross-engine sing-box client to Xray REALITY failed authentication;
 that JSON adapter is explicitly blocked, and Mihomo to new Xray REALITY is
 unverified and blocked. Native sing-box parsed 15 generated node configurations
 and ordered routing rules. None of this is Hiddify App, mobile device, public
-VPS, public handshake-origin or Agent systemd/DNS acceptance. No new Agent
-artifact has been published; the previously released Agent lacks these features.
+VPS, public handshake-origin or Agent systemd/DNS acceptance. Agent 0.17.0-rc.1 contains these features. Publication and native-architecture
+checks are established by its matching Release workflow; 0.16.0-rc.1 does
+not contain them.
 
 `make check` passed Go vet/race tests and frontend lint/tests/build. Full
 API/storage integration passed against disposable PostgreSQL with the new

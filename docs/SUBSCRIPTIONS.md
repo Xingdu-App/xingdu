@@ -169,7 +169,7 @@ Stash XHTTP 的 HTTP/1.1/3、无 TLS gRPC、gRPC/HTTP Vision、TUIC cubic
 以及 Surge/Loon 自定义传输会明确拒绝，不会静默降级。
 详见[传输兼容性及验收范围](TRANSPORT-COMPATIBILITY.md)。
 
-## 原生 sing-box 与通用分享订阅（0.17 开发能力）
+## 原生 sing-box 与通用分享订阅（0.17.0-rc.1）
 
 新增 `singbox`（JSON）、`uri`（每行一个分享链接）和 `base64`（整个 URI
 列表的标准 Base64）。创建、编辑、预览及下载使用同一格式值，链接保持原有

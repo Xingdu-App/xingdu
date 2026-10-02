@@ -96,32 +96,7 @@ jobs:
           cp VERSION LICENSE dist/
           printf 'Version: %s\nCommit: %s\n' "$VERSION" "$COMMIT" > dist/BUILD.txt
           (cd dist && sha256sum xingdu-agent-linux-amd64 xingdu-agent-linux-arm64 VERSION LICENSE BUILD.txt > SHA256SUMS)
-          cat > dist/NOTES.md <<'NOTES'
-          Linux Agent binaries for amd64 and arm64. Verify SHA256SUMS before installation.
-          Build provenance is available with `gh attestation verify BINARY --repo Xingdu-App/xingdu`.
-
-          The Agent supports enrollment, telemetry, managed protocol tasks and administrator-triggered upgrades.
-          This candidate installs unmodified official sing-box 1.14.2 and Xray 26.9.9,
-          with pinned archive and executable checksums. Legacy runtime downloads remain
-          available for older Agents. Existing nodes are not automatically migrated:
-          upgrading the Agent alone does not replace their service units or engines.
-
-          New official runtime services require working systemd cgroup BPF address
-          filtering. Unsupported hosts fail deployment instead of running without the
-          filter. Private-source connections are also blocked by this service policy.
-          XHTTP still uses Xingdu's managed frontend around the official Xray engine.
-
-          Local Linux arm64 checks covered all 72 configuration inputs, 17 sing-box
-          forwarding combinations and actual per-packet UDP filtering. Configuration
-          acceptance is not full 72-case forwarding, mobile App or public VPS acceptance.
-          TrustTunnel retains its existing boundaries documented in the protocol docs.
-          Deploy the API and Worker from the same tag to align artifacts and versions.
-
-          Prerelease tags are release candidates, not a claim of production readiness.
-          CI covers PostgreSQL integration, frontend checks, native architecture tests and binary version smoke tests.
-          Full systemd lifecycle, real VPS networking and individual client App acceptance require separate validation.
-          See docs/MACHINE-ACCESS.md and docs/AGENT-RELEASE.md for installation and release boundaries.
-          NOTES
+          cp "docs/releases/agent-$VERSION.md" dist/NOTES.md
       - name: Publish release only after all assets are uploaded
         env:
           GH_TOKEN: ${{ github.token }}

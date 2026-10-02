@@ -290,7 +290,7 @@ and SOCKS `udp_enabled` settings. Connection reveal returns client parameters
 and generated client credentials; encrypted revisions retain server secrets. See [the full contract, minimum
 Agent version, examples and restrictions](TRANSPORT-COMPATIBILITY.md).
 
-### Additional proxy and subscription fields (0.17 development source)
+### Additional proxy and subscription fields (0.17.0-rc.1)
 
 Deployment `v2ray.reality` enables VLESS TCP REALITY. Use an approved handshake
 `server_name`, omit certificate/private_key, and optionally select
@@ -298,7 +298,7 @@ Deployment `v2ray.reality` enables VLESS TCP REALITY. Use an approved handshake
 returns `reality_public_key` and `reality_short_id`, never the REALITY private
 key. Rotating credentials rotates these keys; restoring a revision preserves
 its keys. REALITY and Trojan transport options require Agent 0.17.0-dev.
-This development source is not included in the previously released Agent.
+These features are included in Agent 0.17.0-rc.1 and absent from 0.16.0-rc.1.
 
 Subscription `format` additionally accepts `singbox`, `uri`, and `base64`.
 JSON downloads use application/json and .json; URI/Base64 use text/plain and

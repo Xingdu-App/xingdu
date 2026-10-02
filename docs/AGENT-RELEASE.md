@@ -74,3 +74,14 @@ XHTTP 仍使用星渡管理的前端和官方 Xray 后端，不等于原生 Xray
 本地验证覆盖 72 项配置解析、17 项 sing-box 转发，以及真实 Ubuntu arm64
 systemd BPF 查询和同一 UDP socket 的公有/私有目标切换。72 项配置通过
 不等于 72 项端到端转发通过。原生架构构建与 CI 以发布工作流结果为准。
+
+## 0.17.0-rc.1 代理与订阅扩展
+
+此候选版包含 VLESS REALITY / Vision、Trojan 扩展传输与对应版本检查。
+同版本控制端提供部署预设、传输配置编辑及 sing-box JSON / URI / Base64
+订阅。API / Worker 需同步更新，现有 Agent 需管理员主动升级。
+
+官方运行时版本不变。sing-box 与 Xray 的 REALITY 各自转发已在本地验收，
+当前 sing-box 客户端无法连接新版 Xray REALITY 服务端，相关完整配置导出
+明确拒绝。公网 VPS、真实客户端 App 与自动升级后行为需分别验收。
+发布说明见 [0.17.0-rc.1](releases/agent-0.17.0-rc.1.md)。

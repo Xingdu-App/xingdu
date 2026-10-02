@@ -256,7 +256,7 @@ python3 scripts/trusttunnel-lab.py --client /path/to/stash-core-rs --geodb-dir /
 字段、客户端限制、17 个本地容器转发用例与尚未完成的组合见
 [传输兼容性](TRANSPORT-COMPATIBILITY.md)。这不是 72 个组合全部通过或线上部署完成的声明。
 
-## 0.17 开发能力：部署预设与 REALITY
+## 0.17.0-rc.1：部署预设与 REALITY
 
 参考 [Hiddify Manager v13](https://github.com/hiddify/Hiddify-Manager/releases/tag/v13.0.3)
 的协议、传输、安全层、内核与客户端分离方式。模板组合不计作独立协议；
@@ -265,7 +265,8 @@ python3 scripts/trusttunnel-lab.py --client /path/to/stash-core-rs --geodb-dir /
 控制台增加 TCP + TLS、WebSocket + TLS、gRPC + TLS、REALITY + Vision 预设。
 Trojan 可使用 sing-box 的 TCP / WS / gRPC / HTTP，Xray 另可选择
 HTTPUpgrade / XHTTP；协议校验与客户端适配范围分别判断。
-Trojan 扩展传输与 REALITY 需要 Agent 0.17.0-dev 源码构建，尚未发布。
+Trojan 扩展传输与 REALITY 的能力门槛为 Agent 0.17.0-dev，
+包含在候选版 0.17.0-rc.1 中；公开产物以对应 Release 工作流为准。
 已有 Agent 和节点不会随控制端更新而自动获得能力。
 
 REALITY 仅开放 VLESS + TCP，可选 Vision。`server_name` 必须是允许的公共
