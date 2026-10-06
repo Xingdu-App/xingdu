@@ -129,6 +129,19 @@ func TestSubscriptionConfigAPIIsolationAndRevision(t *testing.T) {
 			t.Fatalf("status %d want %d: %s", w.Code, status, w.Body.String())
 		}
 	}
+	compatBody := `{"format":"stash","candidate_ids":["` + node + `"],"node_ids":["` + node + `"],"rules":[],"final_action":"proxy"}`
+	assert(call("POST", "/api/v1/subscriptions/compatibility", compatBody, read, ""), 403)
+	compatible := call("POST", "/api/v1/subscriptions/compatibility", compatBody, write, "")
+	assert(compatible, 200)
+	if !strings.Contains(compatible.Body.String(), `"compatible":true`) || strings.Contains(compatible.Body.String(), spec.Credential) || compatible.Header().Get("Cache-Control") != "no-store" {
+		t.Fatal("compatibility report leaked credentials or lost compatibility")
+	}
+	incompatible := call("POST", "/api/v1/subscriptions/compatibility", strings.Replace(compatBody, `"stash"`, `"loon"`, 1), write, "")
+	assert(incompatible, 200)
+	if !strings.Contains(incompatible.Body.String(), `"compatible":false`) {
+		t.Fatal("unsupported format accepted")
+	}
+	assert(call("PATCH", path, `{"format":"loon","routing":null}`, write, `"1"`), 422)
 	metadata := call("GET", path, "", read, "")
 	assert(metadata, 200)
 	etag := metadata.Header().Get("ETag")
@@ -165,6 +178,15 @@ func TestSubscriptionConfigAPIIsolationAndRevision(t *testing.T) {
 	if warning.Header().Get("X-Xingdu-Config-Warnings") != "group_icons_not_exported_for_format" {
 		t.Fatal("missing compatibility warning")
 	}
+	nativeSub, e := s.SaveSubscription(tenant, storage.Subscription{ID: storage.NewID("sub"), Name: "Native", Format: "singbox", Enabled: true, NodeIDs: []string{node}, FinalAction: "proxy"}, machine.Hash(machine.Token()), true)
+	if e != nil {
+		t.Fatal(e)
+	}
+	nativeConfig := call("GET", "/api/v1/subscriptions/"+nativeSub.ID+"/config", "", export, "")
+	assert(nativeConfig, 200)
+	if nativeConfig.Header().Get("Content-Type") != "application/json; charset=utf-8" {
+		t.Fatal("native download has incorrect MIME type")
+	}
 	// Export and node selection must retain the last confirmed config after rollback.
 	_, err = admin.Pool.Exec(ctx, "UPDATE protocol_deployments SET action='update',state='failed',pending_revision=NULL WHERE id=$1", node)
 	if err != nil {
@@ -189,6 +211,11 @@ func TestSubscriptionConfigAPIIsolationAndRevision(t *testing.T) {
 	_, e = s.CreateAPIKey(storage.WithTenant(ctx, other, otherOrgs[0].ID), "Other", tokenHash(secret), secret[:15], []string{"subscriptions:read", "subscriptions:write", "subscriptions:export"}, time.Now().Add(time.Hour))
 	if e != nil {
 		t.Fatal(e)
+	}
+	foreignCompatibility := call("POST", "/api/v1/subscriptions/compatibility", compatBody, secret, "")
+	assert(foreignCompatibility, 200)
+	if strings.Contains(foreignCompatibility.Body.String(), `"compatible":true`) || strings.Contains(foreignCompatibility.Body.String(), spec.Credential) {
+		t.Fatal("foreign node exposed")
 	}
 	assert(call("GET", path, "", secret, ""), 404)
 	assert(call("GET", path+"/config", "", secret, ""), 404)

@@ -44,6 +44,9 @@ func apiScope(method, path string) string {
 		}
 		return ""
 	}
+	if path == "/api/v1/subscriptions/compatibility" && method == "POST" {
+		return "subscriptions:write"
+	}
 	if len(p) >= 1 && p[0] == "subscriptions" {
 		if len(p) == 1 {
 			if method == "GET" {

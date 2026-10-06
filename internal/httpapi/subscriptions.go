@@ -16,6 +16,7 @@ import (
 )
 
 type SubscriptionStore interface {
+	SubscriptionCandidates(context.Context, []string) ([]storage.Deployment, error)
 	RuleTemplates(context.Context) ([]storage.RuleTemplate, error)
 	SaveRuleTemplate(context.Context, storage.RuleTemplate, bool) (storage.RuleTemplate, error)
 	DeleteRuleTemplate(context.Context, string) error
@@ -32,6 +33,7 @@ func subscriptionPath(id, token string) string {
 	return "/api/v1/subscriptions/" + id + "/content?token=" + token + ""
 }
 func (a *api) subscriptionRoutes(mux *http.ServeMux) {
+	a.subscriptionCompatibilityRoutes(mux)
 	a.ruleTemplateRoutes(mux)
 	a.subscriptionConfigRoutes(mux)
 	mux.HandleFunc("GET /api/v1/subscription-presets", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
@@ -95,6 +97,10 @@ func (a *api) subscriptionRoutes(mux *http.ServeMux) {
 				token = machine.Token()
 				hash = machine.Hash(token)
 				in.EncryptedToken = a.vault.Seal([]byte(token), subscriptionTokenAAD(storage.TenantOrg(r.Context()), in.ID))
+			}
+			if err := a.validateSubscriptionCompatibility(r.Context(), in, create); err != nil {
+				a.configRenderError(w, err)
+				return
 			}
 			out, err := a.store.SaveSubscription(r.Context(), in, hash, create)
 			if err != nil {

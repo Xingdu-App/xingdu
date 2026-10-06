@@ -13,6 +13,7 @@ import { t, useLocale, localeTag } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
+  checkSubscriptionCompatibility,
   loadRoutingCatalog,
   createSubscription,
   deleteSubscription,
@@ -22,13 +23,14 @@ import {
   updateSubscription,
 } from "./api";
 import type {
+  SubscriptionCompatibility,
   ManagedNode,
   Subscription,
   SubscriptionInput,
   RoutingCatalog,
 } from "./api";
 import Select from "./Select";
-import { isShadowsocks, protocolNames } from "./api";
+import { protocolNames } from "./api";
 
 const formatLabels: Record<string, string> = {
   singbox: "sing-box / Hiddify · JSON",
@@ -40,54 +42,6 @@ const formatLabels: Record<string, string> = {
   loon: "Loon · 系统 CA",
   hysteria2_uri: "Hysteria 2 · 分享链接",
 };
-function supportsFormat(format: string, protocol: string) {
-  if (["uri", "base64"].includes(format))
-    return [
-      "vless",
-      "vmess",
-      "trojan",
-      "shadowsocks",
-      "shadowsocks2022",
-      "hysteria2",
-      "tuic",
-    ].includes(protocol);
-  if (format === "singbox")
-    return [
-      "vless",
-      "vmess",
-      "trojan",
-      "shadowsocks",
-      "shadowsocks2022",
-      "hysteria2",
-      "hysteria",
-      "tuic",
-      "anytls",
-      "http",
-      "socks",
-      "mixed",
-    ].includes(protocol);
-  if (protocol === "trusttunnel") return format === "stash";
-  if (["anytls", "http"].includes(protocol))
-    return ["stash", "mihomo"].includes(format);
-  if (isShadowsocks(protocol))
-    return ["stash", "mihomo", "surge"].includes(format);
-  if (["socks", "mixed"].includes(protocol))
-    return ["stash", "mihomo", "surge"].includes(format);
-  if (["hysteria", "shadowtls"].includes(protocol))
-    return ["stash", "mihomo"].includes(format);
-  if (protocol === "snell") return ["stash", "surge"].includes(format);
-  if (protocol === "snell6") return format === "surge";
-  if (format === "surge")
-    return ["trojan", "vmess", "hysteria2", "tuic"].includes(protocol);
-  if (format === "loon")
-    return ["trojan", "vless", "vmess", "hysteria2"].includes(protocol);
-  if (format === "hysteria2_uri") return protocol === "hysteria2";
-  return (
-    ["stash", "mihomo"].includes(format) &&
-    ["trojan", "vless", "vmess", "hysteria2", "tuic"].includes(protocol)
-  );
-}
-
 const emptyInput = (): SubscriptionInput => ({
   name: "",
   format: "stash",
@@ -150,8 +104,73 @@ export default function SubscriptionPanel({
           n.state === "failed" &&
           n.pending_revision == null)),
   );
+
+  const [compatibility, setCompatibility] = useState<{
+    key: string;
+    report: SubscriptionCompatibility;
+  } | null>(null);
+  const [compatibilityFailure, setCompatibilityFailure] = useState<{
+    key: string;
+    message: string;
+  } | null>(null);
+  const [compatibilityAttempt, setCompatibilityAttempt] = useState(0);
+  const compatibilityPayload = JSON.stringify({
+    format: input.format,
+    candidate_ids: [
+      ...new Set([...available.map((n) => n.id), ...input.node_ids]),
+    ],
+    node_ids: input.node_ids,
+    rules: input.rules,
+    final_action: input.final_action,
+    routing: input.routing,
+  });
+  const nodeRevisions = JSON.stringify(
+    nodes.map((n) => [n.id, n.revision, n.state]),
+  );
+  const compatibilityKey = JSON.stringify([
+    compatibilityPayload,
+    refreshKey,
+    nodeRevisions,
+    compatibilityAttempt,
+  ]);
+  useEffect(() => {
+    if (editor === undefined) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void checkSubscriptionCompatibility(
+        JSON.parse(compatibilityPayload),
+        controller.signal,
+      )
+        .then((report) => {
+          if (!controller.signal.aborted) {
+            setCompatibility({ key: compatibilityKey, report });
+            setCompatibilityFailure(null);
+          }
+        })
+        .catch((e) => {
+          if (!controller.signal.aborted)
+            setCompatibilityFailure({
+              key: compatibilityKey,
+              message: errorMessage(e),
+            });
+        });
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [compatibilityKey, compatibilityPayload, editor]);
+  const report =
+    compatibility?.key === compatibilityKey ? compatibility.report : null;
+  const compatibilityError =
+    compatibilityFailure?.key === compatibilityKey
+      ? compatibilityFailure.message
+      : "";
+  const compatibilityPending = !report && !compatibilityError;
+  const canExport = (id: string) =>
+    report?.nodes.some((n) => n.id === id && n.compatible) ?? false;
   const selectableNodeIDs = available
-    .filter((node) => supportsFormat(input.format, node.protocol))
+    .filter((node) => canExport(node.id))
     .map((node) => node.id);
   const allNodesSelected =
     selectableNodeIDs.length > 0 &&
@@ -198,6 +217,8 @@ export default function SubscriptionPanel({
         : emptyInput(),
     );
     setError("");
+    setCompatibility(null);
+    setCompatibilityFailure(null);
     setEditor(row);
   }
   async function act(fn: (signal: AbortSignal) => Promise<void>) {
@@ -217,6 +238,11 @@ export default function SubscriptionPanel({
   }
   function submit(e: FormEvent) {
     e.preventDefault();
+    if (
+      input.enabled &&
+      (!report || compatibilityError || report.issues.length)
+    )
+      return;
     void act(async (signal) => {
       if (editor) await updateSubscription(editor.id, input, signal);
       else {
@@ -597,14 +623,44 @@ export default function SubscriptionPanel({
                 )}
               </p>
             )}
-            {input.node_ids.some((id) => {
-              const node = available.find((n) => n.id === id);
-              return node && !supportsFormat(input.format, node.protocol);
-            }) && (
-              <p className="form-error">
-                {t("已选节点包含不兼容协议，请取消选择或更换客户端格式。")}
+            <div className="subscription-compatibility" aria-live="polite">
+              <strong>{t("配置兼容检查")}</strong>
+              <p className="form-hint">
+                {t(
+                  "检查实际协议、传输和证书要求。可导出不代表已通过客户端联网测试。",
+                )}
               </p>
-            )}
+              {compatibilityPending && (
+                <p className="form-hint">{t("正在检查节点兼容性…")}</p>
+              )}
+              {compatibilityError && (
+                <div>
+                  <p className="form-error">{t(compatibilityError)}</p>
+                  <button
+                    type="button"
+                    className="secondary compact"
+                    disabled={busy}
+                    onClick={() =>
+                      setCompatibilityAttempt((attempt) => attempt + 1)
+                    }
+                  >
+                    {t("重试")}
+                  </button>
+                </div>
+              )}
+              {report && (
+                <p className="form-hint">
+                  {t("可导出节点")}:{" "}
+                  {report.nodes.filter((n) => n.compatible).length} /{" "}
+                  {report.nodes.length}
+                </p>
+              )}
+              {report?.issues.map((issue) => (
+                <p key={issue} className="form-error">
+                  {t(issue)}
+                </p>
+              ))}
+            </div>
             {["hysteria2_uri", "uri", "base64"].includes(input.format) &&
               (input.rules.length > 0 ||
                 input.final_action !== "proxy" ||
@@ -674,8 +730,7 @@ export default function SubscriptionPanel({
                     type="checkbox"
                     checked={input.node_ids.includes(node.id)}
                     disabled={
-                      !supportsFormat(input.format, node.protocol) &&
-                      !input.node_ids.includes(node.id)
+                      !canExport(node.id) && !input.node_ids.includes(node.id)
                     }
                     onChange={(e) =>
                       setInput((current) =>
@@ -692,8 +747,8 @@ export default function SubscriptionPanel({
                     <strong>{node.name}</strong>
                     <small>
                       {protocolNames[node.protocol]} · {node.host_name}
-                      {!supportsFormat(input.format, node.protocol) &&
-                        ` · ${t("此格式不支持")}`}
+                      {!canExport(node.id) &&
+                        ` · ${t(report?.nodes.find((n) => n.id === node.id)?.reason || (compatibilityPending ? "正在检查节点兼容性…" : "兼容检查未完成"))}`}
                     </small>
                   </span>
                 </label>
@@ -766,13 +821,13 @@ export default function SubscriptionPanel({
               className="primary"
               disabled={
                 busy ||
+                (input.enabled &&
+                  (!report ||
+                    !!compatibilityError ||
+                    !!report?.issues.length)) ||
                 !validRoutingNames(input) ||
                 (input.format === "singbox" && !!input.routing) ||
                 (!editor && !input.node_ids.length) ||
-                input.node_ids.some((id) => {
-                  const node = available.find((n) => n.id === id);
-                  return node && !supportsFormat(input.format, node.protocol);
-                }) ||
                 (["hysteria2_uri", "uri", "base64"].includes(input.format) &&
                   (input.rules.length > 0 ||
                     input.final_action !== "proxy" ||

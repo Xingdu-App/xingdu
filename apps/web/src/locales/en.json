@@ -1172,5 +1172,13 @@
   "通用分享链接 · 系统 CA": "Universal share links · System CA",
   "通用订阅 · Base64 · 系统 CA": "Universal subscription · Base64 · System CA",
   "REALITY 与 Trojan 传输配置需要 Agent 0.17.0-dev 或更新版本。": "REALITY and Trojan transport options require Agent 0.17.0-dev or later.",
-  "编辑传输配置": "Edit transport settings"
+  "编辑传输配置": "Edit transport settings",
+  "配置兼容检查": "Configuration compatibility",
+  "检查实际协议、传输和证书要求。可导出不代表已通过客户端联网测试。": "Checks the actual protocol, transport and certificate requirements. Export support does not establish client connectivity.",
+  "正在检查节点兼容性…": "Checking node compatibility…",
+  "可导出节点": "Exportable nodes",
+  "兼容检查未完成": "Compatibility check incomplete",
+  "节点不可用或不属于当前组织": "Node unavailable in the current organization",
+  "已选节点不可用，请取消选择或刷新节点列表": "A selected node is unavailable. Remove it or refresh the node list.",
+  "节点配置不可用，请检查节点状态或重新部署": "Node configuration unavailable. Check its status or redeploy."
 }

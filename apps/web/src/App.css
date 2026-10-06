@@ -3011,3 +3011,18 @@ html[lang="en"] .subscription-rule {
 .inventory-table td:nth-child(2) {
   min-width: 150px;
 }
+
+.subscription-compatibility {
+  padding: 14px 16px;
+  margin: 16px 0;
+  border: 1px solid var(--line, #dfe7e9);
+  border-radius: 10px;
+  background: var(--surface, #f5f9f8);
+}
+.subscription-compatibility p:last-child {
+  margin-bottom: 0;
+}
+.subscription-node-option:has(input:disabled):not(:has(:checked)) {
+  cursor: default;
+  background: #f7f8f9;
+}

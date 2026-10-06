@@ -157,6 +157,10 @@ func (a *api) subscriptionConfigRoutes(mux *http.ServeMux) {
 			storeError(w, err)
 			return
 		}
+		if err := a.validateSubscriptionCompatibility(r.Context(), out, false); err != nil {
+			a.configRenderError(w, err)
+			return
+		}
 		out.ExpectedRevision = revision
 		out, err = a.store.SaveSubscription(r.Context(), out, "", false)
 		if err != nil {
@@ -193,7 +197,10 @@ func (a *api) subscriptionConfigRoutes(mux *http.ServeMux) {
 		}
 		w.Header().Set("X-Xingdu-Subscription-Revision", strconv.FormatInt(sub.Revision, 10))
 		w.Header().Set("Content-Type", "application/yaml; charset=utf-8")
-		if format == "surge" || format == "loon" || format == "hysteria2_uri" {
+		if format == "singbox" {
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		}
+		if format == "surge" || format == "loon" || subscription.LinkOnly(format) {
 			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		}
 		w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": subscriptionFilename(sub.Name, format)}))

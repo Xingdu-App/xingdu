@@ -369,3 +369,36 @@ func (s *Store) SubscriptionConfig(ctx context.Context, id string, ids []string)
 	}
 	return out, deps, tx.Commit(ctx)
 }
+
+// SubscriptionCandidates returns encrypted installed specs under admin tenant
+// scope. It reveals no credentials to the browser and permits missing IDs so
+// compatibility can explain unavailable selections without leaking other tenants.
+func (s *Store) SubscriptionCandidates(ctx context.Context, ids []string) ([]Deployment, error) {
+	tx, _, err := s.tenantTx(ctx, true, true)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	rows, err := tx.Query(ctx, `SELECT d.id::text,d.host_id::text,d.organization_id::text,d.name,d.protocol,d.encrypted,h.address FROM unnest($1::text[]) WITH ORDINALITY AS selected(id,position) JOIN protocol_deployments d ON d.id::text=selected.id JOIN hosts h ON h.id=d.host_id AND h.organization_id=d.organization_id WHERE d.installed_at IS NOT NULL AND d.encrypted IS NOT NULL AND ((d.state='succeeded' AND d.action='deploy') OR (d.action='restart' AND d.state IN ('queued','running','failed','interrupted')) OR (d.action='update' AND d.state='failed' AND d.pending_revision IS NULL)) ORDER BY selected.position`, ids)
+	if err != nil {
+		return nil, err
+	}
+	deps := []Deployment{}
+	for rows.Next() {
+		var d Deployment
+		if err = rows.Scan(&d.ID, &d.HostID, &d.OrgID, &d.Name, &d.Protocol, &d.Encrypted, &d.Server); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		deps = append(deps, d)
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return deps, nil
+}

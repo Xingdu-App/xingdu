@@ -642,3 +642,21 @@ export const saveRuleTemplate = (
   );
 export const deleteRuleTemplate = (id: string, signal: AbortSignal) =>
   request<void>(`/api/v1/rule-templates/${id}`, "DELETE", undefined, signal);
+
+export type SubscriptionCompatibility = {
+  nodes: { id: string; compatible: boolean; reason?: string }[];
+  issues: string[];
+};
+export const checkSubscriptionCompatibility = (
+  input: Pick<
+    SubscriptionInput,
+    "format" | "node_ids" | "rules" | "final_action" | "routing"
+  > & { candidate_ids: string[] },
+  signal: AbortSignal,
+) =>
+  request<SubscriptionCompatibility>(
+    "/api/v1/subscriptions/compatibility",
+    "POST",
+    input,
+    signal,
+  );

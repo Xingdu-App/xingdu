@@ -305,3 +305,20 @@ JSON downloads use application/json and .json; URI/Base64 use text/plain and
 .txt. The existing config PATCH and preview APIs apply. Unsupported protocol,
 transport, trust or routing combinations return a compatibility error rather
 than silently dropping parameters. See [subscription restrictions](SUBSCRIPTIONS.md).
+
+### Subscription compatibility checks
+
+`POST /api/v1/subscriptions/compatibility` requires `subscriptions:write` and
+an owner/admin tenant. Send `format`, `candidate_ids` (up to 1000 unique node
+IDs), `node_ids` (selected candidates), `rules`, `final_action`, and optional
+`routing`. The response contains `nodes: [{id, compatible, reason?}]` and
+`issues` for the selected complete configuration. It returns no configuration,
+credentials or certificates and uses `Cache-Control: no-store`.
+
+Checks use the actual encrypted node specs and existing export adapters,
+including transport and certificate trust restrictions. Unavailable or foreign
+nodes return the same generic unavailable reason. Create, PUT and PATCH repeat
+checks before saving enabled subscriptions. Disabled subscriptions can still be
+saved; disabling must not be blocked by an incompatible installed node.
+Compatibility means the selected format can represent the configuration, not
+that a client version or real network connection has been verified.
