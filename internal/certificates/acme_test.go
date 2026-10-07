@@ -30,6 +30,15 @@ func (d *testDNS) Present(_ context.Context, _, value string) (string, error) {
 }
 func (d *testDNS) Remove(context.Context, string) error { d.removed = true; return nil }
 func TestACMEDNSOrderAndPrivateStorage(t *testing.T) {
+	for _, existing := range []bool{false, true} {
+		name := "new_account"
+		if existing {
+			name = "existing_account"
+		}
+		t.Run(name, func(t *testing.T) { testACMEDNSOrderAndPrivateStorage(t, existing) })
+	}
+}
+func testACMEDNSOrderAndPrivateStorage(t *testing.T, existing bool) {
 	ca, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	var issued []byte
 	var server *httptest.Server
@@ -55,7 +64,11 @@ func TestACMEDNSOrderAndPrivateStorage(t *testing.T) {
 			w.WriteHeader(200)
 		case "/account":
 			w.Header().Set("Location", server.URL+"/account/1")
-			w.WriteHeader(201)
+			if existing {
+				w.WriteHeader(200)
+			} else {
+				w.WriteHeader(201)
+			}
 			w.Write([]byte(`{"status":"valid"}`))
 		case "/new-order":
 			w.Header().Set("Location", server.URL+"/order")

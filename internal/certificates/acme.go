@@ -153,7 +153,7 @@ func issue(ctx context.Context, client *acme.Client, dns DNS, domain, email stri
 	if len(domain) > 253 || !domainName.MatchString(domain) {
 		return Bundle{}, errors.New("invalid domain")
 	}
-	if _, err := client.Register(ctx, &acme.Account{Contact: []string{"mailto:" + email}}, acme.AcceptTOS); err != nil {
+	if _, err := client.Register(ctx, &acme.Account{Contact: []string{"mailto:" + email}}, acme.AcceptTOS); err != nil && !errors.Is(err, acme.ErrAccountAlreadyExists) {
 		return Bundle{}, errors.New("ACME account unavailable")
 	}
 	order, err := client.AuthorizeOrder(ctx, acme.DomainIDs(domain))
