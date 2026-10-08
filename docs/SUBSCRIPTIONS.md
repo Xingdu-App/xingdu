@@ -124,13 +124,13 @@ HY2 URI 不能承载规则与策略组，带路由方案的订阅不能导出为
 | Hysteria 1 | `hysteria` / `up-speed` / `down-speed` | `hysteria` / `up` / `down` | 拒绝 | 拒绝 |
 | ShadowTLS v3 + SS2022 | SS + `shadow-tls` 插件 | SS + `shadow-tls` 插件 | 拒绝 | 拒绝 |
 | Snell v4 兼容 | `snell`, `version: 4` | 拒绝 | `snell`, `version=4` | 拒绝 |
-| Snell v6 测试版 | 拒绝 | 拒绝 | `snell`, `version=6` | 拒绝 |
+| Snell v6 测试版 | `snell`, `version: 6` | 拒绝 | `snell`, `version=6` | 拒绝 |
 
 Mixed 订阅选择同端口的 SOCKS5 入口；手动配置也可使用 HTTP CONNECT。
 ShadowTLS 订阅分别输出内层 SS2022 密钥和外层密码，使用系统 CA 验证公共
 握手域名，不输出错误的自签名证书固定字段。Snell v4 兼容模式对应固定
 运行时的 v5 服务端，不支持 v5 QUIC Proxy Mode，因此客户端明确使用 v4。
-Snell v6 需要支持 v6 的 Surge 版本，不能当作旧版客户端兼容选项。
+Snell v6 需要支持 v6 的 Stash 或 Surge 版本，不能当作旧版客户端兼容选项。
 
 此表表示导出器实现和字段测试，不代表这些新增协议已完成各 App 的真实
 联网验收。不支持的组合明确返回兼容性错误，包含多个节点时也不会静默

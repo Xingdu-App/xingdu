@@ -47,7 +47,7 @@ func Supports(format, kind string) bool {
 	case "snell":
 		return format == "stash" || format == "surge"
 	case "snell6":
-		return format == "surge"
+		return format == "stash" || format == "surge"
 	}
 	if kind == "anytls" || kind == "http" {
 		return format == "stash" || format == "mihomo"

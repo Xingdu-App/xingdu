@@ -11,7 +11,7 @@ func TestExtraProtocolAdapters(t *testing.T) {
 	allowed := map[string][]string{
 		"socks": {"stash", "mihomo", "surge"}, "mixed": {"stash", "mihomo", "surge"},
 		"hysteria": {"stash", "mihomo"}, "shadowtls": {"stash", "mihomo"},
-		"snell": {"stash", "surge"}, "snell6": {"surge"},
+		"snell": {"stash", "surge"}, "snell6": {"stash", "surge"},
 	}
 	for kind, formats := range allowed {
 		n := fixture(t, kind, 1)
@@ -49,6 +49,9 @@ func TestExtraProtocolAdapters(t *testing.T) {
 					t.Fatal(err)
 				}
 				p := cfg.Proxies[0]
+				if kind == "snell6" && (p["type"] != "snell" || p["version"] != 6 || p["psk"] != n.Spec.Credential) {
+					t.Fatal("missing Snell v6 authentication or version")
+				}
 				if kind == "shadowtls" {
 					opts := p["plugin-opts"].(map[string]any)
 					if p["plugin"] != "shadow-tls" || p["password"] != n.Spec.Credential || opts["password"] != n.Spec.Password || opts["version"] != 3 {
