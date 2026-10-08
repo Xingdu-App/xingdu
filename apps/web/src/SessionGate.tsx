@@ -259,287 +259,314 @@ export default function SessionGate() {
   if (recovering)
     return <PasswordRecovery onBack={() => setRecovering(false)} />;
   return (
-    <div className="auth-page">
+    <div className="auth-page auth-entry-page">
       <a className="auth-home-link" href="/">
         {t("← 返回星渡官网")}
       </a>
-      <section className="auth-card">
-        <img
-          className="auth-logo"
-          src="/xingdu-logo.png"
-          alt={t("星渡 Logo")}
-        />
-        <p className="eyebrow">{t("XINGDU · 星渡")}</p>
-        <h1>{t("连接，从这里开始。")}</h1>
-        <p className="auth-subtitle">
-          {pending
-            ? t("验证邮箱，完成注册")
-            : registering
-              ? t("创建账号，开始管理你的服务器")
-              : t("登录你的星渡控制台")}
-        </p>
-        {!checking && !registering && !pending && mailConfigured && (
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => {
-              returnToLogin();
-              setRecovering(true);
-            }}
-          >
-            {t("忘记密码？")}
-          </button>
-        )}
-        {window.location.hash.startsWith("#invite=") && (
-          <p>{t("登录或注册后，可接受组织邀请。")}</p>
-        )}
-        {!checking && !checkError && !pending && authConfigLoaded && (
-          <div className="social-login-options" aria-label={t("第三方登录")}>
-            <p className="form-hint">{t("使用第三方账号继续")}</p>
-            {(["google", "github"] as const).map((provider) => (
-              <button
-                className="secondary social-login-button"
-                key={provider}
-                type="button"
-                disabled={busy || !providers[provider]}
-                onClick={() => void socialLogin(provider)}
-              >
-                <span className="social-provider-mark" aria-hidden="true">
-                  {provider === "google" ? "G" : "GH"}
-                </span>
-                {providers[provider]
-                  ? t("使用 {0} 继续", { 0: oauthProviderNames[provider] })
-                  : t("{0} 暂不可用", { 0: oauthProviderNames[provider] })}
-              </button>
-            ))}
-            <p className="form-hint">
-              {t("第三方已验证邮箱与已有账号一致时，将自动关联并登录。")}
+      <section className="auth-card auth-entry-card">
+        <div className="auth-intro">
+          <img
+            className="auth-logo"
+            src="/xingdu-logo.png"
+            alt={t("星渡 Logo")}
+          />
+          <p className="eyebrow">{t("XINGDU · 星渡")}</p>
+          <h1>{t("连接，从这里开始。")}</h1>
+          <p className="auth-intro-description">
+            {t("你的 VPS 与节点，一处管理")}
+          </p>
+          <div className="auth-intro-flow" aria-hidden="true">
+            <span>{t("服务器")}</span>
+            <span>{t("节点")}</span>
+            <span>{t("订阅")}</span>
+          </div>
+          <a className="auth-intro-guide" href="/help">
+            {t("查看入门指引")} <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+        <div className="auth-entry-content">
+          <header className="auth-entry-heading">
+            <h2>
+              {pending
+                ? t("验证并登录")
+                : registering
+                  ? t("创建账号")
+                  : t("登录控制台")}
+            </h2>
+            <p className="auth-subtitle">
+              {pending
+                ? t("验证邮箱，完成注册")
+                : registering
+                  ? t("创建账号，开始管理你的服务器")
+                  : t("登录你的星渡控制台")}
             </p>
-          </div>
-        )}
-        {checkError ? (
-          <div className="auth-error" role="alert">
-            <p>{checkError}</p>
-            <button
-              className="secondary"
-              onClick={() => {
-                setCheckError("");
-                setChecking(true);
-                setAttempt((value) => value + 1);
-              }}
-            >
-              {t("重新连接")}
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={submit}>
-            {!pending && <p className="form-hint">{t("或使用邮箱和密码")}</p>}
-            {pending ? (
-              <>
-                <p>{t("待验证邮箱：{0}", { 0: pending.email })}</p>
-                <p className="form-hint">
-                  {t(
-                    "验证完成前不会创建账号。验证码有效期为 10 分钟，重发后旧码失效。刷新页面后需重新开始注册。",
-                  )}
-                </p>
-                <label htmlFor="verification-code">{t("邮箱验证码")}</label>
-                <input
-                  id="verification-code"
-                  name="code"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]{8}"
-                  minLength={8}
-                  maxLength={8}
-                  required
-                  autoFocus
-                  value={code}
-                  onChange={(event) =>
-                    setCode(event.target.value.replace(/\D/g, ""))
-                  }
-                  disabled={busy || expired}
-                />
-                {expired && (
-                  <p className="form-error" role="status">
-                    {t("验证码已过期，请重新发送。")}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <label htmlFor="username">
-                  {registering ? t("邮箱") : t("邮箱或用户名")}
-                </label>
-                <input
-                  id="username"
-                  name={registering ? "email" : "username"}
-                  type={registering ? "email" : "text"}
-                  autoComplete={registering ? "email" : "username"}
-                  autoCapitalize="none"
-                  spellCheck={false}
-                  required
-                  maxLength={254}
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value)}
-                  disabled={busy}
-                />
-                <label htmlFor="password">{t("密码")}</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={
-                    registering ? "new-password" : "current-password"
-                  }
-                  minLength={registering ? 12 : undefined}
-                  maxLength={72}
-                  required
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={busy}
-                />
-                {registering && (
-                  <p className="form-hint">
-                    {t(
-                      "密码至少 12 位，最长 72 字节；建议使用密码管理器生成并保存。",
-                    )}
-                  </p>
-                )}
-                {registering && (
-                  <>
-                    <label htmlFor="initial-org">{t("组织名称")}</label>
-                    <input
-                      id="initial-org"
-                      value={organization}
-                      onChange={(e) => setOrganization(e.target.value)}
-                      maxLength={64}
-                      required
-                      disabled={busy}
-                    />
-                    <small>
-                      {t(
-                        "组织就是你的资源工作空间，个人使用也可创建，无需邀请成员。",
-                      )}
-                    </small>
-                  </>
-                )}
-              </>
-            )}
-            {notice && (
-              <p role="status" className="form-hint">
-                {notice}
+          </header>
+          {window.location.hash.startsWith("#invite=") && (
+            <p>{t("登录或注册后，可接受组织邀请。")}</p>
+          )}
+          {!checking && !checkError && !pending && authConfigLoaded && (
+            <div className="social-login-options" aria-label={t("第三方登录")}>
+              <p className="form-hint">{t("使用第三方账号继续")}</p>
+              {(["google", "github"] as const).map((provider) => (
+                <button
+                  className="secondary social-login-button"
+                  key={provider}
+                  type="button"
+                  disabled={busy || !providers[provider]}
+                  onClick={() => void socialLogin(provider)}
+                >
+                  <span className="social-provider-mark" aria-hidden="true">
+                    {provider === "google" ? "G" : "GH"}
+                  </span>
+                  {providers[provider]
+                    ? t("使用 {0} 继续", { 0: oauthProviderNames[provider] })
+                    : t("{0} 暂不可用", { 0: oauthProviderNames[provider] })}
+                </button>
+              ))}
+              <p className="form-hint">
+                {t("第三方已验证邮箱与已有账号一致时，将自动关联并登录。")}
               </p>
-            )}
-            {error && (
-              <p role="alert" className="form-error">
-                {t(error)}
-              </p>
-            )}
-            <button
-              className="primary auth-submit"
-              disabled={
-                busy || expired || (!pending && registering && !mailConfigured)
-              }
-            >
-              {busy
-                ? t("正在处理…")
-                : pending
-                  ? t("验证并登录")
-                  : registering
-                    ? t("发送验证码")
-                    : t("登录控制台")}
-            </button>
-            {pending && (
-              <>
-                <button
-                  className="secondary auth-submit"
-                  type="button"
-                  disabled={busy || resendSeconds > 0 || !mailConfigured}
-                  onClick={() => void resend()}
-                >
-                  {resendSeconds > 0
-                    ? t("{0} 秒后可重发", { 0: resendSeconds })
-                    : t("重新发送验证码")}
-                </button>
-                <button
-                  className="secondary auth-submit"
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    setPending(null);
-                    setCode("");
-                    setNotice("");
-                    setError("");
-                  }}
-                >
-                  {t("更换邮箱")}
-                </button>
-                <button
-                  className="secondary auth-submit"
-                  type="button"
-                  disabled={busy}
-                  onClick={returnToLogin}
-                >
-                  {t("返回登录")}
-                </button>
-              </>
-            )}
-            {!pending && (registering || registrationEnabled) && (
+            </div>
+          )}
+          {checkError ? (
+            <div className="auth-error" role="alert">
+              <p>{checkError}</p>
               <button
-                className="secondary auth-submit"
-                type="button"
-                disabled={busy || (!registering && !mailConfigured)}
+                className="secondary"
                 onClick={() => {
-                  if (registering) returnToLogin();
-                  else {
-                    setRegistering(true);
-                    setPassword("");
-                    setError("");
-                    setNotice("");
-                  }
+                  setCheckError("");
+                  setChecking(true);
+                  setAttempt((value) => value + 1);
                 }}
               >
-                {registering ? t("已有账号，去登录") : t("创建账号")}
+                {t("重新连接")}
               </button>
-            )}
-            {registrationEnabled && !mailConfigured && (
-              <p className="form-hint" role="status">
-                {t("邮箱注册暂不可用，请稍后重试或联系服务管理员。")}
-              </p>
-            )}
-            {configError && (
-              <p className="form-hint">
-                {t("暂无法获取注册配置，请稍后刷新重试；已有账号仍可登录。")}
-              </p>
-            )}
-          </form>
-        )}
-        <details className="setup-help">
-          <summary>{t("首次使用？")}</summary>
-          <p>
-            {t(
-              "创建账号后，即可建立自己的工作空间来管理 VPS；也可以登录后接受他人的组织邀请。遇到注册、登录或权限问题，请查看帮助中心。",
-            )}
-          </p>
-          <p>
-            <a href="/help">{t("查看入门指引")}</a>
-          </p>
-        </details>
-        <p className="form-hint">
-          {t(
-            "开始使用前，请阅读服务范围与隐私说明，了解产品功能和数据处理方式。",
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              {!pending && <p className="form-hint">{t("或使用邮箱和密码")}</p>}
+              {pending ? (
+                <>
+                  <p>{t("待验证邮箱：{0}", { 0: pending.email })}</p>
+                  <p className="form-hint">
+                    {t(
+                      "验证完成前不会创建账号。验证码有效期为 10 分钟，重发后旧码失效。刷新页面后需重新开始注册。",
+                    )}
+                  </p>
+                  <label htmlFor="verification-code">{t("邮箱验证码")}</label>
+                  <input
+                    id="verification-code"
+                    name="code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{8}"
+                    minLength={8}
+                    maxLength={8}
+                    required
+                    autoFocus
+                    value={code}
+                    onChange={(event) =>
+                      setCode(event.target.value.replace(/\D/g, ""))
+                    }
+                    disabled={busy || expired}
+                  />
+                  {expired && (
+                    <p className="form-error" role="status">
+                      {t("验证码已过期，请重新发送。")}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <label htmlFor="username">
+                    {registering ? t("邮箱") : t("邮箱或用户名")}
+                  </label>
+                  <input
+                    id="username"
+                    name={registering ? "email" : "username"}
+                    type={registering ? "email" : "text"}
+                    autoComplete={registering ? "email" : "username"}
+                    autoCapitalize="none"
+                    spellCheck={false}
+                    required
+                    maxLength={254}
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    disabled={busy}
+                  />
+                  <div className="auth-password-heading">
+                    <label htmlFor="password">{t("密码")}</label>
+                    {!registering && mailConfigured && (
+                      <button
+                        type="button"
+                        className="auth-text-button"
+                        disabled={busy}
+                        onClick={() => {
+                          returnToLogin();
+                          setRecovering(true);
+                        }}
+                      >
+                        {t("忘记密码？")}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete={
+                      registering ? "new-password" : "current-password"
+                    }
+                    minLength={registering ? 12 : undefined}
+                    maxLength={72}
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    disabled={busy}
+                  />
+                  {registering && (
+                    <p className="form-hint">
+                      {t(
+                        "密码至少 12 位，最长 72 字节；建议使用密码管理器生成并保存。",
+                      )}
+                    </p>
+                  )}
+                  {registering && (
+                    <>
+                      <label htmlFor="initial-org">{t("组织名称")}</label>
+                      <input
+                        id="initial-org"
+                        value={organization}
+                        onChange={(e) => setOrganization(e.target.value)}
+                        maxLength={64}
+                        required
+                        disabled={busy}
+                      />
+                      <small>
+                        {t(
+                          "组织就是你的资源工作空间，个人使用也可创建，无需邀请成员。",
+                        )}
+                      </small>
+                    </>
+                  )}
+                </>
+              )}
+              {notice && (
+                <p role="status" className="form-hint">
+                  {notice}
+                </p>
+              )}
+              {error && (
+                <p role="alert" className="form-error">
+                  {t(error)}
+                </p>
+              )}
+              <button
+                className="primary auth-submit"
+                disabled={
+                  busy ||
+                  expired ||
+                  (!pending && registering && !mailConfigured)
+                }
+              >
+                {busy
+                  ? t("正在处理…")
+                  : pending
+                    ? t("验证并登录")
+                    : registering
+                      ? t("发送验证码")
+                      : t("登录控制台")}
+              </button>
+              {pending && (
+                <>
+                  <button
+                    className="secondary auth-submit"
+                    type="button"
+                    disabled={busy || resendSeconds > 0 || !mailConfigured}
+                    onClick={() => void resend()}
+                  >
+                    {resendSeconds > 0
+                      ? t("{0} 秒后可重发", { 0: resendSeconds })
+                      : t("重新发送验证码")}
+                  </button>
+                  <button
+                    className="secondary auth-submit"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setPending(null);
+                      setCode("");
+                      setNotice("");
+                      setError("");
+                    }}
+                  >
+                    {t("更换邮箱")}
+                  </button>
+                  <button
+                    className="secondary auth-submit"
+                    type="button"
+                    disabled={busy}
+                    onClick={returnToLogin}
+                  >
+                    {t("返回登录")}
+                  </button>
+                </>
+              )}
+              {!pending && (registering || registrationEnabled) && (
+                <button
+                  className="secondary auth-submit"
+                  type="button"
+                  disabled={busy || (!registering && !mailConfigured)}
+                  onClick={() => {
+                    if (registering) returnToLogin();
+                    else {
+                      setRegistering(true);
+                      setPassword("");
+                      setError("");
+                      setNotice("");
+                    }
+                  }}
+                >
+                  {registering ? t("已有账号，去登录") : t("创建账号")}
+                </button>
+              )}
+              {registrationEnabled && !mailConfigured && (
+                <p className="form-hint" role="status">
+                  {t("邮箱注册暂不可用，请稍后重试或联系服务管理员。")}
+                </p>
+              )}
+              {configError && (
+                <p className="form-hint">
+                  {t("暂无法获取注册配置，请稍后刷新重试；已有账号仍可登录。")}
+                </p>
+              )}
+            </form>
           )}
-        </p>
-        <div className="auth-footer">{t("你的 VPS 与节点，一处管理")}</div>
-        <nav className="auth-public-links" aria-label={t("公开信息")}>
-          <a href="/help">{t("帮助中心")}</a>
-          <a href="/service">{t("服务范围")}</a>
-          <a href="/pricing">{t("价格")}</a>
-          <a href="/privacy">{t("隐私说明")}</a>
-          <a href="/security">{t("安全设计")}</a>
-        </nav>
+          <details className="setup-help">
+            <summary>{t("首次使用？")}</summary>
+            <p>
+              {t(
+                "创建账号后，即可建立自己的工作空间来管理 VPS；也可以登录后接受他人的组织邀请。遇到注册、登录或权限问题，请查看帮助中心。",
+              )}
+            </p>
+            <p>
+              <a href="/help">{t("查看入门指引")}</a>
+            </p>
+          </details>
+          <p className="form-hint">
+            {t(
+              "开始使用前，请阅读服务范围与隐私说明，了解产品功能和数据处理方式。",
+            )}
+          </p>
+          <nav className="auth-public-links" aria-label={t("公开信息")}>
+            <a href="/help">{t("帮助中心")}</a>
+            <a href="/service">{t("服务范围")}</a>
+            <a href="/pricing">{t("价格")}</a>
+            <a href="/privacy">{t("隐私说明")}</a>
+            <a href="/security">{t("安全设计")}</a>
+          </nav>
+        </div>
       </section>
     </div>
   );
