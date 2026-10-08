@@ -18,6 +18,9 @@ type Deployment struct {
 	ProbeAt              *time.Time `json:"probe_at"`
 	ProbeLatencyMS       *int       `json:"probe_latency_ms"`
 	ProbeExitIP          *string    `json:"probe_exit_ip"`
+	ExternalExitID       string     `json:"external_exit_id,omitempty"`
+	ExternalRevision     int        `json:"-"`
+	ExternalCipher       []byte     `json:"-"`
 	RelayExitID          string     `json:"relay_exit_id,omitempty"`
 	ExitCipher           []byte     `json:"-"`
 	ID                   string     `json:"id"`
@@ -44,10 +47,10 @@ type Deployment struct {
 	PendingRevision      *int       `json:"pending_revision"`
 }
 
-const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at,revision,pending_revision,COALESCE(relay_exit_id,''),probe_ok,probe_at,probe_latency_ms,probe_exit_ip,runtime_version"
+const deploymentColumns = "id::text,host_id::text,name,protocol,port,server_name,state,action,result,created_at,finished_at,certificate_expires_at,service_status,service_checked_at,revision,pending_revision,COALESCE(relay_exit_id,''),probe_ok,probe_at,probe_latency_ms,probe_exit_ip,runtime_version,COALESCE(external_exit_id,'')"
 
 func scanDeployment(row pgx.Row, d *Deployment) error {
-	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt, &d.Revision, &d.PendingRevision, &d.RelayExitID, &d.ProbeOK, &d.ProbeAt, &d.ProbeLatencyMS, &d.ProbeExitIP, &d.RuntimeVersion)
+	return row.Scan(&d.ID, &d.HostID, &d.Name, &d.Protocol, &d.Port, &d.ServerName, &d.State, &d.Action, &d.Result, &d.CreatedAt, &d.FinishedAt, &d.CertificateExpiresAt, &d.ServiceStatus, &d.ServiceCheckedAt, &d.Revision, &d.PendingRevision, &d.RelayExitID, &d.ProbeOK, &d.ProbeAt, &d.ProbeLatencyMS, &d.ProbeExitIP, &d.RuntimeVersion, &d.ExternalExitID)
 }
 func cleanupDeployments(ctx context.Context, tx pgx.Tx, host string) error {
 	_, err := tx.Exec(ctx, `UPDATE protocol_deployments SET state=CASE WHEN state='queued' AND action='deploy' THEN 'cancelled' ELSE 'interrupted' END,result='interrupted_or_expired',encrypted=CASE WHEN state='queued' AND action='deploy' THEN NULL ELSE encrypted END,finished_at=now() WHERE host_id=$1 AND ((state='running' AND lease_until<=now()) OR (state='queued' AND queued_at<now()-interval '30 minutes'))`, host)
@@ -150,7 +153,7 @@ func (s *Store) DeploymentSecret(ctx context.Context, host, id string) (Deployme
 		return d, err
 	}
 	defer tx.Rollback(ctx)
-	err = tx.QueryRow(ctx, `SELECT d.encrypted,h.address FROM protocol_deployments d JOIN hosts h ON h.id=d.host_id WHERE d.id=$1 AND d.host_id=$2 AND d.installed_at IS NOT NULL AND d.state <> 'removed' AND d.action <> 'remove'`, id, host).Scan(&d.Encrypted, &d.Server)
+	err = tx.QueryRow(ctx, `SELECT d.encrypted,h.address,COALESCE(d.relay_exit_id,''),COALESCE(d.external_exit_id,'') FROM protocol_deployments d JOIN hosts h ON h.id=d.host_id WHERE d.id=$1 AND d.host_id=$2 AND d.installed_at IS NOT NULL AND d.state <> 'removed' AND d.action <> 'remove'`, id, host).Scan(&d.Encrypted, &d.Server, &d.RelayExitID, &d.ExternalExitID)
 	if err != nil {
 		return d, mapError(err)
 	}
@@ -332,7 +335,7 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 	}
 	if d.Action == "update" && allowed {
 		if success {
-			_, err = tx.Exec(ctx, `UPDATE protocol_deployments d SET encrypted=r.encrypted,port=r.port,name=r.name,server_name=r.server_name,certificate_expires_at=r.certificate_expires_at,probe_ok=NULL,probe_at=NULL,revision=r.revision,relay_exit_id=r.relay_exit_id,pending_revision=NULL,action='deploy' FROM protocol_revisions r WHERE d.id=$1 AND r.node_id=d.id AND r.organization_id=d.organization_id AND r.revision=d.pending_revision`, d.ID)
+			_, err = tx.Exec(ctx, `UPDATE protocol_deployments d SET encrypted=r.encrypted,port=r.port,name=r.name,server_name=r.server_name,certificate_expires_at=r.certificate_expires_at,probe_ok=NULL,probe_at=NULL,revision=r.revision,relay_exit_id=r.relay_exit_id,external_exit_id=r.external_exit_id,pending_revision=NULL,action='deploy' FROM protocol_revisions r WHERE d.id=$1 AND r.node_id=d.id AND r.organization_id=d.organization_id AND r.revision=d.pending_revision`, d.ID)
 		} else if code != "rollback_failed" && code != "interrupted" && code != "journal_unavailable" {
 			_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET pending_revision=NULL WHERE id=$1`, d.ID)
 		}
@@ -345,7 +348,7 @@ func (s *Store) FinishDeployment(ctx context.Context, hash, id, lease string, su
 			return err
 		}
 	}
-	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,action=CASE WHEN action='restart' AND $2='succeeded' THEN 'deploy' ELSE action END,finished_at=now(),installed_at=CASE WHEN $2='succeeded' AND action='deploy' THEN COALESCE(installed_at,now()) ELSE installed_at END,encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END,relay_exit_id=CASE WHEN $2='removed' THEN NULL ELSE relay_exit_id END WHERE id=$1`, d.ID, state, code)
+	_, err = tx.Exec(ctx, `UPDATE protocol_deployments SET state=$2,result=$3,action=CASE WHEN action='restart' AND $2='succeeded' THEN 'deploy' ELSE action END,finished_at=now(),installed_at=CASE WHEN $2='succeeded' AND action='deploy' THEN COALESCE(installed_at,now()) ELSE installed_at END,encrypted=CASE WHEN $2='removed' THEN NULL ELSE encrypted END,relay_exit_id=CASE WHEN $2='removed' THEN NULL ELSE relay_exit_id END,external_exit_id=CASE WHEN $2='removed' THEN NULL ELSE external_exit_id END WHERE id=$1`, d.ID, state, code)
 	if err != nil {
 		return err
 	}

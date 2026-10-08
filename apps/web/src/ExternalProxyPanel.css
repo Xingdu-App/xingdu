@@ -1,0 +1,99 @@
+.external-proxy-panel {
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid var(--border, #dbe5e9);
+  border-radius: 16px;
+}
+.external-proxy-panel .routes-heading {
+  align-items: flex-start;
+  gap: 1rem;
+}
+.external-proxy-panel .routes-heading button {
+  flex-shrink: 0;
+}
+.external-proxy-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.external-proxy-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--border, #dbe5e9);
+}
+.external-proxy-row p {
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+  color: var(--muted, #637487);
+}
+.external-proxy-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.host-dialog.external-proxy-dialog {
+  max-width: 600px;
+}
+.external-proxy-form {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.host-dialog .external-proxy-form label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+}
+.external-proxy-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 1rem;
+}
+.external-proxy-dialog .dialog-footer button {
+  min-height: 42px;
+}
+.external-proxy-skeleton {
+  display: grid;
+  gap: 0.75rem;
+}
+.external-proxy-skeleton span {
+  display: block;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--border, #dbe5e9);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@media (max-width: 600px) {
+  .external-proxy-panel .routes-heading,
+  .external-proxy-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .external-proxy-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.external-proxy-dialog .dialog-footer > button,
+.external-proxy-actions > button {
+  min-height: 42px;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+.external-proxy-dialog .dialog-footer > button:not(.primary),
+.external-proxy-actions > button {
+  border: 1px solid #d7e2e7;
+  color: #40596b;
+  background: #fff;
+}
+.external-proxy-dialog .dialog-footer > button {
+  margin: 0;
+}
+.host-dialog .external-proxy-form .form-hint {
+  margin: 0;
+}

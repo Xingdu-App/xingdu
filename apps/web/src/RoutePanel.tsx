@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { request, errorMessage, protocolNames, type ManagedNode } from "./api";
 import { t, useLocale } from "./i18n";
 import Select from "./Select";
+import ExternalProxyPanel, { type ExternalProxy } from "./ExternalProxyPanel";
 
 export default function RoutePanel({
   nodes,
@@ -13,6 +14,34 @@ export default function RoutePanel({
   onChanged: () => void;
 }) {
   useLocale();
+  const [proxies, setProxies] = useState<ExternalProxy[]>([]);
+  const [proxyLoading, setProxyLoading] = useState(true);
+  const [proxyError, setProxyError] = useState("");
+  const [reload, setReload] = useState(0);
+  useEffect(() => {
+    const c = new AbortController();
+    setProxyLoading(true);
+    setProxyError("");
+    request<ExternalProxy[]>(
+      "/api/v1/external-proxies",
+      "GET",
+      undefined,
+      c.signal,
+    )
+      .then((result) => {
+        if (!c.signal.aborted) setProxies(result);
+      })
+      .catch((e) => {
+        if (!c.signal.aborted) {
+          setProxies([]);
+          setProxyError(errorMessage(e));
+        }
+      })
+      .finally(() => {
+        if (!c.signal.aborted) setProxyLoading(false);
+      });
+    return () => c.abort();
+  }, [reload]);
   const [entry, setEntry] = useState("");
   const [exit, setExit] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -36,11 +65,17 @@ export default function RoutePanel({
     (n) =>
       n.host_id !== source?.host_id &&
       !n.relay_exit_id &&
+      !n.external_exit_id &&
       n.protocol !== "trusttunnel",
   );
   const destination = exits.find((n) => n.id === exit);
-  const valid = !!source && (!exit || !!destination);
-  const unchanged = !!source && (source.relay_exit_id || "") === exit;
+  const externalDestination = proxies.find((p) => `external:${p.id}` === exit);
+  const valid = !!source && (!exit || !!destination || !!externalDestination);
+  const unchanged =
+    !!source &&
+    (source.external_exit_id
+      ? `external:${source.external_exit_id}`
+      : source.relay_exit_id || "") === exit;
   return (
     <section className="panel routes-panel">
       <header className="routes-heading">
@@ -48,12 +83,19 @@ export default function RoutePanel({
           <h2>{t("直连与中转线路")}</h2>
           <p>
             {t(
-              "客户端连接入口，由入口转发到出口。单层中转当前仅转发 TCP；两端都需要已部署节点，入口需要 Agent 0.12.0-dev。",
+              "客户端连接入口，由入口转发到自管节点或外部代理出口。单层中转仅转发 TCP；自管节点中转需要 Agent 0.12.0-dev，外部出口需要 Agent 0.18.0-dev。",
             )}
           </p>
         </div>
         <span className="badge">TCP</span>
       </header>
+      <ExternalProxyPanel
+        proxies={proxies}
+        loading={proxyLoading}
+        error={proxyError}
+        manage={manage}
+        onChanged={() => setReload((n) => n + 1)}
+      />
       {manage && (
         <form
           className="route-editor"
@@ -77,7 +119,11 @@ export default function RoutePanel({
               await request(
                 `/api/v1/hosts/${source.host_id}/deployments/${source.id}`,
                 "PUT",
-                { exit_node_id: exit, confirm },
+                {
+                  exit_node_id: externalDestination ? "" : exit,
+                  external_exit_id: externalDestination?.id || "",
+                  confirm,
+                },
                 controller.signal,
               );
               if (!controller.signal.aborted) {
@@ -112,7 +158,12 @@ export default function RoutePanel({
                 onChange={(value) => {
                   setEntry(value);
                   setExit(
-                    nodes.find((n) => n.id === value)?.relay_exit_id || "",
+                    (() => {
+                      const selected = nodes.find((n) => n.id === value);
+                      return selected?.external_exit_id
+                        ? `external:${selected.external_exit_id}`
+                        : selected?.relay_exit_id || "";
+                    })(),
                   );
                   setConfirm(false);
                   setError("");
@@ -137,7 +188,12 @@ export default function RoutePanel({
                     label: n.name,
                     description: n.host_name,
                   })),
-                  ...(exit && !destination
+                  ...proxies.map((p) => ({
+                    value: `external:${p.id}`,
+                    label: p.name,
+                    description: `${t("外部出口")} · ${p.protocol === "socks" ? "SOCKS5" : "HTTP CONNECT"}`,
+                  })),
+                  ...(exit && !destination && !externalDestination
                     ? [{ value: exit, label: t("出口不可用") }]
                     : []),
                 ]}
@@ -160,7 +216,11 @@ export default function RoutePanel({
               <strong>{source.name}</strong>
               <span aria-hidden="true">→</span>
               <strong>
-                {exit ? (destination?.name ?? t("出口不可用")) : t("直连出口")}
+                {exit
+                  ? (destination?.name ??
+                    externalDestination?.name ??
+                    t("出口不可用"))
+                  : t("直连出口")}
               </strong>
             </div>
           )}
@@ -211,6 +271,7 @@ export default function RoutePanel({
         <div className="route-grid">
           {nodes.map((n) => {
             const target = nodes.find((x) => x.id === n.relay_exit_id);
+            const external = proxies.find((p) => p.id === n.external_exit_id);
             return (
               <article className="node-card route-card" key={n.id}>
                 <div className="node-card-top">
@@ -218,7 +279,9 @@ export default function RoutePanel({
                     {protocolNames[n.protocol]}
                   </span>
                   <span className="badge">
-                    {n.relay_exit_id ? t("中转线路") : t("直连线路")}
+                    {n.relay_exit_id || n.external_exit_id
+                      ? t("中转线路")
+                      : t("直连线路")}
                   </span>
                 </div>
                 <div className="route-path">
@@ -233,11 +296,12 @@ export default function RoutePanel({
                   <div>
                     <small>{t("出口节点")}</small>
                     <h3>
-                      {n.relay_exit_id
-                        ? (target?.name ?? t("出口不可用"))
+                      {n.relay_exit_id || n.external_exit_id
+                        ? (target?.name ?? external?.name ?? t("出口不可用"))
                         : t("直连出口")}
                     </h3>
                     {target && <p>{target.host_name}</p>}
+                    {external && <p>{t("外部出口")}</p>}
                   </div>
                 </div>
                 <p className="route-status">

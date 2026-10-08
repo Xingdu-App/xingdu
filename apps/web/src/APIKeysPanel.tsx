@@ -20,6 +20,8 @@ const scopeNames: Record<string, string> = {
   "subscriptions:export": "导出订阅配置及连接凭据",
   "certificates:read": "查看证书状态",
   "certificates:write": "管理域名和证书签发",
+  "exits:read": "查看外部代理出口",
+  "exits:write": "管理外部代理出口及线路选择",
   "hosts:read": "查看服务器",
   "hosts:write": "管理服务器",
   "nodes:read": "查看节点",

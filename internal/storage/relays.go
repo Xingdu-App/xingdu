@@ -19,7 +19,7 @@ func checkRelayDependents(ctx context.Context, tx pgx.Tx, node string) error {
 }
 func checkRelayExit(ctx context.Context, tx pgx.Tx, d Deployment) error {
 	var cipher []byte
-	err := tx.QueryRow(ctx, `SELECT encrypted FROM protocol_deployments WHERE id=$1 AND host_id<>$2 AND installed_at IS NOT NULL AND state='succeeded' AND action='deploy' AND pending_revision IS NULL AND relay_exit_id IS NULL FOR UPDATE`, d.RelayExitID, d.HostID).Scan(&cipher)
+	err := tx.QueryRow(ctx, `SELECT encrypted FROM protocol_deployments WHERE id=$1 AND host_id<>$2 AND installed_at IS NOT NULL AND state='succeeded' AND action='deploy' AND pending_revision IS NULL AND relay_exit_id IS NULL AND external_exit_id IS NULL FOR UPDATE`, d.RelayExitID, d.HostID).Scan(&cipher)
 	if err != nil {
 		return mapError(err)
 	}

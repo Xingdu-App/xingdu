@@ -370,6 +370,7 @@ export type Deployment = {
   probe_latency_ms?: number | null;
   probe_exit_ip?: string | null;
   relay_exit_id?: string;
+  external_exit_id?: string;
   revision?: number;
   pending_revision?: number | null;
   certificate_expires_at?: string | null;

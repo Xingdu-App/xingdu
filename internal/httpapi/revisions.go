@@ -39,6 +39,7 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 			UDPEnabled       *bool                      `json:"udp_enabled"`
 			V2Ray            *protocol.V2RayOptions     `json:"v2ray"`
 			Port             *int                       `json:"port"`
+			ExternalExitID   *string                    `json:"external_exit_id"`
 			ExitNodeID       *string                    `json:"exit_node_id"`
 			Name             string                     `json:"name"`
 			ServerName       string                     `json:"server_name"`
@@ -123,14 +124,42 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 			}
 		}
 
-		exitID := ""
+		exitID, externalID := "", ""
 		if spec.Relay != nil {
 			exitID = spec.Relay.NodeID
+			externalID = spec.Relay.ExternalID
 		}
 		if in.ExitNodeID != nil {
 			exitID = *in.ExitNodeID
+			externalID = ""
 		}
+		if in.ExternalExitID != nil {
+			externalID = *in.ExternalExitID
+			if externalID != "" {
+				exitID = ""
+			}
+		}
+		if in.ExitNodeID != nil && in.ExternalExitID != nil && *in.ExitNodeID != "" && *in.ExternalExitID != "" {
+			failure(w, 422, "invalid_external_proxy", "只能选择一个出口")
+			return
+		}
+		if externalID != "" && !externalScope(w, r) {
+			return
+		}
+		d.RelayExitID, d.ExternalExitID = "", ""
+		d.ExitCipher, d.ExternalCipher = nil, nil
 		spec.Relay = nil
+		if externalID != "" {
+			peer, cipher, revision, err := a.externalPeer(r.Context(), externalID)
+			if err != nil {
+				storeError(w, err)
+				return
+			}
+			spec.Relay = peer
+			d.ExternalExitID = externalID
+			d.ExternalCipher = cipher
+			d.ExternalRevision = revision
+		}
 		if exitID != "" {
 			peer, cipher, err := a.relayPeer(r.Context(), exitID, d.HostID)
 			if err != nil {
@@ -186,7 +215,7 @@ func (a *api) revisionRoutes(mux *http.ServeMux) {
 		plain, _ := json.Marshal(spec)
 		d.Encrypted = a.vault.Seal(plain, deploymentAAD(storage.TenantOrg(r.Context()), d.HostID, d.ID))
 		clear(plain)
-		d.MinimumAgentVersion = spec.Input.RequiredAgentVersion()
+		d.MinimumAgentVersion = spec.RequiredAgentVersion()
 		d.Name = spec.Name
 		d.Protocol = spec.Protocol
 		d.Port = spec.Port
@@ -209,7 +238,7 @@ func (a *api) relayPeer(ctx context.Context, node, entryHost string) (*protocol.
 		if n.ID != node {
 			continue
 		}
-		if n.HostID == entryHost || n.RelayExitID != "" || n.State != "succeeded" || n.Action != "deploy" {
+		if n.HostID == entryHost || n.RelayExitID != "" || n.ExternalExitID != "" || n.State != "succeeded" || n.Action != "deploy" {
 			return nil, nil, storage.ErrConflict
 		}
 		d, err := a.store.DeploymentSecret(ctx, n.HostID, n.ID)

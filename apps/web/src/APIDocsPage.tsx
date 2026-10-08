@@ -17,6 +17,39 @@ export default function APIDocsPage({
   const endpoints = [
     [
       "GET",
+      "/external-proxies",
+      "exits:read",
+      copy(
+        "查看外部出口，不返回账号密码",
+        "List external exits without credentials",
+      ),
+    ],
+    [
+      "POST",
+      "/external-proxies",
+      "exits:write",
+      copy(
+        "添加 SOCKS5 / HTTP CONNECT 出口",
+        "Add a SOCKS5 / HTTP CONNECT exit",
+      ),
+    ],
+    [
+      "PUT",
+      "/external-proxies/{ext_id}",
+      "exits:write",
+      copy(
+        "修改未使用的出口；省略账号密码保留原凭据",
+        "Edit an unused exit; omit both credentials to preserve them",
+      ),
+    ],
+    [
+      "DELETE",
+      "/external-proxies/{ext_id}",
+      "exits:write",
+      copy("删除未使用的外部出口", "Delete an unused external exit"),
+    ],
+    [
+      "GET",
       "/certificates",
       "certificates:read",
       copy(

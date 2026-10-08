@@ -128,3 +128,23 @@ API/storage integration passed against disposable PostgreSQL with the new
 migration, including format persistence and tenant boundaries. Rebuilt Docker
 Compose API, worker, web and database passed health checks. These are local
 checks, not deployment or released-artifact verification.
+
+### External ISP proxy exits (development)
+
+External exit CRUD, tenant RLS, encrypted credentials, independent API scopes,
+list/dialog management and entry route selection are implemented for public
+IPv4/IPv6 SOCKS5 and plain HTTP CONNECT, TCP only. Active and pending routes
+protect exit profiles from mutation; revisions snapshot encrypted credentials
+and resolve current profiles on restore. The feature requires Agent
+0.18.0-dev or later and compatible API/Web deployment. Source implementation
+alone does not establish a released Agent or a working provider/client path.
+No real ISP provider acceptance is recorded for this feature yet.
+
+Local checks for this development feature: `make check` passed; a fresh
+PostgreSQL test database passed storage and HTTP API race tests, including
+external-exit tenant/role isolation, stale-profile rejection, Agent version
+gates, pending dependencies, acknowledgement and rollback. Official sing-box
+passed SOCKS5 username/password and HTTP CONNECT Basic authentication and
+forwarding through local mock providers. Browser fixtures exercised creation,
+exit selection and submission using the real React components at desktop and
+390px widths. These are local/mock checks, not real ISP/client acceptance.

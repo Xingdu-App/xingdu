@@ -25,6 +25,15 @@ type apiPrincipal struct{}
 
 func apiScope(method, path string) string {
 	p := strings.Split(strings.TrimPrefix(path, "/api/v1/"), "/")
+	if len(p) > 0 && p[0] == "external-proxies" {
+		if len(p) == 1 && method == "GET" {
+			return "exits:read"
+		}
+		if len(p) == 1 && method == "POST" || len(p) == 2 && id.Valid("ext", p[1]) && (method == "PUT" || method == "DELETE") {
+			return "exits:write"
+		}
+		return ""
+	}
 	if len(p) > 0 && p[0] == "certificates" {
 		if len(p) == 1 {
 			if method == "GET" {

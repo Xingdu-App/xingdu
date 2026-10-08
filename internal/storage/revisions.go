@@ -78,6 +78,12 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 			return err
 		}
 	}
+	if d.ExternalExitID != "" {
+		if err = checkExternalExit(ctx, tx, d); err != nil {
+			return err
+		}
+		d.MinimumAgentVersion = protocol.ExternalProxyAgentVersion
+	}
 	minimum := "0.12.0-dev"
 	// Recovery can restart the previous spec. Never lower the feature gate while
 	// a node can still require that spec, including after a failed update.
@@ -130,7 +136,7 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 			return ErrConflict
 		}
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO protocol_revisions(organization_id,node_id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port) SELECT organization_id,id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port FROM protocol_deployments WHERE id=$1 ON CONFLICT DO NOTHING`, d.ID)
+	_, err = tx.Exec(ctx, `INSERT INTO protocol_revisions(organization_id,node_id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port,external_exit_id) SELECT organization_id,id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port,external_exit_id FROM protocol_deployments WHERE id=$1 ON CONFLICT DO NOTHING`, d.ID)
 	if err != nil {
 		return err
 	}
@@ -139,7 +145,7 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 	if err != nil {
 		return err
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO protocol_revisions(organization_id,node_id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port) VALUES(request_org_id(),$1,$2,$3,$4,$5,$6,NULLIF($7,''),$8)`, d.ID, rev, d.Name, d.ServerName, d.CertificateExpiresAt, d.Encrypted, d.RelayExitID, d.Port)
+	_, err = tx.Exec(ctx, `INSERT INTO protocol_revisions(organization_id,node_id,revision,name,server_name,certificate_expires_at,encrypted,relay_exit_id,port,external_exit_id) VALUES(request_org_id(),$1,$2,$3,$4,$5,$6,NULLIF($7,''),$8,NULLIF($9,''))`, d.ID, rev, d.Name, d.ServerName, d.CertificateExpiresAt, d.Encrypted, d.RelayExitID, d.Port, d.ExternalExitID)
 	if err != nil {
 		return err
 	}

@@ -108,6 +108,7 @@ func New(store Store, opts Options) http.Handler {
 	a.deploymentRoutes(mux)
 	a.subscriptionRoutes(mux)
 	a.certificateRoutes(mux, opts.Certificates)
+	a.externalProxyRoutes(mux)
 	a.avatarRoutes(mux)
 	a.tenantRoutes(mux)
 	a.apiKeyRoutes(mux)

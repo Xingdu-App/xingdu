@@ -44,6 +44,10 @@ Scopes are independent: a write scope does not imply read or credential access.
 
 | Method and path | Required scope | Behavior |
 | --- | --- | --- |
+| GET /api/v1/external-proxies | exits:read | List metadata; no credentials |
+| POST /api/v1/external-proxies | exits:write | Create encrypted SOCKS5 / HTTP CONNECT profile |
+| PUT /api/v1/external-proxies/{ext_id} | exits:write | Edit unused profile; omit both credentials to preserve them |
+| DELETE /api/v1/external-proxies/{ext_id} | exits:write | Delete unused profile |
 | GET /api/v1/hosts | hosts:read | List server inventory |
 | POST /api/v1/hosts | hosts:write | Create server inventory |
 | PUT /api/v1/hosts/{srv_id} | hosts:write | Replace editable server metadata |
@@ -322,3 +326,55 @@ checks before saving enabled subscriptions. Disabled subscriptions can still be
 saved; disabling must not be blocked by an incompatible installed node.
 Compatibility means the selected format can represent the configuration, not
 that a client version or real network connection has been verified.
+
+## External proxy exits
+
+Owners/admins can manage up to 100 external exits per organization in the
+Routes page. The first version accepts public literal IPv4 or IPv6 addresses,
+SOCKS5 (`socks`) and plain HTTP CONNECT (`http`), forwarding TCP only.
+Private, reserved, metadata and translated IPv6 endpoints are rejected by both
+API validation and Agent spec validation; SSH allowlists do not apply.
+
+Create a profile with POST `/api/v1/external-proxies`:
+
+```json
+{
+  "name": "ISP exit",
+  "protocol": "socks",
+  "address": "<public-ip>",
+  "port": 1080,
+  "username": "<proxy-username>",
+  "password": "<proxy-password>"
+}
+```
+
+PUT replaces name/address/port/protocol. Supply both credentials to replace
+credentials, or omit both to preserve them. Credentials are encrypted with
+`XINGDU_CREDENTIAL_KEY`, bound to tenant and profile identity; metadata and
+mutation responses never return them. Credential strings must be valid UTF-8,
+1–255 bytes and contain no control characters. Metadata-only reads require
+`exits:read`; mutations require `exits:write`.
+
+Attach an existing profile to an installed entry node using PUT
+`/api/v1/hosts/{srv_id}/deployments/{node_id}`:
+
+```json
+{"external_exit_id":"ext_<id>","exit_node_id":"","confirm":true}
+```
+
+The update requires `nodes:write` and `exits:write`; restoring or updating a
+node with an external exit also requires both scopes. External and managed
+node exits are mutually exclusive. Sending both exit IDs as empty strings
+restores direct egress. Omit both fields to preserve the existing route.
+External exits require Agent **0.18.0-dev** or later; older Agents are rejected
+before queueing and cannot claim these tasks after a downgrade. The
+configuration snapshot carries credentials encrypted for the entry Agent.
+Subscriptions and connection responses continue to describe only the entry
+node, never the external credentials.
+
+Active routes and pending revisions block profile edits/deletion with HTTP
+409, including during rollback. Switch affected entries first and wait for
+Agent acknowledgement. Historical restore resolves the current profile and
+rejects deleted profiles. Creation records a profile but does not test the
+provider or establish live connectivity. No external provider is contacted by
+these CRUD endpoints.

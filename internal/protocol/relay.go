@@ -12,7 +12,9 @@ import (
 // Peer contains only client credentials and public TLS material. The exit's
 // private key and management identity never leave its own deployment.
 type Peer struct {
-	NodeID      string `json:"node_id"`
+	NodeID      string `json:"node_id,omitempty"`
+	ExternalID  string `json:"external_id,omitempty"`
+	Username    string `json:"username,omitempty"`
 	Address     string `json:"address"`
 	Protocol    string `json:"protocol"`
 	Port        int    `json:"port"`
@@ -26,6 +28,12 @@ func (p Peer) Validate() error {
 	ip, err := netip.ParseAddr(p.Address)
 	if err != nil || !ip.IsGlobalUnicast() || ip.IsLoopback() || ip.IsLinkLocalUnicast() || p.Port < 1 || p.Port > 65535 {
 		return errors.New("invalid relay endpoint")
+	}
+	if p.ExternalID != "" {
+		if p.NodeID != "" || !ValidExternalEndpoint(p.Address, p.Port) || (p.Protocol != "socks" && p.Protocol != "http") || !ValidExternalCredential(p.Username) || !ValidExternalCredential(p.Credential) || p.Certificate != "" || p.ServerName != "" || p.Password != "" {
+			return errors.New("invalid external proxy")
+		}
+		return nil
 	}
 	switch p.Protocol {
 	case "shadowsocks", "shadowsocks2022", "trojan", "vless", "vmess", "hysteria2", "tuic", "anytls", "http", "socks", "mixed", "hysteria", "shadowtls", "snell", "snell6":
@@ -64,6 +72,13 @@ func (p Peer) Validate() error {
 }
 func (p Peer) outbound() map[string]any {
 	out := map[string]any{"type": p.Protocol, "tag": "exit", "server": p.Address, "server_port": p.Port}
+	if p.ExternalID != "" {
+		out["username"], out["password"] = p.Username, p.Credential
+		if p.Protocol == "socks" {
+			out["version"], out["network"] = "5", "tcp"
+		}
+		return out
+	}
 	if IsShadowsocks(p.Protocol) || p.Protocol == "shadowtls" {
 		out["type"] = "shadowsocks"
 		out["method"] = Cipher(p.Protocol)
