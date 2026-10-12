@@ -1,10 +1,14 @@
-// Package geoip performs offline country lookups against a bundled DB-IP snapshot.
+// Package geoip performs offline country lookups using GeoLite or bundled DB-IP.
 package geoip
 
 import (
 	_ "embed"
+	"errors"
 	"net/netip"
+	"os"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/oschwald/maxminddb-golang/v2"
 )
@@ -12,13 +16,72 @@ import (
 //go:embed country.mmdb
 var database []byte
 
-var reader = sync.OnceValue(func() *maxminddb.Reader {
+var bundledReader = sync.OnceValue(func() *maxminddb.Reader {
 	db, err := maxminddb.OpenBytes(database)
 	if err != nil {
 		return nil
 	}
 	return db
 })
+
+var geoLiteReader atomic.Pointer[maxminddb.Reader]
+
+// Configure selects an operator-managed GeoLite Country file at process startup.
+// Empty paths retain DB-IP. It never downloads data or falls back on invalid files.
+// Restart the process after replacing the file; readers remain open until exit.
+func Configure(path string) error {
+	if path == "" {
+		return nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return errors.New("cannot read configured GeoLite country database")
+	}
+	db, err := maxminddb.OpenBytes(data)
+	if err != nil {
+		return errors.New("invalid GeoLite country database")
+	}
+	if err := validateGeoLite(db.Metadata, time.Now()); err != nil {
+		db.Close()
+		return err
+	}
+	if err := db.Verify(); err != nil {
+		db.Close()
+		return errors.New("GeoLite country database integrity check failed")
+	}
+	geoLiteReader.Store(db)
+	return nil
+}
+
+func validateGeoLite(metadata maxminddb.Metadata, now time.Time) error {
+	if metadata.DatabaseType != "GeoLite2-Country" {
+		return errors.New("configured database must be GeoLite2-Country")
+	}
+	built := metadata.BuildTime()
+	if built.After(now.Add(24*time.Hour)) || now.Sub(built) > 30*24*time.Hour {
+		return errors.New("GeoLite country database must be updated within 30 days")
+	}
+	return nil
+}
+
+func reader() *maxminddb.Reader {
+	if db := geoLiteReader.Load(); db != nil {
+		// Do not silently keep serving old GeoLite data or switch sources.
+		if validateGeoLite(db.Metadata, time.Now()) != nil {
+			return nil
+		}
+		return db
+	}
+	return bundledReader()
+}
+
+// Source identifies the configured source, including when its data has expired.
+func Source() string {
+	if geoLiteReader.Load() != nil {
+		return "maxmind"
+	}
+	return "dbip"
+}
 
 // Country returns an ISO 3166-1 alpha-2 code, or empty for unknown addresses.
 // It never resolves hostnames or sends addresses to an external service.

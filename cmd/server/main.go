@@ -16,6 +16,7 @@ import (
 	"xingdu.app/xingdu/internal/certificates"
 	"xingdu.app/xingdu/internal/config"
 	"xingdu.app/xingdu/internal/emailverification"
+	"xingdu.app/xingdu/internal/geoip"
 	"xingdu.app/xingdu/internal/httpapi"
 	"xingdu.app/xingdu/internal/socialauth"
 	"xingdu.app/xingdu/internal/storage"
@@ -30,6 +31,9 @@ func main() {
 func run() error {
 	cfg, err := config.Load()
 	if err != nil {
+		return err
+	}
+	if err := geoip.Configure(os.Getenv("XINGDU_GEOLITE_DATABASE")); err != nil {
 		return err
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

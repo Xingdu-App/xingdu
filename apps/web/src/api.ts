@@ -10,6 +10,7 @@ export type HostInput = {
 };
 export type Host = HostInput & {
   country_code?: string;
+  country_source?: "dbip" | "maxmind";
   id: string;
   status: "pending" | "online" | "offline";
   last_seen_at: string | null;

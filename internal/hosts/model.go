@@ -21,11 +21,12 @@ type Input struct {
 type Host struct {
 	ID string `json:"id"`
 	Input
-	Status       string           `json:"status"`
-	LastSeenAt   *time.Time       `json:"last_seen_at"`
-	CountryCode  string           `json:"country_code,omitempty"`
-	AgentVersion *string          `json:"agent_version"`
-	Metrics      *machine.Metrics `json:"metrics"`
+	Status        string           `json:"status"`
+	LastSeenAt    *time.Time       `json:"last_seen_at"`
+	CountryCode   string           `json:"country_code,omitempty"`
+	CountrySource string           `json:"country_source"`
+	AgentVersion  *string          `json:"agent_version"`
+	Metrics       *machine.Metrics `json:"metrics"`
 }
 
 var label = regexp.MustCompile(`^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$`)

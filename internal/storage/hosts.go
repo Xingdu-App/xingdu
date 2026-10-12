@@ -15,6 +15,7 @@ func scanHost(row scanner) (Host, error) {
 	err := row.Scan(&h.ID, &h.Name, &h.Address, &h.SSHPort, &h.SSHUser, &h.Tags, &h.Notes, &h.Status, &h.LastSeenAt, &h.AgentVersion, &h.Metrics)
 	if err == nil {
 		h.CountryCode = geoip.Country(h.Address)
+		h.CountrySource = geoip.Source()
 	}
 	return h, mapError(err)
 }

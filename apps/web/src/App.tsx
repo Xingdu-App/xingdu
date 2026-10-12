@@ -522,11 +522,13 @@ function App({
                     <p className="geoip-attribution">
                       {t("IP 位置仅供参考")} ·{" "}
                       <a
-                        href="https://db-ip.com"
+                        href={hosts.some((host) => host.country_source === "maxmind") ? "https://www.maxmind.com" : "https://db-ip.com"}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        IP Geolocation by DB-IP
+                        {hosts.some((host) => host.country_source === "maxmind")
+                          ? "GeoLite Data by MaxMind"
+                          : "IP Geolocation by DB-IP"}
                       </a>
                     </p>
                   </>

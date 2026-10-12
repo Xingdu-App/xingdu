@@ -9,6 +9,7 @@ import (
 	"time"
 	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/config"
+	"xingdu.app/xingdu/internal/geoip"
 	"xingdu.app/xingdu/internal/storage"
 )
 
@@ -21,6 +22,10 @@ func run() bool {
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("worker requires DATABASE_URL")
+		return false
+	}
+	if err := geoip.Configure(os.Getenv("XINGDU_GEOLITE_DATABASE")); err != nil {
+		slog.Error("invalid country database configuration", "error", err)
 		return false
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

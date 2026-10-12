@@ -59,13 +59,21 @@ This product bundles QR Code Generator, which is available under a
 
 ## Offline IP country data
 
-IP Geolocation by [DB-IP](https://db-ip.com). The unmodified September 2026
+IP Geolocation by [DB-IP](https://db-ip.com). The unmodified October 2026
 IP to Country Lite database is bundled in `internal/geoip/country.mmdb`
 and embedded in the server. This data is licensed under
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/),
 not Xingdu's MIT license. Retain attribution and the license link when
 redistributing it. See `internal/geoip/README.md` for provenance and checksums.
 The server performs lookups locally; it does not transmit host IPs to DB-IP.
+
+When an operator configures GeoLite Country, this product includes GeoLite
+Data created by [MaxMind](https://www.maxmind.com). Operator-provided GeoLite
+data is governed by the [GeoLite EULA](https://www.maxmind.com/en/geolite/eula)
+and its incorporated CC BY-SA 4.0 terms, not Xingdu's MIT license. No GeoLite
+database is checked into or distributed with this source tree. Operators must
+maintain current downloads and remove old data as required by those terms.
+GeoLite lookups are also offline; host IPs are not sent to MaxMind.
 
 The MaxMind DB reader is `github.com/oschwald/maxminddb-golang/v2`, licensed
 under ISC. Its license is included in `internal/geoip/READER-LICENSE`.

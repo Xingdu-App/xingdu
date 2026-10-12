@@ -36,3 +36,6 @@ __pycache__/
 # Local-only credentials and unselected logo drafts
 /.local/
 /docs/brand/xingdu-logo-concept-*.png
+
+# Operator-managed GeoLite data must not be retained in source history.
+GeoLite2-*.mmdb
