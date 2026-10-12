@@ -20,7 +20,7 @@ The publisher releases the Lite database monthly, with reduced coverage and
 accuracy compared with its full database. A newer snapshot can correct some
 addresses while leaving others misclassified. Do not infer physical location
 from an address owner's country or hard-code customer addresses as global
-corrections. There is currently no automatic database refresh or per-host
+corrections. The bundled DB-IP database has no automatic refresh or per-host
 country override; the update procedure below requires a new server build.
 
 The API enriches host responses after tenant-scoped reads, without adding
@@ -44,7 +44,7 @@ For deployments needing an alternative to DB-IP, set
 integrity and build time before accepting it. Missing, corrupt, future-dated
 or more than 30-day-old configured files fail startup rather than silently
 switching providers. A database that expires while running returns unknown
-countries until updated and restarted. Empty configuration uses bundled DB-IP.
+countries until updated and restarted. Without a file path or updater credentials, the server uses bundled DB-IP.
 
 Only `country.iso_code` is used. `registered_country` represents registration,
 not geolocation, and is intentionally not a fallback; records with no location
@@ -55,9 +55,9 @@ credits the selected provider. Lookups remain local without DNS or API requests.
 Obtain the database through your own MaxMind account and use the official
 [geoipupdate tool](https://github.com/maxmind/geoipupdate) with edition
 `GeoLite2-Country`. Keep the account ID and license key in a protected updater
-configuration or deployment secret, outside Git and command arguments. Arrange
+configuration or deployment secret, outside Git and command arguments. For externally maintained files, arrange
 weekly updates, replace files atomically, and restart API and worker after a
-successful update. This repository does not yet run that updater for you.
+successful update. Alternatively, use the built-in official downloader below.
 Mount the database read-only for runtime services and grant write access only
 to the updater. Do not commit downloaded GeoLite files or retain old snapshots
 in Git history, images or backups; follow MaxMind's current update and deletion
@@ -67,8 +67,8 @@ GeoLite is governed by the [MaxMind GeoLite EULA](https://www.maxmind.com/en/geo
 and its incorporated CC BY-SA 4.0 terms, separately from Xingdu's MIT license.
 This product includes GeoLite Data created by MaxMind, available from
 https://www.maxmind.com. No GeoLite database is bundled or redistributed by
-this source tree. Official account-based downloading and production refresh
-remain deployment steps, not established by local adapter tests.
+this source tree. Production credentials and provider activation remain deployment steps,
+not established by local adapter tests.
 
 An optional local acceptance check uses a licensed file without a tracked fixture:
 
@@ -76,3 +76,28 @@ An optional local acceptance check uses a licensed file without a tracked fixtur
 XINGDU_TEST_GEOLITE_DATABASE=/var/lib/xingdu/GeoLite2-Country.mmdb \
   go test -race ./internal/geoip
 ```
+
+## Managed official downloads
+
+Set `XINGDU_MAXMIND_ACCOUNT_ID` and `XINGDU_MAXMIND_LICENSE_KEY` as runtime
+secrets on both API and worker to enable managed downloads. These settings
+are never browser configuration or build arguments. The service downloads
+only GeoLite2-Country from MaxMind at startup, then every 24 hours, validates
+it and replaces the in-memory reader under a lock. Lookups continue offline
+and do not transmit host IPs. Updated results do not require a restart.
+
+`XINGDU_GEOLITE_DATABASE` selects the writable cache file. If omitted, the
+cache lives under the process temporary directory in `xingdu-geoip`. No
+persistent volume is required: a new container downloads the current release.
+A validated fresh cache permits startup during a download outage; without
+one, failed initial download prevents startup. Subsequent failures preserve
+the last valid reader until its 30-day expiry, after which countries are
+unknown. Logs report refresh success/build date or a sanitized failure.
+
+The downloader uses TLS and Basic authentication only at MaxMind's download
+endpoint. Redirects are limited to MaxMind and its documented object-storage
+host, and authorization is removed before following them. Credentials are
+removed from the process environment after initialization so spawned machine
+installation subprocesses do not inherit them. Downloaded archive and MMDB
+sizes are bounded; replacement uses a private temporary file and rename.
+Old readers and cache files are replaced rather than retained as snapshots.

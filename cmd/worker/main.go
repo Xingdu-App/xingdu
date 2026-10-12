@@ -24,12 +24,12 @@ func run() bool {
 		slog.Error("worker requires DATABASE_URL")
 		return false
 	}
-	if err := geoip.Configure(os.Getenv("XINGDU_GEOLITE_DATABASE")); err != nil {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := geoip.Start(ctx); err != nil {
 		slog.Error("invalid country database configuration", "error", err)
 		return false
 	}
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	store, err := storage.OpenRuntime(startup, cfg.DatabaseURL)
 	cancel()

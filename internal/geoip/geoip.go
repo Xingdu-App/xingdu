@@ -25,10 +25,11 @@ var bundledReader = sync.OnceValue(func() *maxminddb.Reader {
 })
 
 var geoLiteReader atomic.Pointer[maxminddb.Reader]
+var readerLock sync.RWMutex
 
 // Configure selects an operator-managed GeoLite Country file at process startup.
 // Empty paths retain DB-IP. It never downloads data or falls back on invalid files.
-// Restart the process after replacing the file; readers remain open until exit.
+// Restart after external file replacement, or use Start for managed refreshes.
 func Configure(path string) error {
 	if path == "" {
 		return nil
@@ -37,20 +38,36 @@ func Configure(path string) error {
 	if err != nil {
 		return errors.New("cannot read configured GeoLite country database")
 	}
+	db, err := openGeoLite(data)
+	if err != nil {
+		return err
+	}
+	installReader(db)
+	return nil
+}
+
+func installReader(db *maxminddb.Reader) {
+	readerLock.Lock()
+	defer readerLock.Unlock()
+	if old := geoLiteReader.Swap(db); old != nil {
+		old.Close()
+	}
+}
+
+func openGeoLite(data []byte) (*maxminddb.Reader, error) {
 	db, err := maxminddb.OpenBytes(data)
 	if err != nil {
-		return errors.New("invalid GeoLite country database")
+		return nil, errors.New("invalid GeoLite country database")
 	}
 	if err := validateGeoLite(db.Metadata, time.Now()); err != nil {
 		db.Close()
-		return err
+		return nil, err
 	}
 	if err := db.Verify(); err != nil {
 		db.Close()
-		return errors.New("GeoLite country database integrity check failed")
+		return nil, errors.New("GeoLite country database integrity check failed")
 	}
-	geoLiteReader.Store(db)
-	return nil
+	return db, nil
 }
 
 func validateGeoLite(metadata maxminddb.Metadata, now time.Time) error {
@@ -94,6 +111,8 @@ func Country(address string) string {
 	if !ip.IsGlobalUnicast() || ip.IsPrivate() || reserved(ip) {
 		return ""
 	}
+	readerLock.RLock()
+	defer readerLock.RUnlock()
 	db := reader()
 	if db == nil {
 		return ""

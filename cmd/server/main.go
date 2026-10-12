@@ -33,11 +33,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := geoip.Configure(os.Getenv("XINGDU_GEOLITE_DATABASE")); err != nil {
-		return err
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if err := geoip.Start(ctx); err != nil {
+		return err
+	}
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
 	store, err := storage.OpenRuntime(startup, cfg.DatabaseURL, cfg.Mode)
 	cancel()
