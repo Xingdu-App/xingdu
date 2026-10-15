@@ -1199,5 +1199,11 @@
   "管理外部代理出口及线路选择": "Manage external proxy exits and route selection",
   "客户端连接入口，由入口转发到自管节点或外部代理出口。单层中转仅转发 TCP；自管节点中转需要 Agent 0.12.0-dev，外部出口需要 Agent 0.18.0-dev。": "Clients connect to an entry node, which forwards through a managed node or external proxy. Single-hop routes forward TCP only. Managed-node routes require Agent 0.12.0-dev; external exits require 0.18.0-dev.",
   "请填写公网 IP、有效端口、SOCKS5 或 HTTP CONNECT，以及完整账号密码": "Enter a public IP, valid port, SOCKS5 or HTTP CONNECT, and both credentials.",
-  "选择外部出口还需要 exits:write 权限": "Selecting an external exit also requires exits:write permission."
+  "选择外部出口还需要 exits:write 权限": "Selecting an external exit also requires exits:write permission.",
+  "Snell v6 需要兼容客户端。Agent 0.18.1 起可启用 UDP；TCP 中转不转发 UDP。": "Snell v6 requires a compatible client. UDP can be enabled with Agent 0.18.1 or later; TCP relays do not forward UDP.",
+  "UDP 转发": "UDP forwarding",
+  "保持当前 UDP 配置": "Keep current UDP setting",
+  "开启 UDP（需要 Agent 0.18.1）": "Enable UDP (requires Agent 0.18.1)",
+  "关闭 UDP": "Disable UDP",
+  "TCP 中转不转发 UDP。": "TCP relays do not forward UDP."
 }

@@ -123,7 +123,7 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		return nil, err
 	}
 	for _, n := range nodes {
-		if n.Spec.V2Ray != nil || n.Spec.QUIC != nil || n.Spec.WireGuard != nil || n.Spec.UDPEnabled {
+		if n.Spec.V2Ray != nil || n.Spec.QUIC != nil || n.Spec.WireGuard != nil || (n.Spec.UDPEnabled && n.Spec.Protocol != "snell6") {
 			return nil, &CompatibilityError{format, n.Spec.Protocol, "此客户端导出尚未支持自定义传输配置"}
 		}
 		if !Supports(format, n.Spec.Protocol) {
@@ -161,7 +161,7 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 			continue
 		}
 		if s.Protocol == "snell" || s.Protocol == "snell6" {
-			fmt.Fprintf(&out, "%s = snell, %s, %d, psk=%s, version=%d, udp-relay=false\n", label, n.Server, s.Port, s.Credential, protocol.SnellClientVersion(s.Protocol))
+			fmt.Fprintf(&out, "%s = snell, %s, %d, psk=%s, version=%d, udp-relay=%t\n", label, n.Server, s.Port, s.Credential, protocol.SnellClientVersion(s.Protocol), s.Protocol == "snell6" && s.UDPEnabled && s.Relay == nil)
 			continue
 		}
 		kind := s.Protocol

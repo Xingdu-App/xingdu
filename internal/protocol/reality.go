@@ -12,6 +12,9 @@ func (in Input) RealityEnabled() bool { return in.V2Ray != nil && in.V2Ray.Reali
 
 // Feature gates supplement the protocol-level minimum without changing old nodes.
 func (in Input) RequiredAgentVersion() string {
+	if in.Protocol == "snell6" && in.UDPEnabled {
+		return "0.18.1"
+	}
 	if in.RealityEnabled() || in.Protocol == "trojan" && in.V2Ray != nil {
 		return "0.17.0-dev"
 	}

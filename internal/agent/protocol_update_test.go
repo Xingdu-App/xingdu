@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"xingdu.app/xingdu/internal/protocol"
 )
@@ -89,6 +90,53 @@ func TestUpdateRecognizesEndpointAndMultiInboundLayouts(t *testing.T) {
 			}
 			if r := x.apply(context.Background(), c, task); !r.Success || r.Code != "updated" {
 				t.Fatal(r.Code)
+			}
+		})
+	}
+}
+
+func TestSnellUDPUpdateRequiresGuardedService(t *testing.T) {
+	for _, guarded := range []bool{false, true} {
+		t.Run(map[bool]string{false: "legacy", true: "guarded"}[guarded], func(t *testing.T) {
+			x, c, _ := executorFixture(t)
+			task := taskFixture(t)
+			var err error
+			task.Spec, err = protocol.NewSpec(protocol.Input{Name: "Snell", Protocol: "snell6", Port: task.Spec.Port})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := x.apply(context.Background(), c, task); !r.Success {
+				t.Fatal(r.Code)
+			}
+			config := filepath.Join(x.stateDir, task.DeploymentID, "config.json")
+			before, _ := os.ReadFile(config)
+			if !guarded {
+				unit := filepath.Join(x.unitDir, serviceName(task.DeploymentID))
+				data, err := os.ReadFile(unit)
+				if err != nil {
+					t.Fatal(err)
+				}
+				data = []byte(strings.ReplaceAll(string(data), "# Xingdu official runtime egress guard\nIPAddressDeny="+officialDeniedNetworks+"\n", ""))
+				if err = os.WriteFile(unit, data, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			task.Action = "update"
+			task.ID = "op_00000000000040008000000000000009"
+			task.Spec.UDPEnabled = true
+			result := x.apply(context.Background(), c, task)
+			if guarded {
+				if !result.Success {
+					t.Fatal(result.Code)
+				}
+			} else {
+				if result.Code != "runtime_change_requires_new_node" {
+					t.Fatal(result.Code)
+				}
+				after, _ := os.ReadFile(config)
+				if !bytes.Equal(before, after) {
+					t.Fatal("unsafe update changed configuration")
+				}
 			}
 		})
 	}

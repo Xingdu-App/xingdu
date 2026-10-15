@@ -19,7 +19,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	if protocol.ValidateSpec(t.Spec) != nil {
 		return "invalid_spec"
 	}
-	if t.Spec.Input.RequiredAgentVersion() == "0.17.0-dev" && !x.requiresEgressFilter(t.DeploymentID) {
+	if (t.Spec.Input.RequiredAgentVersion() == "0.17.0-dev" || (t.Spec.Protocol == "snell6" && t.Spec.UDPEnabled)) && !x.requiresEgressFilter(t.DeploymentID) {
 		return "runtime_change_requires_new_node"
 	}
 	dir := filepath.Join(x.stateDir, localID)

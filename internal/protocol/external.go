@@ -4,6 +4,7 @@ import (
 	"net/netip"
 	"unicode"
 	"unicode/utf8"
+	"xingdu.app/xingdu/internal/machine"
 )
 
 const ExternalProxyAgentVersion = "0.18.0-dev"
@@ -40,7 +41,7 @@ func ValidExternalCredential(value string) bool {
 	return true
 }
 func (s Spec) RequiredAgentVersion() string {
-	if s.Relay != nil && s.Relay.ExternalID != "" {
+	if s.Relay != nil && s.Relay.ExternalID != "" && !machine.VersionAtLeast(s.Input.RequiredAgentVersion(), ExternalProxyAgentVersion) {
 		return ExternalProxyAgentVersion
 	}
 	return s.Input.RequiredAgentVersion()

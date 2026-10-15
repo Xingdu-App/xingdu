@@ -199,7 +199,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 				p["reserved"] = s.WireGuard.Reserved
 			}
 		case "snell", "snell6":
-			p["type"], p["psk"], p["version"], p["udp"] = "snell", s.Credential, protocol.SnellClientVersion(s.Protocol), false
+			p["type"], p["psk"], p["version"], p["udp"] = "snell", s.Credential, protocol.SnellClientVersion(s.Protocol), s.Protocol == "snell6" && s.UDPEnabled && s.Relay == nil
 		case "hysteria":
 			p["auth-str"], p["sni"], p["alpn"] = s.Credential, s.ServerName, []string{"hysteria"}
 			if format == "stash" {

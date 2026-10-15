@@ -418,7 +418,7 @@ func Render(s Spec) ([]byte, error) {
 		cfg["outbounds"] = s.Relay.Outbounds()
 		cfg["route"].(map[string]any)["final"] = "exit"
 	}
-	if s.Protocol == "anytls" || s.Protocol == "socks" || s.Protocol == "mixed" || s.Protocol == "snell" || s.Protocol == "snell6" || s.Protocol == "shadowtls" || s.Relay != nil {
+	if s.Protocol == "anytls" || s.Protocol == "socks" || s.Protocol == "mixed" || s.Protocol == "snell" || (s.Protocol == "snell6" && !s.UDPEnabled) || s.Protocol == "shadowtls" || s.Relay != nil {
 		route := cfg["route"].(map[string]any)
 		route["rules"] = append([]any{map[string]any{"network": "udp", "action": "reject"}}, route["rules"].([]any)...)
 	}

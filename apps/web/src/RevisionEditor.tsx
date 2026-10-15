@@ -31,6 +31,7 @@ export default function RevisionEditor({
 }) {
   const advanced = ["vless", "vmess", "trojan"].includes(node.protocol);
   const [v2ray, setV2ray] = useState<V2RayOptions>();
+  const [udp, setUDP] = useState("keep");
   const [port, setPort] = useState(node.port);
   const [name, setName] = useState(node.name),
     [serverName, setServerName] = useState(node.server_name);
@@ -72,6 +73,10 @@ export default function RevisionEditor({
             certificate,
             private_key: privateKey,
             v2ray,
+            udp_enabled:
+              node.protocol === "snell6" && udp !== "keep"
+                ? udp === "on"
+                : undefined,
             rotate_credential: rotate,
             restore_revision: restore,
             confirm,
@@ -134,6 +139,22 @@ export default function RevisionEditor({
               onChange={(e) => setPort(Number(e.target.value))}
             />
           </label>
+          {node.protocol === "snell6" && (
+            <div className="revision-field">
+              <Select
+                label={t("UDP 转发")}
+                value={udp}
+                onChange={setUDP}
+                disabled={busy}
+                options={[
+                  { value: "keep", label: t("保持当前 UDP 配置") },
+                  { value: "on", label: t("开启 UDP（需要 Agent 0.18.1）") },
+                  { value: "off", label: t("关闭 UDP") },
+                ]}
+              />
+              <small>{t("TCP 中转不转发 UDP。")}</small>
+            </div>
+          )}
           {advanced && !v2ray && (
             <button
               type="button"

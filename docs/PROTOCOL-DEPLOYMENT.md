@@ -25,7 +25,7 @@
 | Hysteria 1 (`hysteria`) | QUIC / UDP + TLS；auth_str | 自备匹配 PEM | 0.14.0-dev |
 | ShadowTLS v3 (`shadowtls`) | TCP；外层密码 + 内层 SS2022 密钥 | 固定公共握手域名；不上传证书 | 0.14.0-dev |
 | Snell v4 兼容 (`snell`) | 加密 TCP；PSK；v5 服务端 / v4 客户端 | 无需 | 0.14.0-dev |
-| Snell v6 测试版 (`snell6`) | 加密 TCP；PSK；需 v6 客户端 | 无需 | 0.14.0-dev |
+| Snell v6 测试版 (`snell6`) | 加密 TCP；可选 UDP 转发；需 v6 客户端 | 无需 | TCP: 0.14.0-dev / UDP: 0.18.1 |
 
 TCP 协议需放行所选 TCP 端口；QUIC 协议需放行所选 UDP 端口。
 QUIC 是传输方式，没有独立的通用 QUIC 代理选项。VLESS / VMess 的
@@ -138,7 +138,7 @@ Agent 0.13.0-dev 起，在服务状态上报中附带 `runtime_version`，取自
 | `hysteria` | Hysteria 1，`auth_str`，上下行带宽提示均为 100 Mbps | 自备 TLS 证书，QUIC / UDP，ALPN `hysteria` |
 | `shadowtls` | ShadowTLS v3 + SS2022 AES-256-GCM；独立内外层凭据 | 不上传证书；公共握手域名；仅 TCP 转发 |
 | `snell` | sing-box Snell v5 服务端，客户端指定 v4 | 无需证书；加密 TCP；不启用 v5 QUIC Proxy Mode |
-| `snell6` | Snell v6 测试版，默认加密流量整形 | 无需证书；仅 TCP 转发；需要兼容 v6 的客户端 |
+| `snell6` | Snell v6 测试版，默认加密流量整形 | 无需证书；可选 UDP 转发；需要兼容 v6 的客户端 |
 
 这些协议支持托管部署、连接信息、更新/轮换、重启、卸载与单层 TCP 中转的
 配置生成。旧 Agent 不能领取新增协议任务；配置更新也同时检查入口、出口
@@ -152,8 +152,11 @@ ShadowTLS 的 `server_name` 只能选择 `www.microsoft.com`、`www.apple.com`
 SS2022 inbound，继续经过私网目标阻止规则。`credential` 是 SS2022 密钥，
 `password` 是独立 ShadowTLS 密码，客户端仍正常校验握手域名的公共证书。
 
-SOCKS5、Mixed、ShadowTLS、Snell 的 UDP 转发在服务端显式拒绝，订阅也
-标记 TCP-only。Hysteria 1 的 100 Mbps 是拥塞控制参数，不是套餐限速。
+SOCKS5、Mixed、ShadowTLS、Snell v4 兼容模式的 UDP 转发在服务端显式拒绝，订阅也
+标记 TCP-only。Snell v6 默认保持 TCP-only；设置 `udp_enabled: true` 后，
+Agent 0.18.1 起允许 UDP 隧道转发，订阅同步声明 UDP 能力。旧节点需先升级
+Agent，再更新配置；缺少 systemd 逐包私网出口过滤策略的旧服务会拒绝更新，
+需要重新创建节点。私网及元数据目标仍被拦截；单层 TCP 中转始终不转发 UDP。Hysteria 1 的 100 Mbps 是拥塞控制参数，不是套餐限速。
 Snell v6 尚处于上游测试阶段，可能有协议变动。Naive 按当前范围暂不接入；
 TUN、透明代理、Cloudflare Tunnel 及 VPN endpoint 需要独立的接入模型。
 

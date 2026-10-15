@@ -27,8 +27,8 @@ type WireGuardKeys struct {
 }
 
 func (in Input) validateExtra() error {
-	if in.UDPEnabled && in.Protocol != "socks" {
-		return errors.New("UDP option only applies to SOCKS")
+	if in.UDPEnabled && in.Protocol != "socks" && in.Protocol != "snell6" {
+		return errors.New("UDP option only applies to SOCKS or Snell v6")
 	}
 	if q := in.QUIC; q != nil {
 		if !IsQUIC(in.Protocol) {

@@ -391,9 +391,12 @@ export default function ProtocolDialog({
     (kind ? machine?.required_agent_versions?.[kind] : undefined) ??
     machine?.required_agent_version;
   const requiredVersion =
-    creating && (v2ray.reality || (protocol === "trojan" && transportOptions))
-      ? "0.17.0-dev"
-      : requiredVersionFor(selectedProtocol);
+    creating && protocol === "snell6" && socksUDP
+      ? "0.18.1"
+      : creating &&
+          (v2ray.reality || (protocol === "trojan" && transportOptions))
+        ? "0.17.0-dev"
+        : requiredVersionFor(selectedProtocol);
   const versionCompatible = agentVersionAtLeast(
     agent?.metrics.version,
     requiredVersion,
@@ -467,7 +470,9 @@ export default function ProtocolDialog({
                 ? quic
                 : undefined,
             wireguard: protocol === "wireguard" ? wireguard : undefined,
-            udp_enabled: protocol === "socks" ? socksUDP : undefined,
+            udp_enabled: ["socks", "snell6"].includes(protocol)
+              ? socksUDP
+              : undefined,
             server_name:
               protocol === "shadowtls" || v2ray.reality
                 ? handshakeHost
@@ -1072,7 +1077,7 @@ export default function ProtocolDialog({
                   </label>
                 </div>
               )}
-              {protocol === "socks" && (
+              {["socks", "snell6"].includes(protocol) && (
                 <label className="check-row">
                   <input
                     type="checkbox"
@@ -1207,7 +1212,7 @@ export default function ProtocolDialog({
                           )
                         : protocol === "snell6"
                           ? t(
-                              "Snell v6 仍在测试阶段，需要支持 v6 的客户端。仅开放 TCP 转发。",
+                              "Snell v6 需要兼容客户端。Agent 0.18.1 起可启用 UDP；TCP 中转不转发 UDP。",
                             )
                           : protocol === "wireguard"
                             ? t(
@@ -1263,7 +1268,9 @@ export default function ProtocolDialog({
                           : undefined,
                       wireguard:
                         protocol === "wireguard" ? wireguard : undefined,
-                      udp_enabled: protocol === "socks" ? socksUDP : undefined,
+                      udp_enabled: ["socks", "snell6"].includes(protocol)
+                        ? socksUDP
+                        : undefined,
                       server_name:
                         protocol === "shadowtls" || v2ray.reality
                           ? handshakeHost
