@@ -101,3 +101,41 @@ func TestSnellV6UDPAdvertisement(t *testing.T) {
 		}
 	}
 }
+
+func TestShadowsocksUDPAdvertisement(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		n := fixture(t, "shadowsocks2022", 1)
+		n.Spec.UDPEnabled = enabled
+		for _, relay := range []bool{false, true} {
+			if relay {
+				n.Spec.Relay = &protocol.Peer{Address: "203.0.113.1", Protocol: "shadowsocks2022", Port: 24444, Credential: n.Spec.Credential}
+			}
+			want := enabled && !relay
+			out, err := singboxOutbound(n, "ss")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if (out["network"] != "tcp") != want {
+				t.Fatal("incorrect sing-box UDP capability")
+			}
+			raw, err := Render("stash", "Snell", []Node{n}, nil, "proxy")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var cfg struct{ Proxies []map[string]any }
+			if err = yaml.Unmarshal(raw, &cfg); err != nil {
+				t.Fatal(err)
+			}
+			if cfg.Proxies[0]["udp"] != want {
+				t.Fatal("incorrect Stash UDP capability")
+			}
+			raw, err = Render("surge", "Snell", []Node{n}, nil, "proxy")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(raw), fmt.Sprintf("udp-relay=%t", want)) {
+				t.Fatal("incorrect Surge UDP capability")
+			}
+		}
+	}
+}

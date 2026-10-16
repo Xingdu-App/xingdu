@@ -19,7 +19,7 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 	if protocol.ValidateSpec(t.Spec) != nil {
 		return "invalid_spec"
 	}
-	if (t.Spec.Input.RequiredAgentVersion() == "0.17.0-dev" || (t.Spec.Protocol == "snell6" && t.Spec.UDPEnabled)) && !x.requiresEgressFilter(t.DeploymentID) {
+	if (t.Spec.Input.RequiredAgentVersion() == "0.17.0-dev" || ((t.Spec.Protocol == "snell6" || protocol.IsShadowsocks(t.Spec.Protocol)) && t.Spec.UDPEnabled)) && !x.requiresEgressFilter(t.DeploymentID) {
 		return "runtime_change_requires_new_node"
 	}
 	dir := filepath.Join(x.stateDir, localID)
@@ -43,7 +43,8 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 			Port int `json:"listen_port"`
 		} `json:"endpoints"`
 		Inbounds []struct {
-			Port int `json:"listen_port"`
+			Network string `json:"network"`
+			Port    int    `json:"listen_port"`
 		} `json:"inbounds"`
 	}
 	if json.Unmarshal(old, &current) != nil || (len(current.Inbounds) == 0 && len(current.Endpoints) != 1) || (len(current.Inbounds) > 0 && len(current.Endpoints) > 0) {
@@ -59,6 +60,10 @@ func (x *protocolExecutor) update(ctx context.Context, c Config, t protocol.Task
 		oldPort = current.Endpoints[0].Port
 	}
 	if oldPort != t.Spec.Port && !portAvailable(t.Spec) {
+		return "port_in_use"
+	}
+
+	if oldPort == t.Spec.Port && protocol.IsShadowsocks(t.Spec.Protocol) && t.Spec.UDPEnabled && t.Spec.Relay == nil && len(current.Inbounds) > 0 && current.Inbounds[0].Network == "tcp" && !udpPortAvailable(t.Spec.Port) {
 		return "port_in_use"
 	}
 

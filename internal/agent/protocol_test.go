@@ -413,6 +413,10 @@ func TestShadowsocksDoesNotReserveUDPPort(t *testing.T) {
 		if !portAvailable(task.Spec) {
 			t.Fatal("TCP-only SS incorrectly reserves UDP", kind)
 		}
+		task.Spec.UDPEnabled = true
+		if portAvailable(task.Spec) {
+			t.Fatal("UDP-enabled SS ignored occupied UDP port", kind)
+		}
 	}
 }
 

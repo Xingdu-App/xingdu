@@ -391,8 +391,12 @@ export default function ProtocolDialog({
     (kind ? machine?.required_agent_versions?.[kind] : undefined) ??
     machine?.required_agent_version;
   const requiredVersion =
-    creating && protocol === "snell6" && socksUDP
-      ? "0.18.1"
+    creating &&
+    ["snell6", "shadowsocks", "shadowsocks2022"].includes(protocol) &&
+    socksUDP
+      ? protocol === "snell6"
+        ? "0.18.1"
+        : "0.18.2"
       : creating &&
           (v2ray.reality || (protocol === "trojan" && transportOptions))
         ? "0.17.0-dev"
@@ -470,7 +474,12 @@ export default function ProtocolDialog({
                 ? quic
                 : undefined,
             wireguard: protocol === "wireguard" ? wireguard : undefined,
-            udp_enabled: ["socks", "snell6"].includes(protocol)
+            udp_enabled: [
+              "socks",
+              "snell6",
+              "shadowsocks",
+              "shadowsocks2022",
+            ].includes(protocol)
               ? socksUDP
               : undefined,
             server_name:
@@ -1077,7 +1086,9 @@ export default function ProtocolDialog({
                   </label>
                 </div>
               )}
-              {["socks", "snell6"].includes(protocol) && (
+              {["socks", "snell6", "shadowsocks", "shadowsocks2022"].includes(
+                protocol,
+              ) && (
                 <label className="check-row">
                   <input
                     type="checkbox"
@@ -1268,7 +1279,12 @@ export default function ProtocolDialog({
                           : undefined,
                       wireguard:
                         protocol === "wireguard" ? wireguard : undefined,
-                      udp_enabled: ["socks", "snell6"].includes(protocol)
+                      udp_enabled: [
+                        "socks",
+                        "snell6",
+                        "shadowsocks",
+                        "shadowsocks2022",
+                      ].includes(protocol)
                         ? socksUDP
                         : undefined,
                       server_name:

@@ -282,3 +282,16 @@ REALITY 仅开放 VLESS + TCP，可选 Vision。`server_name` 必须是允许的
 配置更新只允许具有官方运行时出口过滤的受管服务单元；旧单元需重新部署，
 避免将历史运行时的验收结果沿用到新组合。真实公网 DNS、VPS 与手机 App
 仍需单独验收。
+
+## Shadowsocks UDP（Agent 0.18.2）
+
+Shadowsocks 与 Shadowsocks 2022 可设置 `udp_enabled: true`，默认保持关闭。
+同时监听同一端口的 TCP 和 UDP；更新已有节点开启 UDP 时，也会检查该 UDP
+端口是否已被占用。TCP 中转、外部出口和 ShadowTLS 仍保持 TCP-only。
+
+开启 UDP 要求服务已配置官方运行时的 systemd 每报文私网出口保护；旧的无保护
+服务会拒绝更新，需重新创建节点。保留运行时的私网路由拒绝规则，不以其替代
+每报文保护。Agent 不修改主机防火墙或云安全组，运营者需放行节点 UDP 端口。
+
+本地 Linux arm64 systemd 容器已验证两种加密方式的 UDP echo、错误密钥拒绝、
+复用会话的私网与元数据地址阻断及服务重启恢复；这不代表公网或客户端 App 验收。

@@ -74,7 +74,9 @@ export default function RevisionEditor({
             private_key: privateKey,
             v2ray,
             udp_enabled:
-              node.protocol === "snell6" && udp !== "keep"
+              ["snell6", "shadowsocks", "shadowsocks2022"].includes(
+                node.protocol,
+              ) && udp !== "keep"
                 ? udp === "on"
                 : undefined,
             rotate_credential: rotate,
@@ -139,7 +141,9 @@ export default function RevisionEditor({
               onChange={(e) => setPort(Number(e.target.value))}
             />
           </label>
-          {node.protocol === "snell6" && (
+          {["snell6", "shadowsocks", "shadowsocks2022"].includes(
+            node.protocol,
+          ) && (
             <div className="revision-field">
               <Select
                 label={t("UDP 转发")}
@@ -148,7 +152,13 @@ export default function RevisionEditor({
                 disabled={busy}
                 options={[
                   { value: "keep", label: t("保持当前 UDP 配置") },
-                  { value: "on", label: t("开启 UDP（需要 Agent 0.18.1）") },
+                  {
+                    value: "on",
+                    label:
+                      node.protocol === "snell6"
+                        ? t("开启 UDP（需要 Agent 0.18.1）")
+                        : t("启用 UDP 转发") + " (Agent 0.18.2+)",
+                  },
                   { value: "off", label: t("关闭 UDP") },
                 ]}
               />

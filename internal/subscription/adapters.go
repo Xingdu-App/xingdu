@@ -123,7 +123,7 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		return nil, err
 	}
 	for _, n := range nodes {
-		if n.Spec.V2Ray != nil || n.Spec.QUIC != nil || n.Spec.WireGuard != nil || (n.Spec.UDPEnabled && n.Spec.Protocol != "snell6") {
+		if n.Spec.V2Ray != nil || n.Spec.QUIC != nil || n.Spec.WireGuard != nil || (n.Spec.UDPEnabled && n.Spec.Protocol != "snell6" && !protocol.IsShadowsocks(n.Spec.Protocol)) {
 			return nil, &CompatibilityError{format, n.Spec.Protocol, "此客户端导出尚未支持自定义传输配置"}
 		}
 		if !Supports(format, n.Spec.Protocol) {
@@ -153,7 +153,7 @@ func renderOther(format, name string, nodes []Node, rules []Rule, final string) 
 		s := n.Spec
 		label := labels[i]
 		if protocol.IsShadowsocks(s.Protocol) {
-			fmt.Fprintf(&out, "%s = ss, %s, %d, encrypt-method=%s, password=%s, udp-relay=false\n", label, n.Server, s.Port, protocol.Cipher(s.Protocol), s.Credential)
+			fmt.Fprintf(&out, "%s = ss, %s, %d, encrypt-method=%s, password=%s, udp-relay=%t\n", label, n.Server, s.Port, protocol.Cipher(s.Protocol), s.Credential, s.UDPEnabled && s.Relay == nil)
 			continue
 		}
 		if s.Protocol == "socks" || s.Protocol == "mixed" {

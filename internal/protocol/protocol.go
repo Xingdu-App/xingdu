@@ -367,9 +367,11 @@ func Render(s Spec) ([]byte, error) {
 	}
 	if IsShadowsocks(s.Protocol) {
 		inbound["type"] = "shadowsocks"
-		// The pinned runtime routes a reused UDP session only once. Keep SS
-		// TCP-only until per-packet private-destination enforcement is available.
-		inbound["network"] = "tcp"
+		// UDP requires the Agent service per-packet egress guard. TCP relays
+		// cannot carry native Shadowsocks UDP. Preserve old TCP-only nodes.
+		if !s.UDPEnabled || s.Relay != nil {
+			inbound["network"] = "tcp"
+		}
 		inbound["method"] = Cipher(s.Protocol)
 		inbound["password"] = s.Credential
 		delete(inbound, "users")

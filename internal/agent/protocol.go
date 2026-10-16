@@ -208,7 +208,19 @@ WantedBy=multi-user.target
 	}
 	return unit
 }
+func udpPortAvailable(port int) bool {
+	c, err := net.ListenPacket("udp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return false
+	}
+	c.Close()
+	return true
+}
+
 func portAvailable(s protocol.Spec) bool {
+	if protocol.IsShadowsocks(s.Protocol) && s.UDPEnabled && s.Relay == nil && !udpPortAvailable(s.Port) {
+		return false
+	}
 	addr := fmt.Sprintf(":%d", s.Port)
 	if protocol.IsQUIC(s.Protocol) || s.Protocol == "wireguard" || s.UsesXray() && (s.V2Ray == nil || s.V2Ray.Network == "xhttp") {
 		c, e := net.ListenPacket("udp", addr)

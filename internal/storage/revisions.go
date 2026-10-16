@@ -82,7 +82,9 @@ func (s *Store) UpdateDeployment(ctx context.Context, d Deployment, previous []b
 		if err = checkExternalExit(ctx, tx, d); err != nil {
 			return err
 		}
-		d.MinimumAgentVersion = protocol.ExternalProxyAgentVersion
+		if !machine.VersionAtLeast(d.MinimumAgentVersion, protocol.ExternalProxyAgentVersion) {
+			d.MinimumAgentVersion = protocol.ExternalProxyAgentVersion
+		}
 	}
 	minimum := "0.12.0-dev"
 	// Recovery can restart the previous spec. Never lower the feature gate while

@@ -65,7 +65,12 @@ Stash 字段映射、格式持久化和真实 HTTP 订阅已验证；另记录�
 | HY2 分享链接 | 拒绝 | 拒绝 | 拒绝 | 拒绝 | 输出 | 拒绝 | `pinSHA256` + `insecure=0` | URI 解析单测；App 待验收 |
 | Shadowrocket | 待验收 | 待验收 | 待验收 | 待验收 | 待验收 | 待验收 | 尚未确认导入后证书固定语义 | 暂不提供专用输出 |
 
-Shadowsocks 系列当前仅提供 TCP，服务端与导出配置均关闭 UDP（运行时的 UDP 私有目标隔离尚待补齐）。不使用 TLS，因此不会生成 SNI、证书指纹或跳过证书验证字段。Stash / Mihomo 使用 `type: ss`、`cipher`、`password`、`udp: false`；Surge 使用 `ss`、`encrypt-method`、`password`、`udp-relay=false`，依据 [Surge 官方 Shadowsocks 文档](https://manual.nssurge.com/policies/shadowsocks.html)。2022 采用标准 Base64 编码的 32 字节 AES-256 密钥。当前 Loon 的 Shadowsocks 适配尚未实现，不代表 Loon 客户端不支持该协议。
+Shadowsocks / Shadowsocks 2022 默认仅提供 TCP。Agent 0.18.2 起可通过
+`udp_enabled: true` 开启 UDP；Stash / Mihomo 的 `udp`、Surge 的 `udp-relay`
+以及 sing-box 的 `network` 会同步反映设置。TCP 中转仍关闭 UDP，ShadowTLS
+保持 TCP-only。服务器必须放行节点端口的 UDP；星渡不会自动修改安全组或防火墙。
+不使用 TLS，因此不会生成 SNI、证书指纹或跳过证书验证字段。2022 采用标准
+Base64 编码的 32 字节 AES-256 密钥。当前 Loon 的 Shadowsocks 适配尚未实现。
 
 本表的“输出”只表示适配器已实现，不表示 App 端已经通过真实连接测试。Surge 的 HY2 要求至少 iOS 5.8.0 / Mac 5.4.0；其他协议应使用支持对应协议及证书固定字段的当前版本，最低版本尚未完成矩阵验收。Loon 不猜测未在官方文档中定义的 pinning 字段；选择该格式即明确采用系统 CA 验证，导出时校验证书域名、有效期、链和系统根。私有 CA、自签名、缺少中间证书的节点会明确报错。客户端与控制平面的根证书集可能不同，仍需 App 验收。
 

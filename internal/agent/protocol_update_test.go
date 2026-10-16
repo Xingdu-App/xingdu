@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -137,6 +138,87 @@ func TestSnellUDPUpdateRequiresGuardedService(t *testing.T) {
 				if !bytes.Equal(before, after) {
 					t.Fatal("unsafe update changed configuration")
 				}
+			}
+		})
+	}
+}
+
+func TestShadowsocksUDPUpdateRequiresGuardedService(t *testing.T) {
+	for _, guarded := range []bool{false, true} {
+		t.Run(map[bool]string{false: "legacy", true: "guarded"}[guarded], func(t *testing.T) {
+			x, c, _ := executorFixture(t)
+			task := taskFixture(t)
+			var err error
+			task.Spec, err = protocol.NewSpec(protocol.Input{Name: "Snell", Protocol: "shadowsocks2022", Port: task.Spec.Port})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := x.apply(context.Background(), c, task); !r.Success {
+				t.Fatal(r.Code)
+			}
+			config := filepath.Join(x.stateDir, task.DeploymentID, "config.json")
+			before, _ := os.ReadFile(config)
+			if !guarded {
+				unit := filepath.Join(x.unitDir, serviceName(task.DeploymentID))
+				data, err := os.ReadFile(unit)
+				if err != nil {
+					t.Fatal(err)
+				}
+				data = []byte(strings.ReplaceAll(string(data), "# Xingdu official runtime egress guard\nIPAddressDeny="+officialDeniedNetworks+"\n", ""))
+				if err = os.WriteFile(unit, data, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			task.Action = "update"
+			task.ID = "op_00000000000040008000000000000009"
+			task.Spec.UDPEnabled = true
+			result := x.apply(context.Background(), c, task)
+			if guarded {
+				if !result.Success {
+					t.Fatal(result.Code)
+				}
+			} else {
+				if result.Code != "runtime_change_requires_new_node" {
+					t.Fatal(result.Code)
+				}
+				after, _ := os.ReadFile(config)
+				if !bytes.Equal(before, after) {
+					t.Fatal("unsafe update changed configuration")
+				}
+			}
+		})
+	}
+}
+
+func TestShadowsocksUDPUpdateChecksUnchangedPort(t *testing.T) {
+	for _, kind := range []string{"shadowsocks", "shadowsocks2022"} {
+		t.Run(kind, func(t *testing.T) {
+			x, c, calls := executorFixture(t)
+			task := taskFixture(t)
+			listener, err := net.ListenPacket("udp", ":0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			task.Spec, err = protocol.NewSpec(protocol.Input{Name: "SS", Protocol: kind, Port: listener.LocalAddr().(*net.UDPAddr).Port})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r := x.apply(context.Background(), c, task); !r.Success {
+				t.Fatal(r.Code)
+			}
+			path := filepath.Join(x.stateDir, task.DeploymentID, "config.json")
+			before, _ := os.ReadFile(path)
+			count := len(*calls)
+			task.Action = "update"
+			task.ID = "op_00000000000040008000000000000009"
+			task.Spec.UDPEnabled = true
+			if r := x.apply(context.Background(), c, task); r.Code != "port_in_use" {
+				t.Fatal(r.Code)
+			}
+			after, _ := os.ReadFile(path)
+			if !bytes.Equal(before, after) || len(*calls) != count {
+				t.Fatal("conflict changed running service")
 			}
 		})
 	}

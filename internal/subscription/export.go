@@ -169,7 +169,7 @@ func Render(format, name string, nodes []Node, rules []Rule, final string) ([]by
 		switch s.Protocol {
 		case "shadowsocks", "shadowsocks2022", "shadowtls":
 			p["type"] = "ss"
-			p["udp"] = false
+			p["udp"] = protocol.IsShadowsocks(s.Protocol) && s.UDPEnabled && s.Relay == nil
 			p["cipher"] = protocol.Cipher(s.Protocol)
 			p["password"] = s.Credential
 			if s.Protocol == "shadowtls" {

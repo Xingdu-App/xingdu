@@ -22,6 +22,9 @@ func singboxOutbound(n Node, tag string) (map[string]any, error) {
 	switch s.Protocol {
 	case "shadowsocks", "shadowsocks2022":
 		p["type"], p["method"], p["password"], p["network"] = "shadowsocks", protocol.Cipher(s.Protocol), s.Credential, "tcp"
+		if s.UDPEnabled && s.Relay == nil {
+			delete(p, "network")
+		}
 	case "trojan", "hysteria2", "anytls":
 		p["password"] = s.Credential
 	case "vless", "vmess":
