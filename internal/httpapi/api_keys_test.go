@@ -25,6 +25,11 @@ func TestAPIKeyScopeAllowlist(t *testing.T) {
 		{"POST", "/api/v1/subscriptions/" + sub + "/preview", "subscriptions:export"},
 		{"GET", "/api/v1/subscriptions/" + sub + "/content", ""},
 		{"POST", "/api/v1/subscriptions/" + sub + "/rotate", ""},
+		{"POST", "/api/v1/hosts/" + host + "/agent/upgrade", "agents:upgrade"},
+		{"GET", "/api/v1/hosts/" + host + "/agent/upgrade", ""},
+		{"POST", "/api/v1/hosts/" + host + "/ssh/upgrade", ""},
+		{"POST", "/api/v1/hosts/" + host + "/enrollment", ""},
+		{"DELETE", "/api/v1/hosts/" + host + "/agent", ""},
 		{"GET", "/api/v1/hosts", "hosts:read"}, {"POST", "/api/v1/hosts", "hosts:write"},
 		{"PUT", "/api/v1/hosts/" + host, "hosts:write"}, {"GET", "/api/v1/nodes", "nodes:read"},
 		{"POST", "/api/v1/hosts/" + host + "/deployments", "nodes:write"},
@@ -135,6 +140,12 @@ func TestAPIKeyManagementAndIsolation(t *testing.T) {
 		return out.Data.Key, out.Data.Secret
 	}
 	key, secret := create(`["hosts:read","nodes:read"]`)
+	upgradePath := "/api/v1/hosts/" + storage.NewID("srv") + "/agent/upgrade"
+	assert(call("POST", upgradePath, `{"confirm_upgrade":true}`, secret, false, nil), 403)
+	_, upgradeSecret := create(`["agents:upgrade"]`)
+	assert(call("POST", upgradePath, `{}`, upgradeSecret, false, nil), 422)
+	assert(call("POST", upgradePath, `{}`, upgradeSecret, false, map[string]string{"Origin": "https://console.example"}), 403)
+
 	var hash string
 	if err = owner.Pool.QueryRow(ctx, "SELECT token_hash FROM api_keys WHERE id=$1", key.ID).Scan(&hash); err != nil {
 		t.Fatal(err)

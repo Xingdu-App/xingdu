@@ -59,7 +59,7 @@ func (s *Store) ClaimSelfUpdate(ctx context.Context, hash string) (*machine.Upda
 		return nil, err
 	}
 	var allowed bool
-	if err = tx.QueryRow(ctx, `SELECT COALESCE(tenant_role(request_org_id()) IN ('owner','admin'),false)`).Scan(&allowed); err != nil {
+	if allowed, err = selfUpdateAuthorized(ctx, tx, task.ID); err != nil {
 		return nil, err
 	}
 	if !allowed || bound != hash {
@@ -93,7 +93,7 @@ func (s *Store) CheckSelfUpdate(ctx context.Context, hash, id, lease string, pha
 		return err
 	}
 	var allowed bool
-	if err = tx.QueryRow(ctx, `SELECT COALESCE(tenant_role(request_org_id()) IN ('owner','admin'),false)`).Scan(&allowed); err != nil {
+	if allowed, err = selfUpdateAuthorized(ctx, tx, id); err != nil {
 		return err
 	}
 	if !allowed {
@@ -134,7 +134,7 @@ func (s *Store) CompleteSelfUpdate(ctx context.Context, hash, version string) er
 		return err
 	}
 	var allowed bool
-	if err = tx.QueryRow(ctx, `SELECT COALESCE(tenant_role(request_org_id()) IN ('owner','admin'),false)`).Scan(&allowed); err != nil {
+	if allowed, err = selfUpdateAuthorized(ctx, tx, id); err != nil {
 		return err
 	}
 	state, result := "installed", "agent_upgraded"
@@ -150,4 +150,19 @@ func (s *Store) CompleteSelfUpdate(ctx context.Context, hash, version string) er
 		}
 	}
 	return tx.Commit(ctx)
+}
+
+// API-authorized tasks retain the key boundary after the HTTP request ends.
+// The caller holds the organization lock and has set the job creator's scope.
+func selfUpdateAuthorized(ctx context.Context, tx pgx.Tx, job string) (bool, error) {
+	var allowed bool
+	err := tx.QueryRow(ctx, `SELECT
+ COALESCE(tenant_role(request_org_id()) IN ('owner','admin'),false)
+ AND (j.origin_api_key_id IS NULL OR EXISTS (
+ SELECT 1 FROM api_keys k WHERE k.id=j.origin_api_key_id
+ AND k.organization_id=j.organization_id AND k.created_by=j.created_by
+ AND k.revoked_at IS NULL AND k.expires_at>clock_timestamp()
+ AND 'agents:upgrade'=ANY(k.scopes)))
+ FROM machine_jobs j WHERE j.id=$1`, job).Scan(&allowed)
+	return allowed, err
 }

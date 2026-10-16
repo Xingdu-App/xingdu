@@ -96,6 +96,9 @@ func apiScope(method, path string) string {
 	if len(p) < 2 || p[0] != "hosts" || !id.Valid("srv", p[1]) {
 		return ""
 	}
+	if len(p) == 4 && p[2] == "agent" && p[3] == "upgrade" && method == "POST" {
+		return "agents:upgrade"
+	}
 	if len(p) == 2 && (method == "PUT" || method == "DELETE") {
 		return "hosts:write"
 	}

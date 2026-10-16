@@ -1205,5 +1205,6 @@
   "保持当前 UDP 配置": "Keep current UDP setting",
   "开启 UDP（需要 Agent 0.18.1）": "Enable UDP (requires Agent 0.18.1)",
   "关闭 UDP": "Disable UDP",
-  "TCP 中转不转发 UDP。": "TCP relays do not forward UDP."
+  "TCP 中转不转发 UDP。": "TCP relays do not forward UDP.",
+  "升级已接入的 Agent": "Upgrade enrolled Agents"
 }

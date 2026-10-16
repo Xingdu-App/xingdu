@@ -378,3 +378,17 @@ Agent acknowledgement. Historical restore resolves the current profile and
 rejects deleted profiles. Creation records a profile but does not test the
 provider or establish live connectivity. No external provider is contacted by
 these CRUD endpoints.
+
+## Agent self-update permission
+
+`agents:upgrade` permits `POST /api/v1/hosts/{id}/agent/upgrade` with
+`{"confirm_upgrade":true}`. Only the key's organization owner/admin can queue
+an update for an enrolled Agent with a recently connected updater. The response
+is HTTP 202 with a job ID and queued state; this is not upgrade completion.
+Use `hosts:read` to observe the new `agent_version` in the host list.
+
+Existing keys do not gain this scope automatically. Grant it explicitly through
+the console. It does not permit SSH installation, credential access, enrollment,
+revocation, or API key management. Jobs retain their originating key: revocation,
+expiry or removal of `agents:upgrade` prevents later claim/execution checks from
+authorizing the task. An operation already executing cannot be recalled.

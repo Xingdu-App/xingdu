@@ -277,6 +277,23 @@ func (s *Store) QueueInstall(ctx context.Context, j machine.Job, enrollmentHash 
 	if _, err = tx.Exec(ctx, "INSERT INTO machine_jobs(id,organization_id,host_id,created_by,mode,encrypted,action,target_version,agent_hash,artifact_sha256,arch,transport) VALUES($1,request_org_id(),$2,request_user_id(),$3,$4,$5,$6,$7,$8,$9,$10)", j.ID, j.HostID, j.Mode, j.Encrypted, j.Action, j.TargetVersion, j.AgentHash, j.ArtifactSHA256, j.Arch, j.Transport); err != nil {
 		return mapError(err)
 	}
+	if key, ok := ctx.Value(apiKeyContext{}).(APIKey); ok {
+		if j.Transport != "agent" || j.Action != "upgrade" {
+			return ErrForbidden
+		}
+		allowed := false
+		for _, scope := range key.Scopes {
+			if scope == "agents:upgrade" {
+				allowed = true
+			}
+		}
+		if !allowed {
+			return ErrForbidden
+		}
+		if _, err = tx.Exec(ctx, "UPDATE machine_jobs SET origin_api_key_id=$2 WHERE id=$1", j.ID, key.ID); err != nil {
+			return err
+		}
+	}
 	if _, err = tx.Exec(ctx, "DELETE FROM machine_enrollments WHERE host_id=$1", j.HostID); err != nil {
 		return err
 	}

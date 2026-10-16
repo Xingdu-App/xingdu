@@ -22,6 +22,7 @@ const scopeNames: Record<string, string> = {
   "certificates:write": "管理域名和证书签发",
   "exits:read": "查看外部代理出口",
   "exits:write": "管理外部代理出口及线路选择",
+  "agents:upgrade": "升级已接入的 Agent",
   "hosts:read": "查看服务器",
   "hosts:write": "管理服务器",
   "nodes:read": "查看节点",

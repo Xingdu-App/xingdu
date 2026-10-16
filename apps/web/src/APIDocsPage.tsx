@@ -229,6 +229,15 @@ export default function APIDocsPage({
         "Report a client probe result; does not run a probe",
       ),
     ],
+    [
+      "POST",
+      "/hosts/{srv_id}/agent/upgrade",
+      "agents:upgrade",
+      copy(
+        "升级已接入的 Agent；需要 confirm_upgrade: true",
+        "Upgrade an enrolled Agent; requires confirm_upgrade: true",
+      ),
+    ],
   ];
   const example = `import getpass\nimport json\nimport urllib.request\n\nbase = ${JSON.stringify(base)}\nkey = getpass.getpass("Xingdu API key: ")\n\ndef request(method, path, payload=None):\n    body = None if method == "GET" else json.dumps(payload or {}).encode()\n    req = urllib.request.Request(\n        base + "/api/v1" + path, data=body, method=method,\n        headers={\n            "Authorization": "Bearer " + key,\n            "Content-Type": "application/json",\n        },\n    )\n    with urllib.request.urlopen(req, timeout=30) as response:\n        return None if response.status == 204 else json.load(response)\n\nfor host in request("GET", "/hosts")["data"]:\n    print(host["id"], host["name"])\nfor node in request("GET", "/nodes")["data"]:\n    print(node["id"], node["name"])`;
   return (
