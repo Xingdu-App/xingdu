@@ -171,6 +171,14 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 		t.Fatal(e)
 	}
 	nodes := assertNodes(ca, 1, "succeeded")
+	diagnostic, e := s.DiagnosticDeployment(ca, h.ID, d.ID)
+	if e != nil || diagnostic.Revision != 1 || len(diagnostic.Encrypted) == 0 {
+		t.Fatal("installed diagnostic revision", e)
+	}
+	if _, e := s.DiagnosticDeployment(cb, h.ID, d.ID); !errors.Is(e, ErrNotFound) {
+		t.Fatal("foreign tenant accessed diagnosis", e)
+	}
+
 	installedAt := nodes[0].InstalledAt
 	if e := s.Heartbeat(ctx, hash, machine.Metrics{Version: "0.6.0-dev", CPUs: 1}); e != nil {
 		t.Fatal(e)
@@ -254,6 +262,9 @@ func TestDeploymentTenantAgentLifecycle(t *testing.T) {
 	admin.Pool.Exec(ctx, "UPDATE memberships SET role='member' WHERE organization_id=$1 AND user_id=$2", org, b)
 	if _, e := s.Deployments(member, h.ID); e != nil {
 		t.Fatal("member read", e)
+	}
+	if _, e := s.DiagnosticDeployment(member, h.ID, d.ID); !errors.Is(e, ErrForbidden) {
+		t.Fatal("member accessed diagnosis", e)
 	}
 	if _, e := s.DeploymentSecret(member, h.ID, d.ID); !errors.Is(e, ErrForbidden) {
 		t.Fatal("member secret", e)

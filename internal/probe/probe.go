@@ -11,6 +11,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/exec"
@@ -18,8 +19,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"xingdu.app/xingdu/internal/bootstrap"
 	"xingdu.app/xingdu/internal/protocol"
+	"xingdu.app/xingdu/internal/subscription"
 )
+
+var ErrRuntime = errors.New("probe runtime unavailable")
 
 func VerifyRuntime(path string) error {
 	b, e := os.ReadFile(path)
@@ -36,6 +41,15 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 	if err := peer.Validate(); err != nil {
 		return 0, "", err
 	}
+	return runConfig(ctx, binary, endpoint, func(port int) ([]byte, error) {
+		cfg := map[string]any{"log": map[string]any{"disabled": true}, "inbounds": []any{map[string]any{"type": "socks", "listen": "127.0.0.1", "listen_port": port}}, "outbounds": peer.Outbounds(), "route": map[string]any{"final": "exit"}}
+		return json.Marshal(cfg)
+	})
+}
+func RunNode(ctx context.Context, binary, endpoint string, node subscription.Node) (int, string, error) {
+	return runConfig(ctx, binary, endpoint, func(port int) ([]byte, error) { return subscription.ProbeConfig(node, port) })
+}
+func runConfig(ctx context.Context, binary, endpoint string, config func(int) ([]byte, error)) (int, string, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil {
 		return 0, "", errors.New("HTTPS probe endpoint required")
@@ -46,8 +60,10 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 	}
 	port := l.Addr().(*net.TCPAddr).Port
 	l.Close()
-	cfg := map[string]any{"log": map[string]any{"disabled": true}, "inbounds": []any{map[string]any{"type": "socks", "listen": "127.0.0.1", "listen_port": port}}, "outbounds": peer.Outbounds(), "route": map[string]any{"final": "exit"}}
-	b, _ := json.Marshal(cfg)
+	b, err := config(port)
+	if err != nil {
+		return 0, "", err
+	}
 	defer clear(b)
 	run, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -55,7 +71,7 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 	cmd.Stdin = bytes.NewReader(b)
 	cmd.Env = []string{"PATH=/usr/bin:/bin"}
 	if err = cmd.Start(); err != nil {
-		return 0, "", errors.New("probe runtime failed")
+		return 0, "", ErrRuntime
 	}
 	defer func() { cancel(); cmd.Wait() }()
 	address := net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
@@ -74,7 +90,7 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 		}
 	}
 	if !ready {
-		return 0, "", errors.New("probe runtime not ready")
+		return 0, "", ErrRuntime
 	}
 	proxy, _ := url.Parse("socks5://" + address)
 	transport := &http.Transport{Proxy: http.ProxyURL(proxy)}
@@ -93,7 +109,8 @@ func Run(ctx context.Context, binary, endpoint string, peer protocol.Peer) (int,
 		return elapsed, "", errors.New("invalid probe response")
 	}
 	ip := strings.TrimSpace(string(body))
-	if net.ParseIP(ip) == nil {
+	parsed, parseErr := netip.ParseAddr(ip)
+	if parseErr != nil || !bootstrap.PublicTarget(parsed) {
 		return elapsed, "", errors.New("probe endpoint must return an IP address")
 	}
 	return elapsed, ip, nil

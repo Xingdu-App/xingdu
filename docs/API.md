@@ -327,6 +327,35 @@ saved; disabling must not be blocked by an incompatible installed node.
 Compatibility means the selected format can represent the configuration, not
 that a client version or real network connection has been verified.
 
+### On-demand node diagnosis
+
+`POST /api/v1/hosts/{srv_id}/deployments/{node_id}/diagnosis` requires
+`nodes:probe` and an owner/admin tenant role. No target, endpoint or credentials
+are accepted from the request. The API loads the installed encrypted revision
+under tenant scope and records `node_diagnosis_requested` in the machine audit.
+
+The `data` response includes `node_id`, `revision`, `checked_at`,
+`source: control_plane`, Agent/service snapshot fields and `network`.
+`network.dns` and each entry in `network.addresses` expose steps with
+`status` (`passed`, `failed`, `unknown`, `not_applicable`) and a stable `code`.
+Each address entry contains its family, literal address, `tcp`, `tls` and
+`forwarding`. At most one IPv4 and one IPv6 answer are tested independently.
+All DNS answers must pass the public-target policy before any connection;
+subsequent checks pin literal IPs to prevent DNS rebinding.
+
+A successful forwarding step establishes an HTTPS request through the selected
+node to a fixed IP echo endpoint. It uses the existing sing-box client adapter
+and a checksum-verified official Linux runtime in the artifact directory.
+Unavailable runtimes and unsupported client configurations (including current
+Xray REALITY) return `unknown`, never successful authentication. Failures do not
+uniquely identify bad credentials versus transport/egress faults. QUIC/WireGuard
+skip TCP and ordinary TLS checks; an HTTPS success does not verify UDP forwarding.
+Agent and service status are timestamped snapshots, not active machine probes.
+Results reflect the control plane network, not the user's local route. They are
+not persisted as node health. Requests have a 23-second network budget, two
+concurrent request slots per API process, and per-user rate limits; clients
+should allow 30 seconds and handle HTTP 429. No credential material is returned.
+
 ## External proxy exits
 
 Owners/admins can manage up to 100 external exits per organization in the

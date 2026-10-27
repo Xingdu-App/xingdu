@@ -209,7 +209,7 @@ func XrayServer(s Spec, socket string) ([]byte, error) {
 		stream["security"] = "reality"
 		stream["realitySettings"] = map[string]any{"show": false, "target": s.ServerName + ":443", "serverNames": []string{s.ServerName}, "privateKey": s.RealityPrivateKey, "shortIds": []string{s.RealityShortID}}
 	}
-	inbound := map[string]any{"tag": "xingdu-in", "listen": "0.0.0.0", "port": s.Port, "protocol": s.Protocol, "settings": settings, "streamSettings": stream}
+	inbound := map[string]any{"tag": "xingdu-in", "listen": "::", "port": s.Port, "protocol": s.Protocol, "settings": settings, "streamSettings": stream}
 	if v.Network == "xhttp" {
 		if socket == "" {
 			return nil, errors.New("XHTTP requires a private listener")

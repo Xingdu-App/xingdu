@@ -129,6 +129,33 @@ migration, including format persistence and tenant boundaries. Rebuilt Docker
 Compose API, worker, web and database passed health checks. These are local
 checks, not deployment or released-artifact verification.
 
+### On-demand node diagnosis and IPv6
+
+Node cards expose an administrator-only diagnosis dialog. The authenticated API
+separately checks public A/AAAA targets, TCP reachability, ordinary TLS trust and
+hostname, and native-client HTTPS forwarding when a verified official runtime is
+available. Runtime/client capability gaps, UDP-only protocols and missing IPv6
+routes are explicit. The Agent heartbeat and local service report remain
+snapshots. This is control-plane evidence, not local-client or UDP acceptance.
+
+New Xray configurations listen on `::`, matching the existing sing-box dual-stack
+listener. IPv4/IPv6 reachability still depends on the host's IPv6 assignment,
+listener policy, firewall and provider routing. Existing services need a config
+update/redeployment through an Agent containing this change. TrustTunnel retains
+its existing IPv4 listener pending separate upstream IPv6 acceptance.
+
+Local validation for this change: `make check` passed, including race-enabled
+backend tests and frontend lint/tests/build. Dedicated PostgreSQL deployment
+lifecycle tests passed with diagnosis checks for the installed revision,
+foreign-tenant denial and member denial. An isolated container running the
+pinned official Xray accepted loopback IPv4 and IPv6 connections to one `::`
+listener; this checks binding only, not protocol or public-VPS acceptance.
+Earlier Docker rebuild attempts were blocked by Docker Hub TLS handshake
+timeouts. On 2026-10-27, `make check`, the dedicated PostgreSQL deployment
+lifecycle test and `docker compose up --build -d --wait` all passed; the
+isolated test database was removed afterward. No production deployment or
+real-client diagnosis acceptance is recorded for this change.
+
 ### External ISP proxy exits (development)
 
 External exit CRUD, tenant RLS, encrypted credentials, independent API scopes,

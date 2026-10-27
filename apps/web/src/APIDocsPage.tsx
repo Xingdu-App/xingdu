@@ -231,6 +231,15 @@ export default function APIDocsPage({
     ],
     [
       "POST",
+      "/hosts/{srv_id}/deployments/{node_id}/diagnosis",
+      "nodes:probe",
+      copy(
+        "按需诊断，分别检查 IPv4 / IPv6；仅限组织管理员",
+        "On-demand IPv4 / IPv6 diagnosis; organization admins only",
+      ),
+    ],
+    [
+      "POST",
       "/hosts/{srv_id}/agent/upgrade",
       "agents:upgrade",
       copy(

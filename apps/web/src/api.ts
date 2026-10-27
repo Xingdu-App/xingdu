@@ -51,7 +51,9 @@ export async function request<T>(
   quiet401 = false,
 ): Promise<T> {
   const timeout = AbortSignal.timeout(
-    path.startsWith("/api/v1/billing") ? 30000 : 10000,
+    path.startsWith("/api/v1/billing") || path.endsWith("/diagnosis")
+      ? 30000
+      : 10000,
   );
   const combinedSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   const headers: Record<string, string> = {};

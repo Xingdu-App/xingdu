@@ -171,3 +171,16 @@ func renderSingbox(name string, nodes []Node, rules []Rule, final string) ([]byt
 	cfg := map[string]any{"log": map[string]any{"disabled": true}, "dns": map[string]any{"servers": []any{map[string]any{"type": "udp", "tag": "dns-public", "server": "9.9.9.9"}}}, "inbounds": []any{map[string]any{"type": "mixed", "tag": "local", "listen": "127.0.0.1", "listen_port": 7890}}, "outbounds": outs, "route": map[string]any{"rules": routeRules, "final": final, "default_domain_resolver": "dns-public"}}
 	return json.MarshalIndent(cfg, "", "  ")
 }
+
+// ProbeConfig reuses the native client adapter, preserving transport and TLS
+// options while routing one loopback SOCKS listener exclusively to this node.
+func ProbeConfig(n Node, port int) ([]byte, error) {
+	if port < 1 || port > 65535 {
+		return nil, errors.New("invalid probe port")
+	}
+	out, err := singboxOutbound(n, "exit")
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(map[string]any{"log": map[string]any{"disabled": true}, "inbounds": []any{map[string]any{"type": "socks", "listen": "127.0.0.1", "listen_port": port}}, "outbounds": []any{out}, "route": map[string]any{"final": "exit"}})
+}

@@ -13,6 +13,7 @@ import (
 )
 
 type DeploymentStore interface {
+	DiagnosticDeployment(context.Context, string, string) (storage.Deployment, error)
 	RecordProbe(context.Context, string, string, storage.ProbeReport) error
 	Revisions(context.Context, string, string) ([]storage.Revision, error)
 	RevisionSecret(context.Context, string, string, int) (storage.Deployment, error)
@@ -35,6 +36,7 @@ func deploymentAAD(org, host, id string) string {
 }
 func (a *api) deploymentRoutes(mux *http.ServeMux) {
 	a.revisionRoutes(mux)
+	a.diagnosisRoutes(mux)
 	mux.HandleFunc("POST /api/v1/hosts/{id}/deployments/{deployment}/probe", a.tenant(func(w http.ResponseWriter, r *http.Request, _ storage.User, _ string) {
 		if !validDeploymentID(w, r) {
 			return

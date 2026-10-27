@@ -5,6 +5,7 @@ import { t, useLocale, localeTag } from "./i18n";
 import { useState } from "react";
 import type { ManagedNode } from "./api";
 import Select from "./Select";
+import NodeDiagnosis from "./NodeDiagnosis";
 import { requiresTLS, isQUIC, protocolNames } from "./api";
 
 const status = (node: ManagedNode) =>
@@ -50,6 +51,7 @@ export default function NodePanel({
   onOpen: (node: ManagedNode) => void;
 }) {
   useLocale();
+  const [diagnosis, setDiagnosis] = useState<ManagedNode | null>(null);
   const [query, setQuery] = useState("");
   const [protocol, setProtocol] = useState("all");
   const filtered = nodes.filter(
@@ -202,6 +204,14 @@ export default function NodePanel({
                       ? t("离线")
                       : t("待接入")}
                 </span>
+                {manage && (
+                  <button
+                    className="secondary compact"
+                    onClick={() => setDiagnosis(node)}
+                  >
+                    {t("诊断")}
+                  </button>
+                )}
                 <button
                   className="secondary compact"
                   onClick={() => onOpen(node)}
@@ -218,6 +228,13 @@ export default function NodePanel({
           "Agent 在线仅表示机器与控制端保持连接。节点的实际连通性需通过客户端验证；卸载成功后将移出列表。",
         )}
       </p>
+      {diagnosis && (
+        <NodeDiagnosis
+          key={diagnosis.id}
+          node={diagnosis}
+          onClose={() => setDiagnosis(null)}
+        />
+      )}
     </section>
   );
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"net/netip"
 )
 
 func (c *Connector) ResolveTarget(ctx context.Context, address string) (string, error) {
@@ -17,4 +18,9 @@ func (c *Connector) ResolveTarget(ctx context.Context, address string) (string, 
 		}
 	}
 	return ips[0].Unmap().String(), nil
+}
+
+// PublicTarget does not inherit operator private-network exceptions.
+func PublicTarget(ip netip.Addr) bool {
+	return ip.Zone() == "" && (&Connector{}).allowed(ip)
 }

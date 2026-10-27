@@ -3225,3 +3225,50 @@ html[lang="en"] .subscription-rule {
   cursor: default;
   background: #f7f8f9;
 }
+
+.node-diagnosis-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+.diagnosis-address {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--line, #dfe7e9);
+  border-radius: 12px;
+}
+.diagnosis-address h3 {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  margin: 0 0 12px;
+}
+.diagnosis-step {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line, #dfe7e9);
+}
+.diagnosis-step > div {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+.diagnosis-step p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.diagnosis-status {
+  white-space: nowrap;
+  color: var(--muted, #637487);
+  font-size: 13px;
+}
+.diagnosis-passed {
+  color: #287958;
+}
+.diagnosis-failed {
+  color: #b33d3d;
+}
+.node-card-footer {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.node-card-footer .node-agent {
+  margin-right: auto;
+}

@@ -121,7 +121,7 @@ func apiScope(method, path string) string {
 			return "nodes:write"
 		}
 		if len(p) == 5 && method == "POST" {
-			if p[4] == "probe" {
+			if p[4] == "probe" || p[4] == "diagnosis" {
 				return "nodes:probe"
 			}
 			if p[4] == "restart" {
